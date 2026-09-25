@@ -9,7 +9,7 @@
        [ "dragon", "Your Dragon", "A Dragon flies any distance in a straight line, and it can only be taken by a Trebuchet, a Catapult or another Dragon. Opposing Range units will block it, but not kill it." ],
        [ "trump", "Trumps", "Some units trump others. For example, a Spearman will always defeat a Light Horse, even though the Light Horse has equal Strength to the Spearman." ]
      ].each do |image, title, body| %>
-    <article class="card tutorial-card" data-tutorial="<%= image %>">
+    <article class="card p-4 tutorial-card" data-tutorial="<%= image %>">
       <h3 class="text-lg font-bold text-heading mb-3"><%= title %></h3>
       <%= image_tag "tutorial/#{image}.png", alt: "Tutorial screenshot: #{title}", loading: "lazy", decoding: "async", class: "w-full rounded-lg mb-3" %>
       <p class="text-secondary leading-relaxed text-sm"><%= body %></p>

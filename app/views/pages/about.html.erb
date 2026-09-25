@@ -79,7 +79,7 @@
            [ "Zach Klabunde", "thanks/zachklabunde.jpeg", "https://www.linkedin.com/in/zbunde" ],
            [ "Aaron Gray", "thanks/aarongray.jpg", nil ]
          ].each do |name, photo, href| %>
-        <li class="thanks-profile card text-center">
+        <li class="thanks-profile card p-4 text-center">
           <% portrait = image_tag(photo, alt: name, loading: "lazy", decoding: "async", class: "thanks-portrait rounded-full object-cover mx-auto mb-2") %>
           <%= href ? link_to(portrait, href, target: "_blank", rel: "noopener noreferrer") : portrait %>
           <span class="font-semibold text-heading text-sm"><%= name %></span>
@@ -88,7 +88,7 @@
     </ul>
   </section>
 
-  <section id="gschool" class="card text-center mb-6">
+  <section id="gschool" class="card p-5 text-center mb-6">
     <h3 class="text-lg font-bold text-heading mb-2">gSchool g[3]</h3>
     <p class="text-secondary leading-relaxed max-w-xl mx-auto mb-4">
       Last and most importantly, I want to thank gSchool for being the greatest
