@@ -1,0 +1,99 @@
+<% content_for(:title, "About · Cyvasse") %>
+<%# Ported from the original site's about page (legacy home/about.html.erb).
+    Every external link opens a new tab with rel=noopener. Links whose
+    original target was a personal domain are dropped: those domains can lapse
+    and be re-registered (cyvasse.io now serves spam). %>
+
+<article class="max-w-3xl mx-auto about-page">
+  <%= render "pages/banner", image: "backgrounds/cyvasse_about_background.png", title: "About" %>
+
+  <section id="author" class="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-10">
+    <figure class="shrink-0 text-center">
+      <%= link_to "https://www.linkedin.com/in/amcritchie", target: "_blank", rel: "noopener noreferrer" do %>
+        <%= image_tag "thanks/alexmcritchie.jpg", alt: "Alex McRitchie", class: "about-portrait rounded-full object-cover" %>
+      <% end %>
+      <figcaption class="mt-2 font-semibold text-heading">Alex McRitchie</figcaption>
+    </figure>
+
+    <div class="rules-prose space-y-4">
+      <p>
+        <%= link_to "Cyvasse", "https://awoiaf.westeros.org/index.php/Cyvasse", target: "_blank", rel: "noopener noreferrer" %>
+        is a fictional game from
+        <%= link_to "George R. R. Martin's", "https://en.wikipedia.org/wiki/George_R._R._Martin", target: "_blank", rel: "noopener noreferrer" %>
+        series <i><%= link_to "A Song of Ice and Fire", "https://en.wikipedia.org/wiki/A_Song_of_Ice_and_Fire", target: "_blank", rel: "noopener noreferrer" %></i>,
+        played in
+        <%= link_to "Essos", "https://awoiaf.westeros.org/index.php/Essos", target: "_blank", rel: "noopener noreferrer" %>
+        and
+        <%= link_to "Dorne", "https://awoiaf.westeros.org/index.php/Dorne", target: "_blank", rel: "noopener noreferrer" %>.
+        The true rules of Cyvasse are not known, save by George R. R. Martin
+        himself, and it may be the case that he has never developed a complete
+        set of rules. The goal of this website is to allow fans to get together
+        and play each other using a set of rules I developed.
+      </p>
+    </div>
+  </section>
+
+  <section id="story" class="rules-prose space-y-4 mb-12">
+    <p>
+      Though the rules of Cyvasse are not specified in great detail in any of
+      the books, we are given hints on how the game is played. In preparation
+      for creating the rules, I diligently went over the entire
+      <i>A Song of Ice and Fire</i> series multiple times, including
+      <i><%= link_to "The World of Ice and Fire", "https://awoiaf.westeros.org/index.php/The_World_of_Ice_and_Fire", target: "_blank", rel: "noopener noreferrer" %></i>
+      and
+      <i><%= link_to "The Hedge Knight", "https://awoiaf.westeros.org/index.php/The_Hedge_Knight", target: "_blank", rel: "noopener noreferrer" %></i>,
+      paying special attention to
+      <i><%= link_to "A Feast for Crows", "https://awoiaf.westeros.org/index.php/A_Feast_for_Crows", target: "_blank", rel: "noopener noreferrer" %></i>
+      and
+      <i><%= link_to "A Dance with Dragons", "https://awoiaf.westeros.org/index.php/A_Dance_with_Dragons", target: "_blank", rel: "noopener noreferrer" %></i>,
+      where Cyvasse is referenced. The rules used in this imagining combine the
+      specifics found in the books with my views on game design.
+    </p>
+    <p>
+      This project started on August 8, 2014, as a personal project for gSchool,
+      a full-stack web development boot camp. gSchool played a crucial role in
+      the development of Cyvasse, as this is where I learned the skills I used
+      to build this site.
+    </p>
+    <p>
+      If nothing else, this site is a love letter to my favorite author,
+      George R. R. Martin, as well as an attempt to solidify a set of rules that
+      reflects the specifics and spirit of Cyvasse we learn about throughout
+      <i>A Song of Ice and Fire</i>.
+    </p>
+  </section>
+
+  <section id="thanks" class="mb-10">
+    <h2 class="text-2xl font-bold text-heading text-center mb-2">Thanks</h2>
+    <p class="text-secondary text-center leading-relaxed max-w-xl mx-auto mb-6">
+      I want to give a special thanks to the people who have been my friends and
+      mentors through this whole journey.
+    </p>
+
+    <ul class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <% [
+           [ "Jeff Taggart", "thanks/jefftaggart.jpeg", "https://www.linkedin.com/in/jetaggart" ],
+           [ "Bobby Wilson", "thanks/bobbywilson.jpg", "https://www.linkedin.com/in/bobbywilson0" ],
+           [ "Bobby Blackstock", "thanks/bobbyblackstock.jpeg", nil ],
+           [ "Sean Smith", "thanks/seansmith.jpeg", "https://www.linkedin.com/in/seansmith1020" ],
+           [ "Zach Klabunde", "thanks/zachklabunde.jpeg", "https://www.linkedin.com/in/zbunde" ],
+           [ "Aaron Gray", "thanks/aarongray.jpg", nil ]
+         ].each do |name, photo, href| %>
+        <li class="thanks-profile card text-center">
+          <% portrait = image_tag(photo, alt: name, loading: "lazy", decoding: "async", class: "thanks-portrait rounded-full object-cover mx-auto mb-2") %>
+          <%= href ? link_to(portrait, href, target: "_blank", rel: "noopener noreferrer") : portrait %>
+          <span class="font-semibold text-heading text-sm"><%= name %></span>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+
+  <section id="gschool" class="card text-center mb-6">
+    <h3 class="text-lg font-bold text-heading mb-2">gSchool g[3]</h3>
+    <p class="text-secondary leading-relaxed max-w-xl mx-auto mb-4">
+      Last and most importantly, I want to thank gSchool for being the greatest
+      group I have ever had the privilege of being a part of. I love you all!
+    </p>
+    <%= image_tag "thanks/gschool.jpg", alt: "The gSchool g[3] class", loading: "lazy", decoding: "async", class: "w-full rounded-lg" %>
+  </section>
+</article>

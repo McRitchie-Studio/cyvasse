@@ -26,7 +26,9 @@ Studio.configure do |config|
   config.sidebar_sections = [
     { title: "Cyvasse", links: [
       { label: "Home", href: "/", emoji: "♟️", desc: "The front door" },
-      { label: "Pieces", href: "/pieces", emoji: "🐘", desc: "Both piece skins" }
+      { label: "Pieces", href: "/pieces", emoji: "🐘", desc: "Both piece skins" },
+      { label: "Rules", href: "/rules", emoji: "📜", desc: "How to play" },
+      { label: "About", href: "/about", emoji: "🐉", desc: "Where Cyvasse came from" }
     ] },
     { title: "Admin", admin: true, links: [
       { label: "Theme", href: "/admin/theme", emoji: "🎨", desc: "Palette + dark mode" },

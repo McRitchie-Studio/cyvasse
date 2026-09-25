@@ -1,5 +1,5 @@
 class PagesController < ApplicationController
-  # The public pages: the front door and the piece gallery. The game itself
+  # The public pages: the front door, the piece gallery, the rules and about. The game itself
   # (epic piece 4) decides its own gate.
   skip_before_action :require_authentication
 
@@ -8,5 +8,12 @@ class PagesController < ApplicationController
 
   def pieces
     @pieces = Piece.all
+  end
+
+  def rules
+    @unit_classes = Rulebook.classes
+  end
+
+  def about
   end
 end
