@@ -3,8 +3,9 @@ require "application_system_test_case"
 # [e2e] A signed-out visitor plays a whole game against the computer, in a real
 # browser, through the board's own clicks. The engine's rules are unit-tested
 # in test/javascript; this proves the page boots them and a game runs to its
-# end. The controller's `pace` value is set to 0 so the legacy delays (the
-# computer's 1.5 s think, the 1.8 s banners) do not make the test slow.
+# end. Once both armies are on the board the controller's `pace` value is set
+# to 0, so the legacy delays (the computer's 1.5 s think, the 1.8 s banners) do
+# not make the test slow.
 class PlayAgainstComputerTest < ApplicationSystemTestCase
   MAX_TURNS = 400
 
@@ -15,7 +16,6 @@ class PlayAgainstComputerTest < ApplicationSystemTestCase
     assert_selector "svg.cyvasse-board g.hex", count: 91
     assert_selector ".cyvasse-dock .dock-unit", count: 19
     assert_selector ".cyvasse-dock img[src*='/pieces/vector/']", count: 19
-    page.execute_script("document.querySelector('[data-controller=cyvasse-game]').dataset.cyvasseGamePaceValue = '0'")
 
     place_one_by_hand
     click_on "Random Setup"
@@ -26,6 +26,9 @@ class PlayAgainstComputerTest < ApplicationSystemTestCase
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
     assert_selector "svg.cyvasse-board g.hex.has-unit[data-team='0']", count: 19
     assert_selector "svg.cyvasse-board g.hex.has-unit[data-team='1']", count: 19
+    # Both armies are counted at the legacy pace, while the opening banner is
+    # still up and nobody can have moved; from here on, no delays.
+    page.execute_script("document.querySelector('[data-controller=cyvasse-game]').dataset.cyvasseGamePaceValue = '0'")
 
     turns = 0
     until game["data-phase"] == "over"
