@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@import "../builds/tailwind/studio_engine";
+@config "../../../config/tailwind.config.js";
+
+/* The shared component classes (.card, .input-field, the .btn system, .badge,
+ * .empty-state) come from the engine import above — see
+ * studio-engine/docs/NEW_APP_SETUP.md section 13. Do NOT redeclare them here:
+ * the engine ships them as Tailwind v4 @utility, which outranks
+ * @layer components, so a local redeclaration silently loses.
+ *
+ * App-local styles (the game board, piece skins) belong below this comment. */

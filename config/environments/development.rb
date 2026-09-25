@@ -38,7 +38,11 @@ Rails.application.configure do
   config.action_mailer.perform_caching = false
 
   # Set localhost to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  # APP_PORT rather than a literal: bin/agent-worktree exports a port per desk
+  # stack, so a desk addresses itself. 3600 is this app's own default.
+  config.action_mailer.default_url_options = {
+    host: "localhost", port: ENV.fetch("APP_PORT", 3600).to_i
+  }
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log

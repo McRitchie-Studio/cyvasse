@@ -1,14 +1,17 @@
 Rails.application.routes.draw do
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
-
-  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
-  # Can be used by load balancers and uptime monitors to verify that the app is live.
+  # Health check: every deploy gate and uptime monitor probes it, so it stays
+  # outside the auth gate and never redirects
+  # (test/integration/health_endpoint_test.rb).
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
-  # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
-  # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
+  # Canonical passwordless sign-in page; legacy GETs land on it.
+  get "signin", to: "sessions#new", as: :signin
+  get "signup", to: redirect("/signin"), as: nil
 
-  # Defines the root path route ("/")
-  # root "posts#index"
+  # studio-engine: /login, magic link (POST /magic_link, /l/:token), /logout,
+  # hub SSO (/sso_login, POST /sso_continue), /error_logs, /admin/theme, the
+  # local email inbox and local review on developer desks.
+  Studio.routes(self)
+
+  root "pages#index"
 end

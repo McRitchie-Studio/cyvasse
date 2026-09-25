@@ -1,0 +1,13 @@
+<% content_for(:title, "Cyvasse") %>
+
+<section class="max-w-2xl mx-auto text-center py-16">
+  <h1 class="text-4xl font-extrabold text-heading tracking-tight mb-4">Cyvasse</h1>
+  <p class="text-secondary leading-relaxed mb-8">
+    The hexagonal strategy game is coming back to the board.
+  </p>
+  <% if logged_in? %>
+    <p class="text-secondary">Signed in as <%= current_user.display_name %>.</p>
+  <% else %>
+    <%= link_to "Sign in", signin_path, class: "btn btn-primary" %>
+  <% end %>
+</section>
