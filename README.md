@@ -71,7 +71,9 @@ opt-in switch (`config/initializers/session_store.rb`):
 
 ## Deploy
 
-`Procfile` runs `bin/rails db:migrate` in the Heroku release phase. The Heroku
+`Procfile` runs `bin/rails db:migrate` in the Heroku release phase. The release
+conductor's post-deploy command is `bin/rails users:seed_identities`, which
+idempotently seeds only the three identities above. The Heroku
 app, Postgres and the `cyvasse.mcritchie.studio` domain are epic piece 8 and do
 not exist yet. Object storage: none provisioned; Active Storage uses local disk
 until an upload feature needs a bucket.
