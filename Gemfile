@@ -14,6 +14,12 @@ gem "importmap-rails"
 gem "turbo-rails"
 # Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
 gem "stimulus-rails"
+# json 3.0 drops JSON.parse's two-argument form, which ActiveSupport 8.1.3.1
+# still calls (active_support/json/decoding.rb:25): under it every JSON column
+# fails to dump into db/schema.rb and every decode raises ArgumentError. The hub
+# and turf-monster resolve 2.x because their locks predate 3.0; an unpinned
+# fresh app resolves 3.0. Lift this with the Rails bump that supports json 3.
+gem "json", "~> 2.20"
 # Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
 gem "tailwindcss-rails", "~> 4.5"
 
