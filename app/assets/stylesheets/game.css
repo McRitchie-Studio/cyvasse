@@ -1,0 +1,211 @@
+/* The Cyvasse board at /play (games/show). Linked from that view only.
+ *
+ * The board keeps the legacy match screen's look in both themes: black hexes
+ * with white edges, orange for the selected unit and the last move, a blue
+ * ring for your units and a red one for the computer's (the legacy "unit
+ * outlines", on by default). The ring ripple paints hex fills inline from
+ * the controller; everything static lives here. */
+
+.cyvasse-layout {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .cyvasse-layout {
+    grid-template-columns: minmax(0, 1fr) 18rem;
+    align-items: start;
+  }
+}
+
+.cyvasse-board-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.cyvasse-board {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 44rem;
+  margin: 0 auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cyvasse-board .hex-poly {
+  fill: black;
+  stroke: white;
+  stroke-width: 1.5;
+  transition: fill 0.25s, stroke 0.25s;
+}
+
+.cyvasse-board .hex {
+  cursor: default;
+}
+
+.cyvasse-board .hex:hover .hex-poly {
+  stroke: yellow;
+}
+
+/* Setup: your five rows lit blue, occupied ones darker (pregame.js). */
+.cyvasse-board .is-deploy .hex-poly {
+  fill: blue;
+  cursor: pointer;
+}
+
+.cyvasse-board .is-deploy.has-unit .hex-poly {
+  fill: darkblue;
+}
+
+.cyvasse-board .is-last-move .hex-poly,
+.cyvasse-board .is-selected .hex-poly {
+  fill: orange;
+}
+
+.cyvasse-board .is-move,
+.cyvasse-board .is-attack,
+.cyvasse-board .has-unit {
+  cursor: pointer;
+}
+
+.cyvasse-board .unit-disc {
+  fill: none;
+  stroke: none;
+  stroke-width: 2.5;
+  pointer-events: none;
+}
+
+.cyvasse-board .has-unit[data-team="1"] .unit-disc {
+  stroke: rgb(59 130 246);
+}
+
+.cyvasse-board .has-unit[data-team="0"] .unit-disc {
+  stroke: rgb(220 38 38);
+}
+
+/* The pencil skin is black linework on a transparent ground; a parchment disc
+ * keeps it readable on the black board. */
+[data-skin="pencil"] .cyvasse-board .has-unit .unit-disc {
+  fill: #f7f4ec;
+}
+
+.cyvasse-board .unit-image {
+  pointer-events: none;
+}
+
+/* The rotator banner: slides in from the left, out to the right. */
+.cyvasse-banner {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  background: rgb(0 0 0 / 0.8);
+  border: 1px solid rgb(255 255 255 / 0.6);
+  color: white;
+  font-weight: 700;
+  font-size: 1.125rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-150%, -50%);
+  transition: transform 0.6s ease, opacity 0.6s ease;
+}
+
+.cyvasse-banner.is-showing {
+  opacity: 1;
+  transform: translate(-50%, -50%);
+}
+
+.cyvasse-banner.is-leaving {
+  opacity: 0;
+  transform: translate(50%, -50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cyvasse-banner,
+  .cyvasse-board .hex-poly {
+    transition: none;
+  }
+}
+
+.cyvasse-dock {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr));
+  gap: 0.375rem;
+}
+
+.cyvasse-dock:empty {
+  display: none;
+}
+
+.dock-unit {
+  aspect-ratio: 1;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  border: 2px solid var(--color-border);
+  background: #f7f4ec;
+  cursor: pointer;
+}
+
+.dock-unit[aria-pressed="true"] {
+  border-color: orange;
+  box-shadow: 0 0 0 2px orange;
+}
+
+.dock-unit img,
+.cyvasse-info-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.cyvasse-info-art {
+  width: 3.5rem;
+  height: 3.5rem;
+  flex: none;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  background: #f7f4ec;
+}
+
+.cyvasse-stats {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.cyvasse-stats div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.cyvasse-stats dt {
+  color: var(--color-text-muted, inherit);
+}
+
+.cyvasse-stats dd {
+  font-weight: 600;
+}
+
+.cyvasse-trump img,
+.cyvasse-graveyard img {
+  display: inline-block;
+  width: 1.75rem;
+  height: 1.75rem;
+  object-fit: contain;
+  vertical-align: middle;
+  border-radius: 0.25rem;
+  background: #f7f4ec;
+  margin: 0 0.125rem 0.125rem 0;
+}
+
+.cyvasse-graveyard {
+  min-height: 1.75rem;
+}
