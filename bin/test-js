@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# [unit] The game engine's JavaScript unit tests (app/javascript/cyvasse).
+#
+# node:test and node:assert only: no npm install, no package.json. The hook in
+# test/javascript/support maps the importmap's "cyvasse/*" specifiers onto
+# app/javascript/cyvasse so the modules run unchanged. CI runs this in the
+# `javascript` job (.github/workflows/ci.yml).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+files=("$@")
+if [ ${#files[@]} -eq 0 ]; then
+  files=(test/javascript/*_test.js)
+fi
+
+exec node --import ./test/javascript/support/register.mjs --test "${files[@]}"
