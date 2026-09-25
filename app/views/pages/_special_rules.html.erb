@@ -1,0 +1,18 @@
+<%# The four "Special Rules" cards from the original tutorial and in-game rules
+    drawer (legacy features/tutorial.js and features/toggle.js), each with its
+    tutorial screenshot. A partial so the game screen (epic piece 4) can reuse
+    it in its own rules drawer. %>
+<div class="grid gap-4 sm:grid-cols-2">
+  <% [
+       [ "range", "Range Units", "Range units attack from a distance and block Dragon movement, but they are vulnerable to any attack." ],
+       [ "cavalry", "Cavalry Units", "Cavalry units move or attack twice a turn. In this case the primary movement is 3 and the secondary is 2." ],
+       [ "dragon", "Your Dragon", "A Dragon flies any distance in a straight line, and it can only be taken by a Trebuchet, a Catapult or another Dragon. Opposing Range units will block it, but not kill it." ],
+       [ "trump", "Trumps", "Some units trump others. For example, a Spearman will always defeat a Light Horse, even though the Light Horse has equal Strength to the Spearman." ]
+     ].each do |image, title, body| %>
+    <article class="card p-4 tutorial-card" data-tutorial="<%= image %>">
+      <h3 class="text-lg font-bold text-heading mb-3"><%= title %></h3>
+      <%= image_tag "tutorial/#{image}.png", alt: "Tutorial screenshot: #{title}", loading: "lazy", decoding: "async", class: "w-full rounded-lg mb-3" %>
+      <p class="text-secondary leading-relaxed text-sm"><%= body %></p>
+    </article>
+  <% end %>
+</div>
