@@ -7,8 +7,10 @@ Rails 4.1.4) rebuilt as a managed McRitchie Studio satellite. The epic plan is
 
 So far the app holds auth, theme and error logging from
 [studio-engine](https://github.com/McRitchie-Studio/studio-engine), a public
-landing page, the original art, and a public `/pieces` gallery of it. The game
-engine arrives in a later piece of the epic.
+landing page, the original art, a public `/pieces` gallery of it, and the
+original site's `/rules` (with the tutorial's special-rules cards) and `/about`
+pages, their copy lightly edited. Unit stats for `/rules` live in
+`app/models/rulebook.rb`. The game engine arrives in a later piece of the epic.
 
 ## Stack
 
