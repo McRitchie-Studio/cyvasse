@@ -16,6 +16,9 @@ Rails.application.routes.draw do
   # Both piece skins side by side (epic cyvasse-revival piece 3). Public, like
   # the landing page: it is art, not a game surface.
   get "pieces", to: "pages#pieces", as: :pieces
+  # The rulebook and the about page, ported from the original site (piece 7).
+  get "rules", to: "pages#rules", as: :rules
+  get "about", to: "pages#about", as: :about
 
   root "pages#index"
 end

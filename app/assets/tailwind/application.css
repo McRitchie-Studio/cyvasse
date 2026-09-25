@@ -38,3 +38,48 @@
     padding: 0.5rem;
   }
 }
+
+/* Rules and about pages (/rules, /about). */
+.page-banner-scrim {
+  background: rgb(0 0 0 / 0.6);
+}
+
+.rules-prose h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.rules-prose p {
+  color: var(--color-text-body);
+  line-height: 1.7;
+}
+
+.rules-prose p + p {
+  margin-top: 0.75rem;
+}
+
+.rules-prose a,
+.about-page a {
+  color: rgb(var(--color-primary-rgb));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* A unit card's art tile: the parchment .piece-tile above, at a fixed size. */
+.unit-card-art {
+  width: 5.5rem;
+  height: 5.5rem;
+  padding: 0.5rem;
+}
+
+.about-portrait {
+  width: 9rem;
+  height: 9rem;
+}
+
+.thanks-portrait {
+  width: 6rem;
+  height: 6rem;
+}
