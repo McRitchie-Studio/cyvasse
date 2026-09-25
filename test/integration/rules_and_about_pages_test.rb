@@ -47,7 +47,7 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     assert_select "#author img[alt='Alex McRitchie'][src*='/assets/thanks/alexmcritchie-']"
     assert_select "#story p", text: /August 8, 2014/
 
-    thanked = ["Jeff Taggart", "Bobby Wilson", "Bobby Blackstock", "Sean Smith", "Zach Klabunde", "Aaron Gray"]
+    thanked = [ "Jeff Taggart", "Bobby Wilson", "Bobby Blackstock", "Sean Smith", "Zach Klabunde", "Aaron Gray" ]
     assert_select ".thanks-profile", count: thanked.size
     thanked.each { |name| assert_select ".thanks-profile img[alt=?]", name }
     assert_select "#gschool img[src*='/assets/thanks/gschool-']"
