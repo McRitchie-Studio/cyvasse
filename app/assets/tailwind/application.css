@@ -9,3 +9,29 @@
  * @layer components, so a local redeclaration silently loses.
  *
  * App-local styles (the game board, piece skins) belong below this comment. */
+
+/* Piece tiles (/pieces). The tile is parchment in BOTH themes on purpose: the
+ * pencil skin is black linework on a transparent ground, so a dark tile would
+ * swallow it. */
+.piece-tile {
+  margin: 0;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background: #f7f4ec;
+}
+
+.piece-tile img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+@media (max-width: 480px) {
+  .piece-tile {
+    padding: 0.5rem;
+  }
+}
