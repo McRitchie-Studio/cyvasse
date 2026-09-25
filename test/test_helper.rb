@@ -4,12 +4,28 @@ require "rails/test_help"
 
 module ActiveSupport
   class TestCase
-    # Run tests in parallel with specified workers
-    parallelize(workers: :number_of_processors)
+    # Single-process on purpose — the house convention for local suites.
+    parallelize(workers: 1)
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
-    # Add more helper methods to be used by all tests here...
+    # Studio::EmailSetting memoises the row it read in process state, which the
+    # transaction rollback cannot undo; clear it so one test's override never
+    # leaks into the next.
+    teardown do
+      Studio::EmailSetting.forget! if defined?(Studio::EmailSetting)
+    end
+  end
+end
+
+class ActionDispatch::IntegrationTest
+  # Sign in through the REAL engine flow: mint a Studio::Link magic link and
+  # POST the consume endpoint, which burns the token and starts the session.
+  def log_in_as(user)
+    raise ArgumentError, "log_in_as requires a user with an email" if user.email.blank?
+
+    token = Studio::Link.create_magic_link(email: user.email).token
+    post link_consume_path(token: token)
   end
 end
