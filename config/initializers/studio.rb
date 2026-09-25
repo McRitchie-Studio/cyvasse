@@ -15,15 +15,18 @@ Studio.configure do |config|
   )
   # A player who arrives signed in through the hub's SSO is an ordinary member.
   config.configure_sso_user = ->(user) { user.role = "viewer" }
-  # No logos yet: the title art arrives with the asset import (epic piece 3).
-  # With none declared the engine navbar renders the app name alone.
+  # No logos yet. The title art (app/assets/images/title/) is a wide wordmark
+  # and the navbar logo slot is a round badge, so it is not wired here. With
+  # none declared the engine navbar renders the app name alone.
   config.theme_logos = []
-  # Placeholder brand colour (parchment gold) until piece 3 brings the original
-  # art; /admin/theme can override it at runtime.
+  # Placeholder brand colour (parchment gold). The original art is in the app
+  # now (piece 3), but a palette drawn from it is a product call left open;
+  # /admin/theme can override it at runtime.
   config.theme_primary = "#C08A2E"
   config.sidebar_sections = [
     { title: "Cyvasse", links: [
-      { label: "Home", href: "/", emoji: "♟️", desc: "The front door" }
+      { label: "Home", href: "/", emoji: "♟️", desc: "The front door" },
+      { label: "Pieces", href: "/pieces", emoji: "🐘", desc: "Both piece skins" }
     ] },
     { title: "Admin", admin: true, links: [
       { label: "Theme", href: "/admin/theme", emoji: "🎨", desc: "Palette + dark mode" },

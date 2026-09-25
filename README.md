@@ -5,10 +5,10 @@ Alex's first app (2014–15, [`amcritchie/Cyvasse`](https://github.com/amcritchi
 Rails 4.1.4) rebuilt as a managed McRitchie Studio satellite. The epic plan is
 `/Users/alex/projects/.agents/epics/cyvasse-revival.md`.
 
-This repo is the empty app so far: auth, theme and error logging from
+So far the app holds auth, theme and error logging from
 [studio-engine](https://github.com/McRitchie-Studio/studio-engine), a public
-landing page, and nothing else. The art and the game engine arrive in later
-pieces of the epic.
+landing page, the original art, and a public `/pieces` gallery of it. The game
+engine arrives in a later piece of the epic.
 
 ## Stack
 
@@ -19,6 +19,27 @@ pieces of the epic.
 | Database | Postgres |
 | CSS / JS | Tailwind v4 (`tailwindcss-rails`), importmap, Turbo, Stimulus; Alpine from the engine |
 | Tier | managed satellite: PRs target `accepted`, which walks `accepted` → `release` → `main` |
+
+## Art
+
+Imported from the legacy repo and served through Propshaft
+(`image_tag "pieces/vector/king.svg"`). All of it lives under
+`app/assets/images/`:
+
+| Path | What | Legacy source |
+|---|---|---|
+| `pieces/pencil/*.png` | The pencil skin, 11 pieces | `app/assets/images/pieces/` |
+| `pieces/vector/*.svg` | The coloured vector skin, 11 pieces (verbatim) | `public/images/svgs/` |
+| `backgrounds/`, `title/`, `hex.svg` | Page backgrounds, title wordmarks, the hex outline | `app/assets/images/cyvasse_*.png`, `hex.svg` |
+| `tutorial/`, `thanks/` | Tutorial figures and the gSchool thanks photos | `public/images/tutorial/`, `public/images/thanks/` |
+
+`Piece` (`app/models/piece.rb`) is the lineup and resolves each skin's path.
+The rasters were compressed on import (256-colour PNG, JPEG q82, title art
+halved); `test/lib/art_assets_test.rb` fails on any raster over 250 KB, so
+compress a new one before adding it. `public/favicon.png` and the PWA icons
+are drawn from the vector elephant, the legacy site's share image. Left
+behind: user uploads, the Game of Thrones actor photos, `dragonOld.svg`,
+`human.svg`, `unFilteredSVGs/`, and the tutorial `draft1/` drafts.
 
 ## Local development
 
