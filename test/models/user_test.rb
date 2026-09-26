@@ -43,4 +43,14 @@ class UserTest < ActiveSupport::TestCase
 
     assert_equal "Mack Renamed", User.find_by!(email: "mack@mcritchie.studio").name
   end
+
+  test "piece_skin is nil until chosen, and only a real skin is accepted" do
+    user = User.create!(email: "carl@example.com", name: "Carl Test")
+    assert_nil user.piece_skin
+
+    assert user.update(piece_skin: "pencil")
+    assert user.update(piece_skin: "vector")
+    refute user.update(piece_skin: "chalk")
+    assert_includes user.errors[:piece_skin], "is not included in the list"
+  end
 end

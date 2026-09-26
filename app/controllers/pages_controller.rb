@@ -8,6 +8,8 @@ class PagesController < ApplicationController
 
   def pieces
     @pieces = Piece.all
+    # Both skins stay on show; the one in use comes first.
+    @skins = [ current_skin, *(Piece::SKINS.keys - [ current_skin ]) ]
   end
 
   def rules

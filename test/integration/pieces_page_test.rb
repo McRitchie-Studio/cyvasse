@@ -1,6 +1,7 @@
 require "test_helper"
 
-# [component] /pieces renders both skins of every piece, side by side.
+# [component] /pieces renders both skins of every piece, side by side, the
+# skin in use (test/integration/skin_switcher_test.rb) leading.
 class PiecesPageTest < ActionDispatch::IntegrationTest
   test "renders publicly with 22 piece images, each with alt text" do
     get pieces_path
@@ -12,18 +13,20 @@ class PiecesPageTest < ActionDispatch::IntegrationTest
     assert_select ".piece-tile img[alt='']", count: 0
   end
 
-  test "each piece shows the pencil tile first and the vector tile second" do
+  test "each piece shows both tiles, the skin in use first: vector by default" do
     get pieces_path
 
+    assert_select "[data-skin-heading]:nth-of-type(1)", text: /Vector\s+· in use/
     Piece.all.each do |piece|
       assert_select "section##{piece.slug}" do
         assert_select "h2", text: piece.name
         assert_select "figure.piece-tile", count: 2
-        assert_select "figure.piece-tile:nth-of-type(1)[data-skin=pencil] img[alt=?]", "#{piece.name}, pencil skin"
-        assert_select "figure.piece-tile:nth-of-type(2)[data-skin=vector] img[alt=?]", "#{piece.name}, vector skin"
+        assert_select "figure.piece-tile:nth-of-type(1)[data-skin=vector] img[alt=?]", "#{piece.name}, vector skin"
+        assert_select "figure.piece-tile:nth-of-type(2)[data-skin=pencil] img[alt=?]", "#{piece.name}, pencil skin"
       end
     end
   end
+
 
   test "image sources point at the digested pencil PNG and vector SVG" do
     get pieces_path
