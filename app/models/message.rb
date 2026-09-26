@@ -27,6 +27,12 @@ class Message < ApplicationRecord
   scope :between, lambda { |one, other|
     where(sender_id: one.id, receiver_id: other.id).or(where(sender_id: other.id, receiver_id: one.id))
   }
+  # The same messages as `between`, addressed by the pair's user ids (low,
+  # high) the way index_messages_on_conversation is keyed, so a long legacy
+  # thread is read through that index.
+  scope :in_pair, lambda { |low_id, high_id|
+    where("#{Conversation::PAIR_LOW} = ? AND #{Conversation::PAIR_HIGH} = ?", *[ low_id, high_id ].minmax)
+  }
   scope :unread_by, ->(user) { where(receiver_id: user.id, read: false) }
 
   # Every message `user` may read: an admin reads them all, a player only
