@@ -80,4 +80,14 @@ class MessageTest < ActiveSupport::TestCase
     assert_not @arya.destroy
     assert @arya.reload.persisted?
   end
+
+  test "with_text hides blank messages (empty, whitespace or null) and keeps them in the table" do
+    words = Message.create!(sender: @arya, receiver: @brienne, message: " a ")
+    blanks = [ "", "   ", "\n\t ", nil ].map.with_index(1) do |text, i|
+      Message.new(sender: @arya, receiver: @brienne, message: text, legacy_id: 900 + i).tap { _1.save!(validate: false) }
+    end
+    assert_equal [ words ], Message.where(id: [ words, *blanks ]).with_text.to_a
+    assert_equal 5, Message.where(id: [ words, *blanks ]).count
+    assert_equal [ words ], Message.visible_to(@arya).where(id: [ words, *blanks ]).to_a
+  end
 end

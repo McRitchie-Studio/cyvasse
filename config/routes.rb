@@ -45,11 +45,13 @@ Rails.application.routes.draw do
   resources :conversations, only: :show do
     post :messages, on: :member, action: :reply, as: :reply
   end
-  # Every conversation that ever happened, and the match each message was in:
-  # admins only; anyone else gets a 404.
+  # Every conversation that ever happened, and the match each message was in,
+  # and the old public message board (piece 15): admins only; anyone else
+  # gets a 404.
   namespace :admin do
     resources :conversations, only: %i[index show]
     resources :matches, only: :show
+    get "message_board", to: "message_board#index", as: :message_board
   end
   # Saved army lineups (piece 10b): save the army on the board to one of three
   # slots; the setup panel loads them in the browser.

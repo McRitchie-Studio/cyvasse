@@ -93,6 +93,7 @@ class LegacyImport
   COMPUTER_LEGACY_IDS = User::COMPUTER_LEGACY_IDS
   KING_INDEX = 17
   BATCH = 1_000
+  BOARD_POST = "a public message-board post (legacy receiver 0, match 0), imported as a board post".freeze
   ROLLED_BACK = "Nothing was imported: the whole run rolled back. " \
                 "The database's message is withheld because it quotes row values."
 
@@ -425,8 +426,6 @@ class LegacyImport
   end
 
   # ---- Board posts -------------------------------------------------------------
-
-  BOARD_POST = "a public message-board post (legacy receiver 0, match 0), imported as a board post".freeze
 
   # Legacy home#message_board: Message.where(match: 0), all addressed to 0.
   def board_post?(row)

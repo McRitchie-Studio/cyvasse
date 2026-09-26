@@ -13,4 +13,21 @@ class BoardPost < ApplicationRecord
   scope :with_text, -> { where(Message.text_present_sql(table_name)) }
   scope :blank_text, -> { where.not(Message.text_present_sql(table_name)).or(where(message: nil)) }
   scope :newest_first, -> { order(created_at: :desc, id: :desc) }
+
+  # One page of posts, with what messages/_pager needs.
+  Page = Struct.new(:posts, :page, :total, :per_page, keyword_init: true) do
+    def pages = [ (total.to_f / per_page).ceil, 1 ].max
+    def next_page = page < pages ? page + 1 : nil
+    def prev_page = page > 1 ? page - 1 : nil
+    def first_number = total.zero? ? 0 : ((page - 1) * per_page) + 1
+    def last_number = [ page * per_page, total ].min
+  end
+
+  # Page `number` of the posts with text, newest first, authors loaded.
+  def self.page(number, per_page: PER_PAGE)
+    number = [ number.to_i, 1 ].max
+    shown = with_text
+    posts = shown.newest_first.includes(:user).offset((number - 1) * per_page).limit(per_page).to_a
+    Page.new(posts: posts, page: number, total: shown.count, per_page: per_page)
+  end
 end

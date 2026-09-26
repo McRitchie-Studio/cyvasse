@@ -35,6 +35,7 @@ Studio.configure do |config|
     ] },
     { title: "Admin", admin: true, links: [
       { label: "Conversations", href: "/admin/conversations", emoji: "💬", desc: "Every conversation between players" },
+      { label: "Message Board", href: "/admin/message_board", emoji: "📌", desc: "The old public message board" },
       { label: "Theme", href: "/admin/theme", emoji: "🎨", desc: "Palette + dark mode" },
       { label: "Error logs", href: "/error_logs", emoji: "🚨", desc: "Captured errors" }
     ] }

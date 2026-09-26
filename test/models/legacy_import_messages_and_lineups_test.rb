@@ -43,11 +43,11 @@ class LegacyImportMessagesAndLineupsTest < ActiveSupport::TestCase
   end
 
   test "a message with nobody, or a missing player, at either end is skipped and counted" do
-    assert_equal 11, @report.messages_read
+    assert_equal 16, @report.messages_read
     assert_equal 8, @report.messages_imported
-    [ 204, 205, 211 ].each { |id| assert_nil Message.find_by(legacy_id: id), "legacy message #{id}" }
+    [ 204, 205, 211, 212, 213, 214, 215, 216 ].each { |id| assert_nil Message.find_by(legacy_id: id), "legacy message #{id}" }
     assert_equal({ "addressed to no player (legacy receiver 0)" => 1, "a sender or receiver missing from users.csv" => 1,
-                   "sent to themselves" => 1 }, @report.messages_skipped)
+                   "sent to themselves" => 1, LegacyImport::BOARD_POST => 5 }, @report.messages_skipped)
   end
 
   test "imported messages read in the inbox and the admin page as any other" do
@@ -103,7 +103,7 @@ class LegacyImportMessagesAndLineupsTest < ActiveSupport::TestCase
   end
 
   test "the SQL log never carries a message or a lineup name, even at debug level" do
-    [ Message, Setup, Match, User ].each { |model| model.where.not(legacy_id: nil).delete_all }
+    [ BoardPost, Message, Setup, Match, User ].each { |model| model.where.not(legacy_id: nil).delete_all }
     io = StringIO.new
     saved, ActiveRecord::Base.logger = ActiveRecord::Base.logger, ActiveSupport::Logger.new(io, level: :debug)
     import
@@ -115,7 +115,7 @@ class LegacyImportMessagesAndLineupsTest < ActiveSupport::TestCase
   test "the report is counts only" do
     text = @report.lines.join("\n")
     refute_match(/SYNTH|@|rook/i, text)
-    assert_match(/Messages read: 11\n  imported: 8\n/, text)
+    assert_match(/Messages read: 16\n  imported: 8\n/, text)
     assert_match(/Lineups read: 7\n  imported: 6\n/, text)
   end
 

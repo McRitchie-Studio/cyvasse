@@ -75,7 +75,7 @@ class LegacyImportIntegrationTest < ActionDispatch::IntegrationTest
   end
 
   def snapshot
-    [ User.order(:id).map(&:attributes), Match.order(:id).map(&:attributes) ]
+    [ User, Match, Message, BoardPost, Setup ].map { |model| model.order(:id).map(&:attributes) }
   end
 
   def with_env(vars)
