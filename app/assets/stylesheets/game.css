@@ -109,6 +109,14 @@
   display: inline;
 }
 
+/* A heavy shade would mute the orange of the selected unit and the last
+ * move, and the red of a hex under attack: those hexes let the cue through. */
+.cyvasse-board .is-selected .unit-shade,
+.cyvasse-board .is-last-move .unit-shade,
+.cyvasse-board .is-attack .unit-shade {
+  opacity: 0.2;
+}
+
 /* The rotator banner: slides in from the left, out to the right. */
 .cyvasse-banner {
   position: absolute;
