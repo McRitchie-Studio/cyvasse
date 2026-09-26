@@ -80,6 +80,11 @@ export default class extends GameController {
     this.poll()
   }
 
+  // A new polling pace takes effect at once (the system test shortens it).
+  pollMsValueChanged() {
+    if (this.state) this.poll()
+  }
+
   // Only while waiting on the opponent, and never over a turn or an army
   // this player is still putting together.
   poll() {
