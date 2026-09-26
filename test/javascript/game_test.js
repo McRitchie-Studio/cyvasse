@@ -168,6 +168,29 @@ test("cavalry jumps twice with the same unit in one turn", () => {
   assert.deepEqual(game.lastMove, [49, 51]);
 });
 
+// The second jump's origin is the hex the first jump ended on, and nothing
+// else: not another of the mover's units, not an enemy, not the hex the horse
+// left. The Ruby port holds the same rule (rules_test.rb "a cavalry unit's
+// second jump must start where its first ended").
+test("cavalry's second jump starts where the first ended, from no other hex", () => {
+  const game = readyGame();
+  game.start();
+  arrange(game, { "1-8": 46, "1-17": 91, "0-17": 1, "0-1": 5 });
+  game.offense = PLAYER;
+  assert.equal(game.act(46, 49).secondJump, true);
+  assert.equal(game.activeHex, 49, "the second jump's origin is where the first ended");
+
+  const board = () => game.units.map((u) => [u.id, u.status, u.hex]);
+  const before = board();
+  for (const [from, to] of [[91, 85], [5, 10], [46, 45]]) {
+    assert.throws(() => game.act(from, to), /cannot act now/, `a second step from ${from}`);
+    assert.deepEqual(board(), before, `nothing moved after the refused step from ${from}`);
+  }
+  assert.equal(game.offense, PLAYER, "the turn still belongs to the horse");
+  assert.equal(game.act(49, 51).turnEnded, true);
+  assert.equal(game.unit("1-8").hex, 51);
+});
+
 test("a shooter captures from where it stands", () => {
   const game = readyGame();
   game.start();

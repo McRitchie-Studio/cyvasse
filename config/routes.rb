@@ -36,6 +36,20 @@ Rails.application.routes.draw do
       post :moves, action: :move
       post :resign
     end
+    # The match's chat (piece 12): its two players only.
+    resources :messages, only: %i[index create], controller: "match_messages"
+  end
+  # A player's conversations, newest first, and each one's whole thread with
+  # a reply box. A conversation is addressed by the other player's user id.
+  get "inbox", to: "conversations#index", as: :inbox
+  resources :conversations, only: :show do
+    post :messages, on: :member, action: :reply, as: :reply
+  end
+  # Every conversation that ever happened, and the match each message was in:
+  # admins only; anyone else gets a 404.
+  namespace :admin do
+    resources :conversations, only: %i[index show]
+    resources :matches, only: :show
   end
   # The public name a player is challenged by.
   get "username", to: "usernames#edit", as: :username

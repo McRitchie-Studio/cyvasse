@@ -37,6 +37,9 @@ class Match < ApplicationRecord
   belongs_to :home_user, class_name: "User", inverse_of: :home_matches
   belongs_to :away_user, class_name: "User", inverse_of: :away_matches
   belongs_to :winner, class_name: "User", optional: true
+  # The match's chat (piece 12). A deleted match leaves its messages in the
+  # players' conversation: the foreign key nulls match_id (on_delete).
+  has_many :messages, dependent: nil
 
   validates :match_status, inclusion: { in: STATUSES }
   validates :finish_reason, inclusion: { in: REASONS }, allow_nil: true
@@ -64,7 +67,7 @@ class Match < ApplicationRecord
   end
 
   def accept!(user)
-    change(user) do
+    change_on_clock(user) do
       raise Refused, "Only #{away_user.username} can accept this challenge." unless seat(user) == :away
       raise Refused, "This challenge is no longer open." unless match_status == PENDING
 
@@ -83,7 +86,7 @@ class Match < ApplicationRecord
   end
 
   def resign!(user)
-    change(user) do
+    change_on_clock(user) do
       raise Refused, "Only a match in play can be resigned." unless in_progress?
 
       finish!(winner: opponent_of(user), reason: "resigned")
@@ -96,7 +99,7 @@ class Match < ApplicationRecord
   # 52-91), the format the browser and the legacy app share. Submitting it
   # locks it in; when both armies are in, the game starts.
   def set_up!(user, lineup)
-    started = change(user) do
+    started = change_on_clock(user) do
       raise Refused, "Accept the challenge first." if match_status == PENDING && seat(user) == :away
       raise Refused, "This match is past its setup." unless PREGAME.include?(match_status)
       raise Refused, "Your army is already in place." if ready?(user)
@@ -124,24 +127,17 @@ class Match < ApplicationRecord
 
   # One whole turn from `user`'s seat: [[from, to]], or two steps for a
   # cavalry double jump. Refused unless it is their turn and every step is
-  # legal; a move after the clock ran out forfeits instead.
+  # legal; a move after the clock ran out forfeits instead (change_on_clock).
   def play!(user, steps)
     steps = normalize_steps(steps)
     steps = steps.map { |step| step.map { |hex| CyvasseRules::Board.mirror(hex) } } if seat(user) == :away
 
-    expired = false
-    change(user) do
-      if clock_expired?
-        expire_on_clock
-        expired = true
-        next
-      end
+    change_on_clock(user) do
       raise Refused, "This match is not in play." unless in_progress?
       raise Refused, "It is #{user_to_move.username}'s turn." unless your_turn?(user)
 
       apply_turn(steps)
     end
-    raise Refused, "The seven-day clock ran out before this move; the match is over." if expired
 
     notify(:your_turn, user_to_move) if in_progress?
     self
@@ -282,6 +278,27 @@ class Match < ApplicationRecord
     raise Refused, "You are not playing in this match." unless player?(user)
 
     with_lock { yield }
+  end
+
+  # A change that the seven-day clock may already have decided: a stale page
+  # can post a move, a resignation, an acceptance or an army after the
+  # deadline. The forfeit (or, before play, the expiry) is settled first under
+  # the lock and the request is refused, so a late click never overturns the
+  # result the clock gave. The refusal is raised after the lock is released so
+  # the settled result commits.
+  def change_on_clock(user)
+    expired = false
+    value = change(user) do
+      if clock_expired?
+        expire_on_clock
+        expired = true
+        next
+      end
+      yield
+    end
+    raise Refused, "The seven-day clock ran out; the match is over." if expired
+
+    value
   end
 
   def start_game

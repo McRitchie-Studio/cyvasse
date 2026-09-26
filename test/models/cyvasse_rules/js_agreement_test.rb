@@ -34,25 +34,41 @@ class CyvasseRules::JsAgreementTest < ActiveSupport::TestCase
     assert_operator checked, :>, 1000, "the record is not a handful of cases"
   end
 
+  # Play the recorded turns and check each against the engine's state after it.
+  def replay(game, turns, label)
+    turns.each_with_index do |turn, t|
+      where = "#{label}, turn #{t}"
+      assert_equal turn.fetch("mover"), game.offense, "#{where}: mover"
+      result = game.play!(turn.fetch("steps"))
+      assert_equal turn.fetch("offense"), game.offense, "#{where}: next to move"
+      assert_equal turn.fetch("turn"), game.turn, "#{where}: turn count"
+      assert_equal turn.fetch("lastMove"), result.last_move, "#{where}: last move"
+      assert_same_value turn.fetch("utilMove"), result.util_move, "#{where}: cavalry mark"
+      assert_equal turn.fetch("passed"), result.passed, "#{where}: pass"
+      assert_equal turn.fetch("over"), result.over, "#{where}: over"
+      assert_equal turn.fetch("dead"), game.units.count { |u| u.status == :dead }, "#{where}: captures"
+      assert_same_value turn.fetch("winner"), game.winner, "#{where}: winner" if turn.fetch("over")
+    end
+  end
+
   test "every recorded game replays turn by turn to the engine's state and result" do
     RECORD.fetch("games").each_with_index do |record, g|
       game = CyvasseRules::Game.new(home: record.fetch("home"), away: record.fetch("away"))
       game.start!(coin: -> { record.fetch("first") })
       assert_equal record.fetch("first"), game.offense, "game #{g}: who moves first"
+      replay(game, record.fetch("turns"), "game #{g}")
+    end
+  end
 
-      record.fetch("turns").each_with_index do |turn, t|
-        where = "game #{g}, turn #{t}"
-        assert_equal turn.fetch("mover"), game.offense, "#{where}: mover"
-        result = game.play!(turn.fetch("steps"))
-        assert_equal turn.fetch("offense"), game.offense, "#{where}: next to move"
-        assert_equal turn.fetch("turn"), game.turn, "#{where}: turn count"
-        assert_equal turn.fetch("lastMove"), result.last_move, "#{where}: last move"
-        assert_same_value turn.fetch("utilMove"), result.util_move, "#{where}: cavalry mark"
-        assert_equal turn.fetch("passed"), result.passed, "#{where}: pass"
-        assert_equal turn.fetch("over"), result.over, "#{where}: over"
-        assert_equal turn.fetch("dead"), game.units.count { |u| u.status == :dead }, "#{where}: captures"
-        assert_same_value turn.fetch("winner"), game.winner, "#{where}: winner" if turn.fetch("over")
-      end
+  # The set positions random games never reach: a boxed-in side passes, and a
+  # move that leaves neither side a move draws (game.js #beginTurn).
+  test "every recorded pass and draw replays to the engine's state and result" do
+    scenarios = RECORD.fetch("scenarios")
+    assert_operator scenarios.size, :>=, 4, "the record carries the pass and draw scenarios"
+    scenarios.each do |record|
+      game = CyvasseRules::Game.new(home: record.fetch("home"), away: record.fetch("away"),
+                                    offense: record.fetch("offense"), turn: record.fetch("turn"))
+      replay(game, record.fetch("turns"), record.fetch("name"))
     end
   end
 end

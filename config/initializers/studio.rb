@@ -28,11 +28,13 @@ Studio.configure do |config|
       { label: "Home", href: "/", emoji: "♟️", desc: "The front door" },
       { label: "Play", href: "/play", emoji: "🐲", desc: "A game against the computer" },
       { label: "My games", href: "/matches", emoji: "⚔️", desc: "Online matches against players" },
+      { label: "Inbox", href: "/inbox", emoji: "✉️", desc: "Messages from other players" },
       { label: "Pieces", href: "/pieces", emoji: "🐘", desc: "Both piece skins" },
       { label: "Rules", href: "/rules", emoji: "📜", desc: "How to play" },
       { label: "About", href: "/about", emoji: "🐉", desc: "Where Cyvasse came from" }
     ] },
     { title: "Admin", admin: true, links: [
+      { label: "Conversations", href: "/admin/conversations", emoji: "💬", desc: "Every conversation between players" },
       { label: "Theme", href: "/admin/theme", emoji: "🎨", desc: "Palette + dark mode" },
       { label: "Error logs", href: "/error_logs", emoji: "🚨", desc: "Captured errors" }
     ] }

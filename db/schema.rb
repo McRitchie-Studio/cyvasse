@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_26_000020) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_26_000030) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -84,6 +84,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000020) do
     t.index ["legacy_id"], name: "index_matches_on_legacy_id", unique: true
     t.index ["match_status", "time_of_last_move"], name: "index_matches_on_match_status_and_time_of_last_move"
     t.index ["winner_id"], name: "index_matches_on_winner_id"
+  end
+
+  create_table "messages", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "legacy_id"
+    t.bigint "match_id"
+    t.text "message"
+    t.boolean "read", default: false, null: false
+    t.bigint "receiver_id", null: false
+    t.bigint "sender_id", null: false
+    t.datetime "updated_at", null: false
+    t.index "LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id), created_at", name: "index_messages_on_conversation"
+    t.index ["legacy_id"], name: "index_messages_on_legacy_id", unique: true
+    t.index ["match_id", "created_at"], name: "index_messages_on_match_id_and_created_at"
+    t.index ["receiver_id", "read"], name: "index_messages_on_receiver_id_and_read"
+    t.index ["sender_id"], name: "index_messages_on_sender_id"
   end
 
   create_table "studio_email_deliveries", force: :cascade do |t|
@@ -252,5 +268,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000020) do
   add_foreign_key "matches", "users", column: "away_user_id"
   add_foreign_key "matches", "users", column: "home_user_id"
   add_foreign_key "matches", "users", column: "winner_id"
+  add_foreign_key "messages", "matches", on_delete: :nullify
+  add_foreign_key "messages", "users", column: "receiver_id"
+  add_foreign_key "messages", "users", column: "sender_id"
   add_foreign_key "studio_email_deliveries", "users"
 end
