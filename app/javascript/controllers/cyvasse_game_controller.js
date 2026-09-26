@@ -56,6 +56,7 @@ export default class extends Controller {
   newGame() {
     this.clearTimers()
     this.game = new Game()
+    this.holding = false
     this.selectedUnitId = null
     this.selectedHex = null
     this.actions = null
@@ -75,6 +76,10 @@ export default class extends Controller {
   start() {
     if (!this.game.readyToStart) return
     this.game.start()
+    // Hold the board until the opening banner hands over to turn 1: a move
+    // made under the banner would start a second turn loop when it closes.
+    this.holding = true
+    this.element.dataset.holding = "true"
     this.selectedUnitId = null
     this.setupControlsTarget.hidden = true
     this.render()
@@ -84,6 +89,7 @@ export default class extends Controller {
 
   // Game.runTurn: announce the turn, mark the last move, let the computer think.
   runTurn() {
+    this.holding = false
     this.clearSelection()
     this.render()
     if (this.game.phase === "over") return this.announceWinner()
@@ -126,7 +132,7 @@ export default class extends Controller {
 
   clickHex(event) {
     const node = event.target.closest("[data-hex]")
-    if (!node) return
+    if (!node || this.holding) return
     const hex = Number(node.dataset.hex)
     if (this.game.phase === "setup") return this.setupClick(hex)
     if (this.game.phase === "play" && this.game.offense === PLAYER) this.playClick(hex)
@@ -195,6 +201,7 @@ export default class extends Controller {
     root.dataset.phase = game.phase
     root.dataset.turn = game.turn
     root.dataset.offense = game.offense ?? ""
+    root.dataset.holding = this.holding ? "true" : "false"
 
     for (const [index, node] of this.hexNodes) {
       const unit = game.pieceAt(index)

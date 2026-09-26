@@ -56,7 +56,7 @@ class PlayAgainstComputerTest < ApplicationSystemTestCase
   end
 
   def wait_for_my_move_or_the_end(game)
-    assert_selector "[data-controller=cyvasse-game][data-phase=over], [data-controller=cyvasse-game][data-phase=play][data-offense='1']", wait: 15
+    assert_selector "[data-controller=cyvasse-game][data-phase=over], [data-controller=cyvasse-game][data-phase=play][data-offense='1'][data-holding=false]", wait: 15
   end
 
   # Select our units in turn until one has somewhere to go; take a capture if
