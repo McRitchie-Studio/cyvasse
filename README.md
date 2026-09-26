@@ -10,7 +10,8 @@ So far the app holds auth, theme and error logging from
 landing page, the original art, a public `/pieces` gallery of it, and the
 original site's `/rules` (with the tutorial's special-rules cards) and `/about`
 pages, their copy lightly edited. Unit stats for `/rules` live in
-`app/models/rulebook.rb`. The game engine arrives in a later piece of the epic.
+`app/models/rulebook.rb`. And the game itself: `/play`, a public game against
+the computer, played entirely in the browser.
 
 ## Stack
 
@@ -43,6 +44,30 @@ are drawn from the vector elephant, the legacy site's share image. Left
 behind: user uploads, the Game of Thrones actor photos, `dragonOld.svg`,
 `human.svg`, `unFilteredSVGs/`, and the tutorial `draft1/` drafts.
 
+## The game
+
+`/play` (`GamesController`, public) is one game against the computer. Nothing is
+saved and no account is needed; matches and turns between players are a later
+piece of the epic. The rules are the legacy engine's, ported line for line from
+`amcritchie/Cyvasse` `app/assets/javascripts` into plain ES modules:
+
+| Module (`app/javascript/cyvasse/`) | Legacy source |
+|---|---|
+| `units.js` | the unit table and the 19-piece army (`LoadFactory/createUnits.js`) |
+| `board.js` | the 91-hex board, neighbours, mirroring (`LoadFactory/map.js`, `goodCode/neighbors.js`) |
+| `potential_range.js` | the reach before blocking (`hexRange/potentialRange.js`) |
+| `rules.js` | moves, captures, projectiles, mountain shadows (`hexRange/`) |
+| `setups.js` | the computer's 18 opening lineups (`app/models/user.rb#cpu_opponent`) |
+| `game.js` | setup, who moves first, turns, the cavalry double jump, the win |
+| `ai.js` | the computer opponent (`ai.js`) |
+
+`app/javascript/controllers/cyvasse_game_controller.js` draws the board and turns
+clicks into `Game` calls; it holds no rules. The modules import each other as
+`cyvasse/<module>`, pinned in `config/importmap.rb`. The piece art is one
+parameter: `/play?skin=pencil` draws the pencil skin, and the default is vector.
+`test/lib/engine_rulebook_agreement_test.rb` keeps the `/rules` card's numbers
+and the engine's in step.
+
 ## Local development
 
 ```bash
@@ -52,9 +77,15 @@ bin/dev                      # web on :3600 plus the Tailwind watcher
 ```
 
 Port **3600** is the app's own; desks take the rest of the 3600 range from
-`bin/agent-worktree`, which exports `APP_PORT`. `bin/rails test` runs the suite
-(single-process); CI runs the same suite plus brakeman, bundler-audit,
-importmap audit and rubocop on every PR and on `accepted`, `release` and `main`.
+`bin/agent-worktree`, which exports `APP_PORT`. Three test lanes, all run by CI on
+every PR and on `accepted`, `release` and `main`, alongside brakeman,
+bundler-audit, importmap audit and rubocop:
+
+| Command | What |
+|---|---|
+| `bin/rails test` | unit, component and integration tests (single-process) |
+| `bin/rails test:system` | browser tests in headless Chrome: a whole game against the computer |
+| `bin/test-js` | the game engine's unit tests, on `node:test` (Node 20+, no npm install) |
 
 The seeds create three identities: `alex@mcritchie.studio` (admin),
 `mack@mcritchie.studio` (the ordinary member) and `alex@cyvasse.mcritchie.studio`

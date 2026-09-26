@@ -3,11 +3,16 @@
 <section class="max-w-2xl mx-auto text-center py-16">
   <h1 class="text-4xl font-extrabold text-heading tracking-tight mb-4">Cyvasse</h1>
   <p class="text-secondary leading-relaxed mb-8">
-    The hexagonal strategy game is coming back to the board.
+    The hexagonal strategy game is back on the board. Play the computer now,
+    no account needed.
   </p>
+  <div class="flex flex-wrap justify-center gap-3 mb-6">
+    <%= link_to "Play the computer", play_path, class: "btn btn-primary btn-lg" %>
+    <% unless logged_in? %>
+      <%= link_to "Sign in", signin_path, class: "btn btn-secondary btn-lg" %>
+    <% end %>
+  </div>
   <% if logged_in? %>
     <p class="text-secondary">Signed in as <%= current_user.display_name %>.</p>
-  <% else %>
-    <%= link_to "Sign in", signin_path, class: "btn btn-primary" %>
   <% end %>
 </section>

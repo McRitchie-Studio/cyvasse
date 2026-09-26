@@ -19,6 +19,9 @@ Rails.application.routes.draw do
   # The rulebook and the about page, ported from the original site (piece 7).
   get "rules", to: "pages#rules", as: :rules
   get "about", to: "pages#about", as: :about
+  # A game against the computer, played in the browser (piece 4). Public: no
+  # account and nothing saved until matches arrive (piece 6).
+  get "play", to: "games#show", as: :play
 
   root "pages#index"
 end

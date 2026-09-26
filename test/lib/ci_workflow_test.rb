@@ -31,8 +31,17 @@ class CiWorkflowTest < ActiveSupport::TestCase
     end
   end
 
-  test "no system-test lane that would test nothing" do
-    refute workflow["jobs"].key?("system-test"),
-           "test/system has no tests yet; a lane over an empty directory is a green that means nothing"
+  test "the system tests run in CI, and there are system tests to run" do
+    runs = workflow["jobs"].values.flat_map { |job| job["steps"] || [] }.filter_map { |step| step["run"] }
+
+    assert runs.any? { |run| run.include?("test:system") }, "no step runs test/system"
+    refute_empty Dir[Rails.root.join("test/system/**/*_test.rb")], "a system lane over an empty directory tests nothing"
+  end
+
+  test "the JavaScript unit tests run in CI, and there are tests to run" do
+    runs = workflow["jobs"].values.flat_map { |job| job["steps"] || [] }.filter_map { |step| step["run"] }
+
+    assert runs.any? { |run| run.include?("bin/test-js") }, "no step runs the game engine's unit tests"
+    refute_empty Dir[Rails.root.join("test/javascript/*_test.js")], "bin/test-js would have nothing to run"
   end
 end

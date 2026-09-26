@@ -5,7 +5,7 @@ require "test_helper"
 class AuthGateTest < ActionDispatch::IntegrationTest
   # Controllers that deliberately skip require_authentication. Adding one is a
   # product decision, not a convenience — say why in the controller.
-  PUBLIC_CONTROLLERS = %w[PagesController].freeze
+  PUBLIC_CONTROLLERS = %w[PagesController GamesController].freeze
 
   test "landing renders publicly and offers sign-in" do
     get root_path

@@ -46,10 +46,27 @@ jobs:
         if: always()
         run: bin/rubocop -f github
 
-  # The unit and integration suite. There is no system-test lane yet: test/system
-  # holds no tests, and a lane over an empty directory is a permanent green that
-  # tests nothing (studio-engine/docs/NEW_APP_SETUP.md section 15). Add the lane
-  # with the first browser test, when the game board (epic piece 4) lands.
+  # The game engine's JavaScript unit tests (app/javascript/cyvasse), on
+  # node:test with no npm install: bin/test-js is the whole lane.
+  javascript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run JavaScript unit tests
+        run: bin/test-js
+
+  # The unit, integration and system suites. `test:system` drives headless
+  # Chrome (preinstalled on ubuntu-latest) through the game board; it joined
+  # with the first browser test, test/system/play_against_computer_test.rb.
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -91,4 +108,4 @@ jobs:
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
-        run: bin/rails db:test:prepare test
+        run: bin/rails db:test:prepare test test:system
