@@ -108,8 +108,9 @@ players only.
 is a line-for-line Ruby mirror of its board, reach, rules and turn flow, and
 `Match#play!` refuses any turn it does not allow. The two are held together
 by a recorded fixture: `bin/rules-agreement` asks the JS engine for its moves
-and captures on 60 seeded positions (both jumps for cavalry) and for six whole
-seeded games, and writes `test/fixtures/files/rules_agreement.json`.
+and captures on 60 seeded positions (both jumps for cavalry), for six whole
+seeded games, and for four set positions that reach a pass and a stalemate
+draw (random games never do), and writes `test/fixtures/files/rules_agreement.json`.
 `test/javascript/agreement_fixture_test.js` fails if the engine no longer
 gives those answers, and `test/models/cyvasse_rules/js_agreement_test.rb`
 fails if the Ruby port does not. **Change a rule in `app/javascript/cyvasse`,
@@ -124,7 +125,8 @@ withholds the opponent's army until both are in.
 **The clock.** `time_of_last_move` starts a seven-day clock (the legacy rule).
 When it runs out, the player to move forfeits (a win and a loss on the
 players' records); an unplayed challenge simply expires. The rule is enforced
-whenever either player opens My games or the match, and on any late move, so
+whenever either player opens My games or the match, and on any late move,
+resignation, acceptance or army (a stale page cannot overturn the forfeit), so
 it needs no scheduler; `bin/rails matches:expire` sweeps every match and may
 be run daily by one.
 
