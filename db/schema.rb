@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_25_222326) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_26_000011) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -56,6 +56,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_25_222326) do
     t.string "target_type"
     t.datetime "updated_at", null: false
     t.index ["slug"], name: "index_error_logs_on_slug", unique: true
+  end
+
+  create_table "matches", force: :cascade do |t|
+    t.boolean "away_ready", default: false
+    t.string "away_units_position"
+    t.bigint "away_user_id", null: false
+    t.datetime "created_at", null: false
+    t.boolean "fast_game", default: false
+    t.string "finish_reason"
+    t.boolean "home_ready", default: false
+    t.string "home_units_position"
+    t.bigint "home_user_id", null: false
+    t.string "last_move"
+    t.string "match_against", default: "human"
+    t.string "match_status", default: "pending"
+    t.datetime "time_of_last_move"
+    t.integer "turn", default: 0
+    t.datetime "updated_at", null: false
+    t.string "utility_saved_hex"
+    t.integer "who_started"
+    t.integer "whos_turn"
+    t.bigint "winner_id"
+    t.index ["away_user_id"], name: "index_matches_on_away_user_id"
+    t.index ["home_user_id"], name: "index_matches_on_home_user_id"
+    t.index ["match_status", "time_of_last_move"], name: "index_matches_on_match_status_and_time_of_last_move"
+    t.index ["winner_id"], name: "index_matches_on_winner_id"
   end
 
   create_table "studio_email_deliveries", force: :cascade do |t|
@@ -200,18 +226,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_25_222326) do
     t.string "email"
     t.string "first_name"
     t.jsonb "ip_locations", default: [], null: false
+    t.integer "losses", default: 0, null: false
     t.string "name"
     t.string "provider"
     t.string "role", default: "viewer"
     t.string "slug"
     t.string "uid"
     t.datetime "updated_at", null: false
+    t.string "username"
+    t.integer "wins", default: 0, null: false
+    t.index "lower((username)::text)", name: "index_users_on_lower_username"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true
     t.index ["slug"], name: "index_users_on_slug", unique: true
+    t.index ["username"], name: "index_users_on_username", unique: true
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "matches", "users", column: "away_user_id"
+  add_foreign_key "matches", "users", column: "home_user_id"
+  add_foreign_key "matches", "users", column: "winner_id"
   add_foreign_key "studio_email_deliveries", "users"
 end
