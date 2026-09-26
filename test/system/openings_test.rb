@@ -2,7 +2,7 @@ require "application_system_test_case"
 
 # [e2e] The opening picker and the marquee flair in a real browser: a visitor
 # loads one of the twenty openings (app/javascript/cyvasse/openings.js) onto
-# the board, and the king, dragon, elephants and trebuchet glow gold.
+# the board, and the king, dragon, elephants and trebuchet are lit from behind.
 class OpeningsSystemTest < ApplicationSystemTestCase
   test "load an opening during setup against the computer; the marquee pieces wear their flair" do
     visit play_path

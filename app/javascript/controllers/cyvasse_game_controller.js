@@ -39,9 +39,9 @@ const RANGE_STROKE = { 1: "red", 2: "red", 3: "blue", 4: "blue" }
 
 const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", unique: "Unique", mountain: "Mountain" }
 
-// The pieces that decide games glow gold from behind so they stand out on a
-// crowded board: the king (lose it and you lose), the dragon, the elephant,
-// and the trebuchet that brings dragons down.
+// The pieces that decide games are lit from behind by a white point of light
+// so they stand out on a crowded board: the king (lose it and you lose), the
+// dragon, the elephant, and the trebuchet that brings dragons down.
 const MARQUEE = Object.freeze(["king", "dragon", "elephant", "trebuchet"])
 
 export default class extends Controller {
@@ -245,7 +245,7 @@ export default class extends Controller {
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`)
     svg.replaceChildren()
     const glow = el("radialGradient", { id: "marquee-glow" })
-    for (const [offset, color, opacity] of [["0%", "#fffbeb", 1], ["50%", "#fde047", 0.95], ["75%", "#facc15", 0.6], ["100%", "#facc15", 0]]) {
+    for (const [offset, color, opacity] of [["0%", "#ffffff", 0.95], ["25%", "#ffffff", 0.45], ["60%", "#ffffff", 0]]) {
       glow.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
     }
     const defs = el("defs", {})
@@ -265,7 +265,7 @@ export default class extends Controller {
         transform: `translate(${cx.toFixed(2)} ${cy.toFixed(2)})`
       })
       const polygon = el("polygon", { class: "hex-poly", points: corners })
-      const glow = el("circle", { class: "unit-glow", r: 29 })
+      const glow = el("circle", { class: "unit-glow", r: 24 })
       const disc = el("circle", { class: "unit-disc", r: 24 })
       const image = el("image", { class: "unit-image", x: -22, y: -24, width: 44, height: 48 })
       group.append(polygon, glow, disc, image)

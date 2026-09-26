@@ -108,8 +108,8 @@
 }
 
 /* The marquee pieces (MARQUEE in the controller: king, dragon, elephant,
- * trebuchet) glow gold from behind, a soft radial light (#marquee-glow)
- * that breathes slowly, so they read at a glance. */
+ * trebuchet) are lit from behind by a white point of light (#marquee-glow),
+ * so they read at a glance. */
 .cyvasse-board .unit-glow {
   display: none;
   pointer-events: none;
@@ -118,18 +118,6 @@
 .cyvasse-board .is-marquee .unit-glow {
   display: inline;
   fill: url(#marquee-glow);
-  animation: marquee-glow 2.4s ease-in-out infinite;
-}
-
-@keyframes marquee-glow {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cyvasse-board .is-marquee .unit-glow {
-    animation: none;
-  }
 }
 
 /* The rotator banner: slides in from the left, out to the right. */

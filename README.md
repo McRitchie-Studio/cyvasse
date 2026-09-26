@@ -239,8 +239,8 @@ hex), and `test/javascript/openings_test.js` holds each to the rules: a whole
 army on the player's rows, and, all but the King's Gambit, a king that no
 enemy dragon can reach on the first turn.
 
-On the board the king, the dragon, the elephants and the trebuchet wear a
-soft gold glow behind them so they stand out.
+On the board the king, the dragon, the elephants and the trebuchet are lit
+from behind by a white point of light so they stand out.
 
 ## Messages
 
