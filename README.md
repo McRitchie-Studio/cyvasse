@@ -240,7 +240,7 @@ army on the player's rows, and, all but the King's Gambit, a king that no
 enemy dragon can reach on the first turn.
 
 On the board the king, the dragon, the elephants and the trebuchet wear a
-gold halo and crest (a crown for the king) so they stand out.
+soft gold glow behind them so they stand out.
 
 ## Messages
 

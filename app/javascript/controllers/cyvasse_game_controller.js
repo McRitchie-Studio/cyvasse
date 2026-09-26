@@ -39,12 +39,10 @@ const RANGE_STROKE = { 1: "red", 2: "red", 3: "blue", 4: "blue" }
 
 const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", unique: "Unique", mountain: "Mountain" }
 
-// The pieces that decide games wear a gold halo and a crest so they stand out
-// on a crowded board: the king (lose it and you lose), the dragon, the
-// elephant, and the trebuchet that brings dragons down.
+// The pieces that decide games glow gold from behind so they stand out on a
+// crowded board: the king (lose it and you lose), the dragon, the elephant,
+// and the trebuchet that brings dragons down.
 const MARQUEE = Object.freeze(["king", "dragon", "elephant", "trebuchet"])
-const CROWN = "M-5,3 L-5,-3 L-2.5,0 L0,-4 L2.5,0 L5,-3 L5,3 Z"
-const STAR = "M0,-5 L1.2,-1.6 L4.8,-1.5 L1.9,0.6 L2.9,4 L0,2 L-2.9,4 L-1.9,0.6 L-4.8,-1.5 L-1.2,-1.6 Z"
 
 export default class extends Controller {
   static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent"]
@@ -246,6 +244,13 @@ export default class extends Controller {
     const svg = this.boardTarget
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`)
     svg.replaceChildren()
+    const glow = el("radialGradient", { id: "marquee-glow" })
+    for (const [offset, color, opacity] of [["0%", "#fffbeb", 1], ["50%", "#fde047", 0.95], ["75%", "#facc15", 0.6], ["100%", "#facc15", 0]]) {
+      glow.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
+    }
+    const defs = el("defs", {})
+    defs.append(glow)
+    svg.append(defs)
     this.hexNodes = new Map()
     this.hexCentres = new Map()
 
@@ -260,15 +265,12 @@ export default class extends Controller {
         transform: `translate(${cx.toFixed(2)} ${cy.toFixed(2)})`
       })
       const polygon = el("polygon", { class: "hex-poly", points: corners })
-      const halo = el("circle", { class: "unit-halo", r: 27 })
+      const glow = el("circle", { class: "unit-glow", r: 29 })
       const disc = el("circle", { class: "unit-disc", r: 24 })
       const image = el("image", { class: "unit-image", x: -22, y: -24, width: 44, height: 48 })
-      const crest = el("g", { class: "unit-crest", transform: "translate(18 -20)" })
-      const crestShape = el("path", { class: "unit-crest-shape", d: STAR })
-      crest.append(el("circle", { class: "unit-crest-disc", r: 8 }), crestShape)
-      group.append(polygon, halo, disc, image, crest)
+      group.append(polygon, glow, disc, image)
       svg.append(group)
-      this.hexNodes.set(hex.index, { group, polygon, disc, image, crestShape })
+      this.hexNodes.set(hex.index, { group, polygon, disc, image })
       this.hexCentres.set(hex.index, { x: cx, row: hex.y })
     }
   }
@@ -346,7 +348,6 @@ export default class extends Controller {
       node.group.dataset.team = unit ? unit.team : ""
       const marquee = !!unit && MARQUEE.includes(unit.type.codename)
       node.group.classList.toggle("is-marquee", marquee)
-      if (marquee) node.crestShape.setAttribute("d", unit.type.codename === "king" ? CROWN : STAR)
       node.group.setAttribute("aria-label", unit ? `${unit.team === PLAYER ? "Your" : "Enemy"} ${unit.type.name.toLowerCase()}` : `Hex ${index}`)
       if (unit) {
         node.image.setAttribute("href", this.imagesValue[unit.type.codename])
