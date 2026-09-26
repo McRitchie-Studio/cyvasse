@@ -18,6 +18,9 @@ class User < ApplicationRecord
   has_many :home_matches, class_name: "Match", foreign_key: :home_user_id, inverse_of: :home_user, dependent: :restrict_with_error
   has_many :away_matches, class_name: "Match", foreign_key: :away_user_id, inverse_of: :away_user, dependent: :restrict_with_error
 
+  # The piece art this player chose (PieceSkinPreference); nil until they do.
+  validates :piece_skin, inclusion: { in: Piece::SKINS.keys.map(&:to_s) }, allow_nil: true
+
   AVATAR_COLORS = %w[#EF4444 #F97316 #EAB308 #22C55E #06B6D4 #3B82F6 #8B5CF6 #EC4899].freeze
 
   # The seeded identities (studio-engine/docs/NEW_APP_SETUP.md section 11):

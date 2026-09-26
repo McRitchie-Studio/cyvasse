@@ -7,6 +7,7 @@
          data-controller="cyvasse-game"
          data-cyvasse-game-skin-value="<%= @skin %>"
          data-cyvasse-game-images-value="<%= @piece_images.to_json %>"
+         data-cyvasse-game-skins-value="<%= @skin_images.to_json %>"
          data-skin="<%= @skin %>">
   <header class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
     <div>
@@ -15,6 +16,7 @@
         Against <span class="font-semibold text-heading" data-cyvasse-game-target="opponent">the computer</span>
       </p>
     </div>
+    <%= render "skins/toggle", form_data: { action: "submit->cyvasse-game#switchSkin" } %>
     <p class="text-secondary font-medium" role="status" aria-live="polite" data-cyvasse-game-target="status">Loading the board…</p>
   </header>
 

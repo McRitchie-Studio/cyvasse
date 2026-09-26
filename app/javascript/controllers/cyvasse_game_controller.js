@@ -16,6 +16,8 @@ import { UNIT_TYPES } from "cyvasse/units"
 //   skin    which piece art the board draws ("vector" by default); the server
 //           resolves `images` for it, so a skin switch is a new images map
 //   images  { codename: url } for the chosen skin
+//   skins   { skin: images } for every skin, so the switcher (switchSkin) can
+//           redraw a game in progress without a reload
 //   pace    multiplier on every delay; 1 is the legacy timing, 0 is instant
 //           (the system test sets it to play a whole game quickly)
 
@@ -39,7 +41,7 @@ const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", u
 
 export default class extends Controller {
   static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent"]
-  static values = { skin: { type: String, default: "vector" }, images: Object, pace: { type: Number, default: 1 } }
+  static values = { skin: { type: String, default: "vector" }, images: Object, skins: Object, pace: { type: Number, default: 1 } }
 
   connect() {
     this.timers = new Set()
@@ -193,6 +195,51 @@ export default class extends Controller {
       svg.append(group)
       this.hexNodes.set(hex.index, { group, polygon, disc, image })
     }
+  }
+
+  // ---- Piece skin ------------------------------------------------------------
+
+  // The skin switcher's forms (skins/_toggle) submit here. The choice is saved
+  // first (PATCH /skin), and the board changes art only once the server has
+  // said yes; the game in progress is kept. If the save fails, the form is
+  // posted the ordinary way, which reloads /play in whatever the server holds.
+  async switchSkin(event) {
+    event.preventDefault()
+    const form = event.target
+    const skin = form.dataset.skinChoice
+    if (!this.skinsValue[skin] || skin === this.skinValue) return
+
+    let response = null
+    try {
+      response = await fetch(form.action, {
+        method: "POST",
+        body: new FormData(form),
+        headers: { Accept: "application/json" },
+        credentials: "same-origin"
+      })
+    } catch {
+      response = null
+    }
+    if (!response?.ok) return form.submit()
+    this.applySkin(skin)
+  }
+
+  applySkin(skin) {
+    this.skinValue = skin
+    this.imagesValue = this.skinsValue[skin]
+    this.element.dataset.skin = skin
+    for (const button of this.element.querySelectorAll(".skin-choice")) {
+      button.setAttribute("aria-pressed", String(button.dataset.skin === skin))
+    }
+    // Repaint only the art: a full render() would drop the move and attack
+    // rings of a unit the player has selected.
+    for (const [index, node] of this.hexNodes) {
+      const unit = this.game.pieceAt(index)
+      if (unit) node.image.setAttribute("href", this.imagesValue[unit.type.codename])
+    }
+    this.renderDock()
+    this.renderGraveyards()
+    this.renderInfo(this.selectedUnitId ? this.game.unit(this.selectedUnitId) : null)
   }
 
   render() {

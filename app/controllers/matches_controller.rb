@@ -26,7 +26,7 @@ class MatchesController < ApplicationController
       format.html do
         @state = @match.state_for(current_user)
         @opponent = @match.opponent_of(current_user)
-        @piece_images = Piece.all.to_h { |piece| [ piece.slug, helpers.image_path(piece.image(board_skin)) ] }
+        @piece_images = Piece.all.to_h { |piece| [ piece.slug, helpers.image_path(piece.image(current_skin)) ] }
       end
       format.json { render json: @match.state_for(current_user) }
     end
@@ -102,11 +102,5 @@ class MatchesController < ApplicationController
     else
       render json: { state: state }
     end
-  end
-
-  # The piece art, as /play picks it: `?skin=pencil`, vector by default.
-  def board_skin
-    requested = params[:skin].to_s.to_sym
-    Piece::SKINS.key?(requested) ? requested : :vector
   end
 end

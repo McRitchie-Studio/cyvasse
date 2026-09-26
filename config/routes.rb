@@ -22,6 +22,9 @@ Rails.application.routes.draw do
   # A game against the computer, played in the browser (piece 4). Public: no
   # account and nothing saved until matches arrive (piece 6).
   get "play", to: "games#show", as: :play
+  # The piece-skin switcher (piece 5): remembers pencil or vector in a cookie,
+  # and on the account when signed in. Public, like the pages it serves.
+  patch "skin", to: "skins#update", as: :skin
 
   # Online matches between signed-in players (piece 6): My Games, challenge by
   # username, setup, turns, resign. Players only; every move is checked on the

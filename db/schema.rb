@@ -228,6 +228,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000011) do
     t.jsonb "ip_locations", default: [], null: false
     t.integer "losses", default: 0, null: false
     t.string "name"
+    t.string "piece_skin"
     t.string "provider"
     t.string "role", default: "viewer"
     t.string "slug"

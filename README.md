@@ -11,8 +11,13 @@ landing page, the original art, a public `/pieces` gallery of it, and the
 original site's `/rules` (with the tutorial's special-rules cards) and `/about`
 pages, their copy lightly edited. Unit stats for `/rules` live in
 `app/models/rulebook.rb`. And the game itself: `/play`, a public game against
+<<<<<<< HEAD
 the computer, played entirely in the browser, and `/matches`, online matches
 between signed-in players, a turn at a time.
+=======
+the computer, played entirely in the browser, in whichever piece skin the
+player picked.
+>>>>>>> origin/accepted
 
 ## Stack
 
@@ -64,8 +69,21 @@ piece of the epic. The rules are the legacy engine's, ported line for line from
 
 `app/javascript/controllers/cyvasse_game_controller.js` draws the board and turns
 clicks into `Game` calls; it holds no rules. The modules import each other as
-`cyvasse/<module>`, pinned in `config/importmap.rb`. The piece art is one
-parameter: `/play?skin=pencil` draws the pencil skin, and the default is vector.
+`cyvasse/<module>`, pinned in `config/importmap.rb`.
+
+## Piece skins
+
+Every piece is drawn in two skins, pencil and vector. A **Piece art** toggle on
+`/play`, `/pieces` and `/rules` (`app/views/skins/_toggle.html.erb`) switches
+between them with `PATCH /skin` (`SkinsController`, public). The choice is kept
+in the permanent `cyvasse_skin` cookie and, for a signed-in player, in
+`users.piece_skin`, so it follows them to another browser. On `/play` the
+switch redraws a game in progress without a reload.
+
+`PieceSkinPreference#current_skin` answers which skin a page draws, first match
+wins: `?skin=pencil|vector` on the URL (a one-off look, never saved), then the
+account's column, then the cookie, then vector. `/pieces` shows both skins with
+the one in use first.
 `test/lib/engine_rulebook_agreement_test.rb` keeps the `/rules` card's numbers
 and the engine's in step.
 
