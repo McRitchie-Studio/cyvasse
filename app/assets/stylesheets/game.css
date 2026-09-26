@@ -1,10 +1,10 @@
 /* The Cyvasse board at /play (games/show). Linked from that view only.
  *
  * The board keeps the legacy match screen's look in both themes: black hexes
- * with white edges, orange for the selected unit and the last move, a blue
- * ring for your units and a red one for the computer's (the legacy "unit
- * outlines", on by default). The ring ripple paints hex fills inline from
- * the controller; everything static lives here. */
+ * with white edges, orange for the selected unit and the last move. Each
+ * unit's hex is shaded blue (yours) or red (the computer's) from the edge in,
+ * in place of the legacy ring outlines. The ring ripple paints hex fills
+ * inline from the controller; everything static lives here. */
 
 .cyvasse-layout {
   display: grid;
@@ -85,16 +85,7 @@
 .cyvasse-board .unit-disc {
   fill: none;
   stroke: none;
-  stroke-width: 2.5;
   pointer-events: none;
-}
-
-.cyvasse-board .has-unit[data-team="1"] .unit-disc {
-  stroke: rgb(59 130 246);
-}
-
-.cyvasse-board .has-unit[data-team="0"] .unit-disc {
-  stroke: rgb(220 38 38);
 }
 
 /* The pencil skin is black linework on a transparent ground; a parchment disc
@@ -105,6 +96,17 @@
 
 .cyvasse-board .unit-image {
   pointer-events: none;
+}
+
+/* A unit's hex is shaded in its team's colour from the edge in, deeper the
+ * more the piece is worth (the gradients are built in the controller). */
+.cyvasse-board .unit-shade {
+  display: none;
+  pointer-events: none;
+}
+
+.cyvasse-board .has-unit .unit-shade {
+  display: inline;
 }
 
 /* The rotator banner: slides in from the left, out to the right. */
