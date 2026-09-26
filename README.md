@@ -190,7 +190,8 @@ receiver (`Conversation`, `app/models/conversation.rb`).
 | `/inbox` | The player's conversations, newest first, with unread counts; 25 a page | the signed-in player |
 | `/conversations/:user_id` | One whole thread, each message labelled with its match, and a reply box (a reply is sent outside any match) | the conversation's two people (anyone else: 404) |
 | `/admin/conversations` | Every conversation that ever happened, newest first, searchable by player (username, name or email), 25 a page, each linking its matches | admins only (anyone else: 404) |
-| `/admin/conversations/:low-:high`, `/admin/matches/:id` | One conversation's thread; one match's facts and chat | admins only |
+| `/admin/conversations/:low-:high` | One conversation's every message, grouped by game (match number, status, winner, dates; messages outside any game in their own group), groups newest first and messages oldest first inside each; the first-named player's bubbles on the left, the second's on the right. Ten games a page, each showing its latest 200 messages with a link to the whole game (`?game=<match id>` or `?game=none`, 200 a page) (`ConversationThread`) | admins only |
+| `/admin/matches/:id` | One match's facts and chat | admins only |
 
 Opening a thread or a match chat marks the messages addressed to you as read.
 The About page tells players that admins can read messages. No mail is sent
@@ -205,8 +206,9 @@ already brought over. New-message rules (text present, at most 1,000
 characters, sent between the match's players) apply to new messages only.
 
 **Demo data.** `bin/rails db:seed` in development, or `bin/rails
-messages:demo`, adds made-up players (`@example.com`), finished matches and
-about 150 messages across 44 conversations, enough to page through
+messages:demo`, adds made-up players (`@example.com`), one to three finished
+games per pair (with a few messages outside any game), about 220 messages
+across 44 conversations, enough to page through
 (`lib/demo_conversations.rb`; it refuses to run in production). It also gives
 `alex@mcritchie.studio` the username `alex_mcritchie` if he has none, so his
 seeded account has conversations of its own.
