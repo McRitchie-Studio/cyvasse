@@ -7,7 +7,7 @@
 <% match_link = local_assigns[:match_link] %>
 <li class="chat-message<%= ' is-mine' if mine %>" data-message-id="<%= message.id %>" id="message-<%= message.id %>">
   <div class="flex flex-wrap items-baseline gap-x-2 text-xs text-muted">
-    <span class="font-semibold text-heading"><%= mine ? "You" : message.sender.player_name %></span>
+    <span class="font-semibold text-heading" data-sender><%= mine ? "You" : message.sender.player_name %></span>
     <time datetime="<%= message.created_at.iso8601 %>" title="<%= l(message.created_at, format: :long) %>"><%= time_ago_in_words(message.created_at) %> ago</time>
     <% if local_assigns[:show_match] && message.match %>
       <span>· in

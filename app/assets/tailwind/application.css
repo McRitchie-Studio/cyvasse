@@ -141,6 +141,13 @@
   color: var(--color-danger);
 }
 
+/* Long unbroken text (an email, a legacy username) wraps instead of pushing
+ * the page wider than a 375px phone. Inherited, so set it on a container. */
+.wrap-anywhere {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
 .unread-dot {
   display: inline-block;
   min-width: 1.25rem;
