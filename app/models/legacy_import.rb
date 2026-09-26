@@ -86,10 +86,14 @@ class LegacyImport
     @report = Report.empty
   end
 
+  # insert_all writes its values into the SQL string, so a debug-level SQL log
+  # (development's default) would hold every legacy email: the run logs no SQL.
   def run
-    ActiveRecord::Base.transaction do
-      import_users
-      import_matches
+    ActiveRecord::Base.logger.silence(Logger::WARN) do
+      ActiveRecord::Base.transaction do
+        import_users
+        import_matches
+      end
     end
     @report
   end

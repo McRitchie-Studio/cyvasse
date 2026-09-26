@@ -125,6 +125,17 @@ class LegacyImportTest < ActiveSupport::TestCase
                    "human in progress -> abandoned" => 1, "human pending -> abandoned" => 1 }, @report.matches_by_outcome)
   end
 
+  test "the SQL log never carries a row, even at debug level" do
+    Match.where.not(legacy_id: nil).delete_all
+    User.where.not(legacy_id: nil).delete_all
+    io = StringIO.new
+    saved, ActiveRecord::Base.logger = ActiveRecord::Base.logger, ActiveSupport::Logger.new(io, level: :debug)
+    import
+    refute_match(/@example|SYNTHETIC/i, io.string, "insert_all inlines its values; a debug log would hold every email")
+  ensure
+    ActiveRecord::Base.logger = saved
+  end
+
   test "the report is counts only" do
     text = @report.lines.join("\n")
     refute_match(/@|rook|SYNTHETIC/i, text)
