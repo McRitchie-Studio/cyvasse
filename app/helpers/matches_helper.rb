@@ -20,6 +20,7 @@ module MatchesHelper
   def finished_summary(match, user)
     return "draw" if match.finish_reason == "draw"
     return "expired unplayed" if match.finish_reason == "expired"
+    return "left unfinished" if match.finish_reason == "abandoned"
     return "finished" if match.winner_id.nil?
 
     won = match.winner_id == user.id
