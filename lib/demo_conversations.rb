@@ -30,8 +30,8 @@ module DemoConversations
   module_function
 
   # Returns the number of messages created.
-  def seed!(now: Time.current)
-    raise "DemoConversations never runs in production" if Rails.env.production?
+  def seed!(now: Time.current, env: Rails.env)
+    raise "DemoConversations never runs in production" if env.production?
 
     players = PLAYERS.map do |username|
       User.find_or_create_by!(email: "#{username}@example.com") do |user|
