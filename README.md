@@ -229,6 +229,21 @@ newest is the one shown. A handful of legacy lineups were saved from the away
 seat (hexes 1-40) and are turned round when loaded; one that is not a whole
 army is kept but never offered.
 
+## Openings
+
+Every player, signed in or not, also gets **Openings** in the setup panel:
+twenty named lineups, each built round one idea, with a line saying what it
+is for. **Load opening** places it exactly as a saved lineup is placed. They
+are drawn row by row in `app/javascript/cyvasse/openings.js` (a letter per
+hex), and `test/javascript/openings_test.js` holds each to the rules: a whole
+army on the player's rows, and, all but the King's Gambit, a king that no
+enemy dragon can reach on the first turn.
+
+On the board every unit's hex is shaded in its team's colour from the edge
+in (blue yours, red theirs), and the more the piece is worth the deeper and
+stronger the shade: mountains faintest, then rabble up to the king, in the
+order the computer values them (`KILL_PRIORITY` in `cyvasse/ai.js`).
+
 ## Messages
 
 Players talk in a chat on each match, and read every conversation in their

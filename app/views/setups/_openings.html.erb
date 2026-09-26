@@ -1,0 +1,15 @@
+<%# Twenty opening lineups (app/javascript/cyvasse/openings.js), open to every
+    player: pick one, read its idea, load it onto the board. Locals: board,
+    the board's Stimulus identifier (cyvasse-game or cyvasse-match), which
+    places the loaded lineup. %>
+<div class="space-y-2 border-t border-subtle pt-3"
+     data-controller="cyvasse-openings"
+     data-action="cyvasse-openings:load-><%= board %>#loadLineup">
+  <h3 class="text-sm font-semibold uppercase tracking-widest text-muted">Openings</h3>
+  <label class="sr-only" for="<%= board %>-opening">Opening</label>
+  <select id="<%= board %>-opening" class="input-field w-full"
+          data-cyvasse-openings-target="select" data-action="cyvasse-openings#choose"></select>
+  <p class="text-sm text-secondary" data-cyvasse-openings-target="idea"></p>
+  <button type="button" class="btn btn-secondary" data-action="cyvasse-openings#load">Load opening</button>
+  <p class="text-sm text-secondary" role="status" aria-live="polite" hidden data-cyvasse-openings-target="message"></p>
+</div>
