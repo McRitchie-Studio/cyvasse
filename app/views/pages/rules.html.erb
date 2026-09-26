@@ -116,6 +116,7 @@
       enemy units. Below is a description of all the units and their
       attributes, grouped by class.
     </p>
+    <div class="mb-6"><%= render "skins/toggle" %></div>
 
     <div class="space-y-8">
       <% @unit_classes.each do |unit_class| %>
@@ -124,8 +125,8 @@
           <div class="grid gap-4 sm:grid-cols-2">
             <% unit_class.units.each do |unit| %>
               <article id="unit-<%= unit.slug %>" class="unit-card card p-3 flex items-center gap-4">
-                <figure class="piece-tile unit-card-art shrink-0">
-                  <%= image_tag unit.piece.image(:vector), alt: unit.name, loading: "lazy", decoding: "async" %>
+                <figure class="piece-tile unit-card-art shrink-0" data-skin="<%= current_skin %>">
+                  <%= image_tag unit.piece.image(current_skin), alt: unit.name, loading: "lazy", decoding: "async" %>
                 </figure>
                 <div class="min-w-0">
                   <h4 class="text-lg font-bold text-heading mb-1"><%= unit.name %></h4>

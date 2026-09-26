@@ -5,6 +5,9 @@ class ApplicationController < ActionController::Base
   # (test/integration/auth_gate_test.rb pins both sides).
   include Studio::ErrorHandling
 
+  # current_skin: which piece art (pencil or vector) this player sees.
+  include PieceSkinPreference
+
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 

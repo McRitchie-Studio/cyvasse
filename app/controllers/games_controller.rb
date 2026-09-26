@@ -7,19 +7,13 @@
 class GamesController < ApplicationController
   skip_before_action :require_authentication
 
-  DEFAULT_SKIN = :vector
-
   def show
-    @skin = skin
-    @piece_images = Piece.all.to_h { |piece| [ piece.slug, helpers.image_path(piece.image(@skin)) ] }
-  end
-
-  private
-
-  # The piece art is one parameter: `?skin=pencil` draws the pencil skin. The
-  # skin switcher (piece 5) only has to choose this value.
-  def skin
-    requested = params[:skin].to_s.to_sym
-    Piece::SKINS.key?(requested) ? requested : DEFAULT_SKIN
+    @skin = current_skin
+    # Both skins' art, so the switcher can redraw a game in progress without
+    # a reload; the board starts on @skin.
+    @skin_images = Piece::SKINS.keys.to_h do |skin|
+      [ skin, Piece.all.to_h { |piece| [ piece.slug, helpers.image_path(piece.image(skin)) ] } ]
+    end
+    @piece_images = @skin_images.fetch(@skin)
   end
 end

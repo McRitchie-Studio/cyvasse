@@ -1,0 +1,24 @@
+<%# The piece-skin switcher (epic cyvasse-revival piece 5): one small form per
+    skin, so it works with no JavaScript at all. The pressed button is the
+    skin this page draws. On /play the game controller catches the submit and
+    redraws the board in place (form_data wires that action); everywhere else
+    the form posts and the page reloads in the new skin.
+    locals: form_data (optional) - data attributes for each form %>
+<% form_data = local_assigns.fetch(:form_data, {}) %>
+<div class="skin-toggle flex flex-wrap items-center gap-2" role="group" aria-label="Piece art" data-current-skin="<%= current_skin %>">
+  <span class="text-xs font-semibold uppercase tracking-widest text-muted">Piece art</span>
+  <div class="inline-flex rounded-lg border border-subtle p-0.5">
+    <% Piece::SKINS.each_key do |skin| %>
+      <%= button_to skin_path, method: :patch,
+            params: { skin: skin, return_to: request.path },
+            form: { class: "contents", data: form_data.merge(skin_choice: skin) },
+            class: "skin-choice inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium text-secondary " \
+                   "hover:text-heading aria-pressed:bg-primary aria-pressed:text-white",
+            aria: { pressed: skin == current_skin },
+            data: { skin: skin } do %>
+        <%= image_tag Piece.all.first.image(skin), alt: "", class: "h-5 w-5", aria: { hidden: true } %>
+        <span><%= skin.to_s.capitalize %></span>
+      <% end %>
+    <% end %>
+  </div>
+</div>

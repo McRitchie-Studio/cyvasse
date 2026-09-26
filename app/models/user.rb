@@ -6,6 +6,9 @@ class User < ApplicationRecord
   # shared with mcritchie-studio and mcritchie-industries).
   has_one_attached :avatar
 
+  # The piece art this player chose (PieceSkinPreference); nil until they do.
+  validates :piece_skin, inclusion: { in: Piece::SKINS.keys.map(&:to_s) }, allow_nil: true
+
   AVATAR_COLORS = %w[#EF4444 #F97316 #EAB308 #22C55E #06B6D4 #3B82F6 #8B5CF6 #EC4899].freeze
 
   # The seeded identities (studio-engine/docs/NEW_APP_SETUP.md section 11):
