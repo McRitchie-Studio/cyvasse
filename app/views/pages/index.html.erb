@@ -4,10 +4,12 @@
   <h1 class="text-4xl font-extrabold text-heading tracking-tight mb-4">Cyvasse</h1>
   <p class="text-secondary leading-relaxed mb-8">
     The hexagonal strategy game is back on the board. Play the computer now,
-    no account needed.
+    no account needed, or sign in and challenge a friend: a move a turn, seven
+    days to make each one.
   </p>
   <div class="flex flex-wrap justify-center gap-3 mb-6">
     <%= link_to "Play the computer", play_path, class: "btn btn-primary btn-lg" %>
+    <%= link_to "Play a friend", matches_path, class: "btn btn-secondary btn-lg" %>
     <% unless logged_in? %>
       <%= link_to "Sign in", signin_path, class: "btn btn-secondary btn-lg" %>
     <% end %>

@@ -23,5 +23,20 @@ Rails.application.routes.draw do
   # account and nothing saved until matches arrive (piece 6).
   get "play", to: "games#show", as: :play
 
+  # Online matches between signed-in players (piece 6): My Games, challenge by
+  # username, setup, turns, resign. Players only; every move is checked on the
+  # server by CyvasseRules (app/models/cyvasse_rules).
+  resources :matches, only: %i[index show create destroy] do
+    member do
+      post :accept
+      post :setup, action: :set_up
+      post :moves, action: :move
+      post :resign
+    end
+  end
+  # The public name a player is challenged by.
+  get "username", to: "usernames#edit", as: :username
+  patch "username", to: "usernames#update"
+
   root "pages#index"
 end

@@ -6,6 +6,18 @@ class User < ApplicationRecord
   # shared with mcritchie-studio and mcritchie-industries).
   has_one_attached :avatar
 
+  # A public name for online play (epic piece 6): how players find and
+  # challenge each other. 3-20 letters, digits or underscores, unique in any
+  # case. Checked only when it changes, so a legacy name imported by piece 10
+  # never blocks an unrelated save.
+  USERNAME_FORMAT = /\A[A-Za-z0-9_]{3,20}\z/
+  validates :username, format: { with: USERNAME_FORMAT, message: "is 3 to 20 letters, digits or underscores" },
+                       if: :will_save_change_to_username?
+  validate :username_free_in_any_case, if: :will_save_change_to_username?
+
+  has_many :home_matches, class_name: "Match", foreign_key: :home_user_id, inverse_of: :home_user, dependent: :restrict_with_error
+  has_many :away_matches, class_name: "Match", foreign_key: :away_user_id, inverse_of: :away_user, dependent: :restrict_with_error
+
   AVATAR_COLORS = %w[#EF4444 #F97316 #EAB308 #22C55E #06B6D4 #3B82F6 #8B5CF6 #EC4899].freeze
 
   # The seeded identities (studio-engine/docs/NEW_APP_SETUP.md section 11):
@@ -37,6 +49,17 @@ class User < ApplicationRecord
     AVATAR_COLORS[Digest::MD5.hexdigest(key).hex % AVATAR_COLORS.size]
   end
 
+  # Case-insensitive, through the lower(username) index.
+  def self.find_by_username(name)
+    return nil if name.blank?
+
+    where("lower(username) = ?", name.to_s.strip.downcase).first
+  end
+
+  def matches
+    Match.involving(self)
+  end
+
   def admin?
     role == "admin"
   end
@@ -49,5 +72,14 @@ class User < ApplicationRecord
         user.role = attrs[:role]
       end
     end
+  end
+
+  private
+
+  def username_free_in_any_case
+    return if username.blank?
+
+    taken = User.where("lower(username) = ?", username.downcase).where.not(id: id).exists?
+    errors.add(:username, "is taken") if taken
   end
 end

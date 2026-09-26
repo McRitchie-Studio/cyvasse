@@ -1,0 +1,21 @@
+<%# One section of My games. Locals: title, matches, empty. %>
+<section class="card p-4" data-section="<%= title.parameterize %>">
+  <h2 class="text-sm font-semibold uppercase tracking-widest text-muted mb-3">
+    <%= title %> <span class="text-secondary normal-case tracking-normal">(<%= matches.size %>)</span>
+  </h2>
+  <% if matches.empty? %>
+    <p class="text-sm text-secondary"><%= empty %></p>
+  <% else %>
+    <ul>
+      <% matches.each do |match| %>
+        <% opponent = match.opponent_of(current_user) %>
+        <li class="py-2 border-t border-subtle first:border-t-0 flex flex-wrap items-center justify-between gap-2" data-match-id="<%= match.id %>">
+          <%= link_to match_path(match), class: "font-semibold text-heading underline-offset-2 hover:underline" do %>
+            vs <%= opponent.username %>
+          <% end %>
+          <span class="text-sm text-secondary"><%= match_summary(match, current_user) %></span>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</section>

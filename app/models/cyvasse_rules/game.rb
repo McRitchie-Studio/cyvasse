@@ -24,7 +24,7 @@ module CyvasseRules
 
     Result = Data.define(:captured, :last_move, :util_move, :passed, :over, :winner)
 
-    attr_reader :units, :offense, :turn, :winner, :phase
+    attr_reader :units, :offense, :turn, :winner, :phase, :first_mover
 
     # home/away: the two position strings; offense: whos_turn; turn: the count.
     def initialize(home:, away:, offense: nil, turn: 0)
@@ -100,6 +100,7 @@ module CyvasseRules
       away = distance.(AWAY)
       home = distance.(HOME)
       @offense = if away > home then HOME elsif away < home then AWAY else coin.call end
+      @first_mover = @offense
       @turn = 1
       @phase = :play
       begin_turn

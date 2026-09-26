@@ -251,3 +251,35 @@ test("computer against computer, every game runs to a king's capture", () => {
     assert.equal(loser.status, "dead");
   }
 });
+
+// ---- Online matches: a game restored from the server's state -------------
+
+test("restore draws a server state: armies, turn, marks, and the moves on offer", () => {
+  const units = [
+    [PLAYER, 17, 80, "alive"], [PLAYER, 1, 70, "alive"], [PLAYER, 2, null, "dead"],
+    [COMPUTER, 17, 12, "alive"], [COMPUTER, 3, null, "dead"]
+  ];
+  const game = Game.restore({ phase: "play", turn: 7, offense: PLAYER, units, lastMove: [20, 30], utilMove: null });
+
+  assert.equal(game.phase, "play");
+  assert.equal(game.turn, 7);
+  assert.equal(game.offense, PLAYER);
+  assert.equal(game.pieceAt(80).type.codename, "king");
+  assert.equal(game.pieceAt(12).team, COMPUTER);
+  assert.equal(game.graveyard(PLAYER).length, 1);
+  assert.equal(game.unit(`${COMPUTER}-5`).status, "unplaced", "units the server withholds stay in the dock");
+  assert.deepEqual(game.lastMove, [20, 30]);
+  assert.deepEqual(game.selectableHexes(), [70, 80]);
+  assert.ok(game.actionsFrom(70).moves.length > 0);
+});
+
+test("a restored setup is placed by hand and submits the legacy lineup string", () => {
+  const game = Game.restore({ phase: "setup", turn: 0, offense: null, units: [] });
+  game.randomSetup();
+  const pairs = parseLineup(game.playerLineup());
+
+  assert.equal(pairs.length, ARMY_SIZE);
+  assert.ok(pairs.every(([, hex]) => PLAYER_ZONE.includes(hex)));
+  assert.equal(new Set(pairs.map(([, hex]) => hex)).size, ARMY_SIZE);
+  assert.equal(game.teamUnits(COMPUTER, "alive").length, 0, "the opponent's army is not invented");
+});

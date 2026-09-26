@@ -1,0 +1,7 @@
+Hi <%= @user.username.presence || @user.display_name %>,
+
+<%= @challenger.username %> has challenged you to a game of Cyvasse.
+
+Accept the challenge and set up your army: <%= @url %>
+
+The challenge stays open for seven days<%= ", until #{@deadline.utc.strftime('%B %-d at %H:%M UTC')}" if @deadline %>.
