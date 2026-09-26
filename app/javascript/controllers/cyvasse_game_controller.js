@@ -260,6 +260,8 @@ export default class extends Controller {
     if (this.switchingSkin || !this.skinsValue[skin] || skin === this.skinValue) return
 
     this.switchingSkin = true
+    // Disabling the focused button drops focus to <body>; put it back after.
+    const focused = document.activeElement
     const buttons = this.element.querySelectorAll(".skin-choice")
     for (const button of buttons) button.disabled = true
     let response = null
@@ -275,6 +277,7 @@ export default class extends Controller {
     } finally {
       this.switchingSkin = false
       for (const button of buttons) button.disabled = false
+      if (focused?.isConnected && document.activeElement !== focused) focused.focus()
     }
     if (!response?.ok) return form.submit()
     this.applySkin(skin)

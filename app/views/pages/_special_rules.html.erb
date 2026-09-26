@@ -18,7 +18,7 @@
         <%= image_tag "tutorial/#{image}.png", alt: "Tutorial screenshot: #{title}", loading: "lazy", decoding: "async", class: "w-full rounded-lg" %>
         <% if changed %>
           <figcaption class="text-xs text-muted mt-1.5">
-            Before the April 2015 rule changes. <%= changed %> <%= link_to "What changed", "#rule-changes" %>
+            Before the April 2015 rule changes. <%= changed %> <%= link_to "What changed", rules_path(anchor: "rule-changes") %>
           </figcaption>
         <% end %>
       </figure>

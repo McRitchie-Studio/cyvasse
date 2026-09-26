@@ -47,6 +47,7 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
                   text: /Before the April 2015 rule changes.*Spearmen no longer trump Heavy Horse/m
     assert_select "#special-rules .tutorial-card[data-tutorial=range] figcaption",
                   text: /Before the April 2015 rule changes.*Trebuchets can no longer move/m
+    assert_select "#special-rules .tutorial-card[data-tutorial=trump] figcaption a[href=?]", "/rules#rule-changes"
     assert_select "#special-rules .tutorial-card[data-tutorial=cavalry] figcaption", 0
     assert_select "#special-rules .tutorial-card[data-tutorial=dragon] figcaption", 0
   end
