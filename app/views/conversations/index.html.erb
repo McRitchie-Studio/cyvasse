@@ -16,7 +16,7 @@
       <% @page.conversations.each do |conversation| %>
         <% other = conversation.other(current_user) %>
         <li data-conversation="<%= other.id %>">
-          <%= link_to conversation_path(other, anchor: "latest"), class: "flex items-start justify-between gap-4 p-4 hover:bg-[var(--color-surface-alt)]" do %>
+          <%= link_to conversation_path(other.id, anchor: "latest"), class: "flex items-start justify-between gap-4 p-4 hover:bg-[var(--color-surface-alt)]" do %>
             <div class="min-w-0">
               <p class="font-semibold text-heading">
                 <%= other.player_name %>

@@ -1,6 +1,7 @@
 # A player's inbox (epic cyvasse-revival piece 12): their conversations,
 # newest first, and each one's whole thread, across every match and none.
-# A conversation is addressed by the other player's user id and is visible to
+# A conversation is addressed by the other player's user id (not their slug,
+# which is drawn from their real name) and is visible to
 # its two people alone: with no messages between you, it is a 404.
 class ConversationsController < ApplicationController
   SHOWN = 200
@@ -21,7 +22,7 @@ class ConversationsController < ApplicationController
     message = Message.new(sender: current_user, receiver: @other, message: params[:message].to_s.strip)
     saved = rescue_and_log(target: current_user, parent: @other) { message.save }
     if saved
-      redirect_to conversation_path(@other, anchor: "latest"), status: :see_other
+      redirect_to conversation_path(@other.id, anchor: "latest"), status: :see_other
     else
       @error = message.errors.full_messages.to_sentence
       load_thread

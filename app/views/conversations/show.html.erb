@@ -18,7 +18,7 @@
     </ol>
   </div>
 
-  <%= form_with url: reply_conversation_path(@other), class: "card p-4 space-y-2", id: "latest", data: { turbo: false } do |form| %>
+  <%= form_with url: reply_conversation_path(@other.id), class: "card p-4 space-y-2", id: "latest", data: { turbo: false } do |form| %>
     <% if @error %>
       <p class="text-sm chat-error" role="alert"><%= @error %></p>
     <% end %>
