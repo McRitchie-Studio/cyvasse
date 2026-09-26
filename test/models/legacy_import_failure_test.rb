@@ -38,6 +38,13 @@ class LegacyImportFailureTest < ActiveSupport::TestCase
                     Message.where.not(legacy_id: nil).count, "one transaction: nothing stays half-imported"
   end
 
+  test "a failed board posts batch prints no post and rolls back the messages" do
+    # Imported 204, 212, 215: one batch.
+    reject_row "board_posts", "message IS DISTINCT FROM 'SYNTHETIC board reply'"
+    assert_match(/\ALegacy import failed: board_posts batch 1 of 1 \(legacy ids 204-215\), /, assert_import_fails.message)
+    assert_equal 0, Message.where.not(legacy_id: nil).count + BoardPost.count, "one transaction: nothing stays half-imported"
+  end
+
   test "a failed lineups batch is redacted" do
     reject_row "setups", "name IS DISTINCT FROM 'SYNTH Old'"
     assert_match(/\ALegacy import failed: setups batch 1 of 2 \(legacy ids 301-303\), /, assert_import_fails.message)
@@ -78,7 +85,9 @@ class LegacyImportFailureTest < ActiveSupport::TestCase
                        messages_csv: DIR.join("messages.csv"), setups_csv: DIR.join("setups.csv"), batch_size: 3).run
     end
     assert_nil error.cause, "a cause is printed under the error (\"Caused by\"), so the original must not ride along"
-    refute_legacy_values(error.full_message(highlight: false))
+    # The backtrace's app path is the checkout's, not a row: a desk named
+    # admin-legacy-message-board would match the fixture value "Admin".
+    refute_legacy_values(error.full_message(highlight: false).gsub(Rails.root.to_s, "<root>"))
     error
   end
 

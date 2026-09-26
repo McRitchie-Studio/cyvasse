@@ -20,6 +20,8 @@ class User < ApplicationRecord
   # Messages (piece 12). A player with messages is kept, like one with matches.
   has_many :sent_messages, class_name: "Message", foreign_key: :sender_id, inverse_of: :sender, dependent: :restrict_with_error
   has_many :received_messages, class_name: "Message", foreign_key: :receiver_id, inverse_of: :receiver, dependent: :restrict_with_error
+  # Posts on the old public message board (piece 15), kept like messages.
+  has_many :board_posts, dependent: :restrict_with_error
   # Saved army lineups (piece 10b), three slots; they go with the player.
   has_many :setups, dependent: :delete_all
 
@@ -89,7 +91,7 @@ class User < ApplicationRecord
   end
 
   def unread_messages_count
-    Message.unread_by(self).count
+    Message.with_text.unread_by(self).count
   end
 
   # Idempotent: creates any missing identity, never overwrites an existing row.

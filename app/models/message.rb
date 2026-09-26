@@ -22,6 +22,10 @@ class Message < ApplicationRecord
   validate :two_different_people, on: :create
   validate :sent_between_the_match_players, on: :create
 
+  # Hide the blank ones (empty or whitespace-only text; 10,778 legacy rows)
+  # everywhere a message is shown or counted: the match chat, the inbox, the
+  # unread count and the admin pages. They stay in the table, as imported.
+  scope :with_text, -> { where(text_present_sql(table_name)) }
   scope :chronological, -> { order(:created_at, :id) }
   scope :involving, ->(user) { where(sender_id: user.id).or(where(receiver_id: user.id)) }
   scope :between, lambda { |one, other|
@@ -35,12 +39,18 @@ class Message < ApplicationRecord
   }
   scope :unread_by, ->(user) { where(receiver_id: user.id, read: false) }
 
+  # SQL true when `table`.message holds a character that is not whitespace;
+  # NULL (and so false in a WHERE) for a null message.
+  def self.text_present_sql(table)
+    "#{connection.quote_table_name(table)}.message ~ '[^[:space:]]'"
+  end
+
   # Every message `user` may read: an admin reads them all, a player only
   # their own conversations, anyone else nothing.
   def self.visible_to(user)
     return none if user.nil?
 
-    user.admin? ? all : involving(user)
+    user.admin? ? with_text : involving(user).with_text
   end
 
   # Send `text` from `sender` to their opponent in `match`'s chat.

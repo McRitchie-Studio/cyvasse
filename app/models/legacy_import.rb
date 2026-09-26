@@ -1,12 +1,14 @@
 # Imports the players, matches, messages and saved lineups of the old Cyvasse
 # (the personal Heroku app cyvasse-game, 2014-2023) from the CSV export of its
 # database: epic cyvasse-revival pieces 10a (players, matches) and 10b
-# (messages, lineups). `bin/rails legacy:import` runs it.
+# (messages, lineups), and piece 15 (the public message board).
+# `bin/rails legacy:import` runs it.
 #
 #   LegacyImport.new(users_csv: path, matches_csv: path,
 #                    messages_csv: path, setups_csv: path).run  # => LegacyImport::Report
 #
-# messages_csv and setups_csv are optional; left out, that part is not run.
+# messages_csv and setups_csv are optional; left out, that part is not run
+# (the board posts come from messages_csv, so they run with the messages).
 #
 # The CSVs hold emails, password hashes and private messages: never commit
 # them or print a row.
@@ -62,11 +64,22 @@
 #   Every column comes over one to one (see the CreateMessages migration):
 #   the text as it was, blank ones included (the legacy chat stored them);
 #   sender and receiver mapped to the imported players through their legacy
-#   ids; read as it was. A message addressed to nobody (legacy receiver 0,
-#   posted with match 0) or to a player missing from users.csv is skipped: a
-#   conversation needs both people. A message whose match was not imported
+#   ids; read as it was. A public board post (below) is counted apart. Any
+#   other message addressed to nobody (legacy receiver 0) or to a player
+#   missing from users.csv is skipped: a conversation needs both people.
+#   Blank text is imported but never shown (Message.with_text). A message
+#   whose match was not imported
 #   (deleted on the legacy site, or skipped above) keeps its conversation with
 #   no match, as a message of a deleted match does in the new app.
+#
+# Board posts (messages.csv; piece 15)
+#   The legacy public message board (home#message_board) was the messages rows
+#   with receiver 0 and match 0: one author, no reader. They import to
+#   board_posts (see the CreateBoardPosts migration), each to its author
+#   through their legacy id, the text and dates as they were; only admins read
+#   them. A post whose author is missing (legacy sender 0, or not in users.csv)
+#   is skipped and counted. Blank ones import, are counted, and are never
+#   shown.
 #
 # Lineups (setups.csv)
 #   Every column comes over one to one (see the CreateSetups migration), each
@@ -80,6 +93,7 @@ class LegacyImport
   COMPUTER_LEGACY_IDS = User::COMPUTER_LEGACY_IDS
   KING_INDEX = 17
   BATCH = 1_000
+  BOARD_POST = "a public message-board post (legacy receiver 0, match 0), see Board posts".freeze
   ROLLED_BACK = "Nothing was imported: the whole run rolled back. " \
                 "The database's message is withheld because it quotes row values."
 
@@ -92,6 +106,8 @@ class LegacyImport
                       :matches_already_present, :matches_by_outcome, :matches_skipped,
                       :messages_read, :messages_imported, :messages_already_present, :messages_blank,
                       :messages_without_match, :messages_skipped,
+                      :board_posts_read, :board_posts_imported, :board_posts_already_present,
+                      :board_posts_blank, :board_posts_skipped,
                       :setups_read, :setups_imported, :setups_already_present, :setups_turned_round,
                       :setups_not_an_army, :setups_skipped, keyword_init: true) do
     def self.empty
@@ -99,7 +115,8 @@ class LegacyImport
           emails_dropped_duplicate: 0, emails_dropped_computer: 0, matches_read: 0, matches_imported: 0,
           matches_already_present: 0, matches_by_outcome: Hash.new(0), matches_skipped: Hash.new(0),
           messages_imported: 0, messages_already_present: 0, messages_blank: 0, messages_without_match: 0,
-          messages_skipped: Hash.new(0), setups_imported: 0, setups_already_present: 0, setups_turned_round: 0,
+          messages_skipped: Hash.new(0), board_posts_imported: 0, board_posts_already_present: 0,
+          board_posts_blank: 0, board_posts_skipped: Hash.new(0), setups_imported: 0, setups_already_present: 0, setups_turned_round: 0,
           setups_not_an_army: 0, setups_skipped: Hash.new(0))
     end
 
@@ -117,6 +134,7 @@ class LegacyImport
         *matches_by_outcome.sort.map { |outcome, n| "  imported as #{outcome}: #{n}" },
         *matches_skipped.sort.map { |reason, n| "  skipped, #{reason}: #{n}" },
         *message_lines,
+        *board_post_lines,
         *setup_lines
       ]
     end
@@ -132,6 +150,18 @@ class LegacyImport
         "  imported with blank text: #{messages_blank}",
         "  imported without a match (match not imported): #{messages_without_match}",
         *messages_skipped.sort.map { |reason, n| "  skipped, #{reason}: #{n}" }
+      ]
+    end
+
+    def board_post_lines
+      return [ "Board posts: not run (no messages.csv)" ] if board_posts_read.nil?
+
+      [
+        "Board posts read (legacy receiver 0, match 0): #{board_posts_read}",
+        "  imported: #{board_posts_imported}",
+        "  already present (legacy id): #{board_posts_already_present}",
+        "  imported with blank text (never shown): #{board_posts_blank}",
+        *board_posts_skipped.sort.map { |reason, n| "  skipped, #{reason}: #{n}" }
       ]
     end
 
@@ -167,6 +197,7 @@ class LegacyImport
         step("users") { import_users }
         step("matches") { import_matches }
         step("messages") { import_messages } if @messages_csv
+        step("board posts") { import_board_posts } if @messages_csv
         step("setups") { import_setups } if @setups_csv
       end
     end
@@ -341,7 +372,7 @@ class LegacyImport
   # ---- Messages ----------------------------------------------------------------
 
   def import_messages
-    rows = read(@messages_csv)
+    rows = message_rows
     @report.messages_read = rows.size
     user_ids = legacy_user_ids
     # legacy match id -> [id, the pair of players], to keep a match only on a
@@ -384,12 +415,56 @@ class LegacyImport
   end
 
   def message_skip_reason(row, user_ids)
+    return BOARD_POST if board_post?(row)
+
     sender, receiver = row["sender"].to_i, row["receiver"].to_i
     return "addressed to no player (legacy receiver 0)" if receiver.zero?
     return "sent by no player (legacy sender 0)" if sender.zero?
     return "a sender or receiver missing from users.csv" unless user_ids[sender] && user_ids[receiver]
 
     "sent to themselves" if sender == receiver
+  end
+
+  # ---- Board posts -------------------------------------------------------------
+
+  # Legacy home#message_board: Message.where(match: 0), all addressed to 0.
+  def board_post?(row)
+    row["receiver"].to_i.zero? && row["match"].to_s.strip == "0"
+  end
+
+  def import_board_posts
+    rows = message_rows.select { |row| board_post?(row) }
+    @report.board_posts_read = rows.size
+    user_ids = legacy_user_ids
+    present = BoardPost.where.not(legacy_id: nil).pluck(:legacy_id).to_set
+
+    records = []
+    rows.each do |row|
+      if present.include?(row["id"].to_i)
+        @report.board_posts_already_present += 1
+        next
+      end
+      author = user_ids[row["sender"].to_i] unless row["sender"].to_i.zero?
+      unless author
+        @report.board_posts_skipped[row["sender"].to_i.zero? ? "posted by no player (legacy sender 0)" : "an author missing from users.csv"] += 1
+        next
+      end
+
+      @report.board_posts_blank += 1 if row["message"].to_s.strip.empty?
+      records << {
+        legacy_id: row["id"].to_i,
+        message: row["message"],
+        user_id: author,
+        created_at: time(row["created_at"]),
+        updated_at: time(row["updated_at"]) || time(row["created_at"])
+      }
+    end
+    insert_batches(BoardPost, records)
+    @report.board_posts_imported = records.size
+  end
+
+  def message_rows
+    @message_rows ||= read(@messages_csv)
   end
 
   # ---- Lineups -----------------------------------------------------------------

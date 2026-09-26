@@ -9,7 +9,7 @@ class ConversationsController < ApplicationController
   before_action :set_other_and_messages, only: %i[show reply]
 
   def index
-    @page = Conversation.page(Message.involving(current_user), page: params[:page], reader: current_user)
+    @page = Conversation.page(Message.involving(current_user).with_text, page: params[:page], reader: current_user)
   end
 
   def show
@@ -34,7 +34,7 @@ class ConversationsController < ApplicationController
 
   def set_other_and_messages
     @other = User.find(params[:id])
-    @messages = Message.between(current_user, @other)
+    @messages = Message.between(current_user, @other).with_text
     raise ActiveRecord::RecordNotFound, "no conversation" unless @messages.exists?
   end
 

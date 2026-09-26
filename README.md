@@ -14,7 +14,7 @@ pages, their copy lightly edited. Unit stats for `/rules` live in
 the computer, played entirely in the browser, in whichever piece skin the
 player picked; `/matches`, online matches between signed-in players, a turn
 at a time; and messages between players: a chat on each match, an `/inbox`,
-and an admin Conversations page.
+and admin Conversations and Message Board pages.
 
 ## Stack
 
@@ -175,11 +175,15 @@ LEGACY_CSV_DIR=~/Backups/heroku-personal-2026-09-25/csv bin/rails legacy:import
   `<name>_<legacy id>`. A shared email goes to the earliest account; the later
   one imports without an email.
 - **Messages.** Every column comes over one to one, the text as it was (blank
-  ones included), sender and receiver mapped through `users.legacy_id`. A
-  message addressed to nobody (legacy receiver 0, with match 0: 638 rows in the
-  2026-09-25 export) or to a missing player is skipped and counted. A message
-  whose match was not imported (deleted on the old site) keeps its
-  conversation without a match.
+  ones included, and hidden when shown), sender and receiver mapped through
+  `users.legacy_id`. A message addressed to nobody or to a missing player is
+  skipped and counted. A message whose match was not imported (deleted on the
+  old site) keeps its conversation without a match.
+- **Board posts.** The old public message board (`/message_board`) was the
+  messages rows with receiver 0 and match 0 (638 in the 2026-09-25 export).
+  They import to `board_posts`, each to its author through `users.legacy_id`,
+  and are counted apart from the messages; one whose author is missing is
+  skipped and counted. See [Messages](#messages).
 - **Lineups.** Every saved lineup comes to its owner under its legacy columns
   (`setups`, see [Saved lineups](#saved-lineups)); one whose owner is missing
   is skipped.
@@ -240,8 +244,20 @@ receiver (`Conversation`, `app/models/conversation.rb`).
 | `/admin/conversations` | Every conversation that ever happened, newest first, searchable by player (username, name or email), 25 a page, each linking its matches | admins only (anyone else: 404) |
 | `/admin/conversations/:low-:high` | One conversation's every message, grouped by game (match number, status, winner, dates; messages outside any game in their own group), groups newest first and messages oldest first inside each; the first-named player's bubbles on the left, the second's on the right. Ten games a page, each showing its latest 200 messages with a link to the whole game (`?game=<match id>` or `?game=none`, 200 a page) (`ConversationThread`) | admins only |
 | `/admin/matches/:id` | One match's facts and chat | admins only |
+| `/admin/message_board` | The old public message board: every legacy post with text, newest first, 50 a page, each with its author and the date posted (`BoardPost`) | admins only (anyone else: 404) |
 
 Opening a thread or a match chat marks the messages addressed to you as read.
+**Blank messages** (empty or whitespace-only text: 10,778 legacy messages and
+246 board posts) are kept in the tables and hidden everywhere they would be
+shown or counted: the chat, the inbox and its unread counts, and every admin
+page (`Message.with_text`, `BoardPost.with_text`). A conversation of blank
+messages alone is not listed.
+
+**The message board** is history, admins' alone (Alex, 2026-09-25): no
+player-facing page shows a board post and nobody can post one. It has its
+own table, `board_posts` (`message`, `user_id`, the timestamps, `legacy_id`),
+not messages with a nullable receiver, so no private-message rule or query
+can return a post.
 The About page tells players that admins can read messages. No mail is sent
 for a message.
 
