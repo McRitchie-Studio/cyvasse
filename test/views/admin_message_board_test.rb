@@ -43,6 +43,8 @@ class AdminMessageBoardTest < ActionView::TestCase
     assert_select "h1", "Message Board"
     assert_select "[data-total]", /2 posts, newest first/
     assert_select "[data-blank]", "3 blank posts kept but not shown."
+    # A whole page, not the match chat's 20rem scroll box.
+    assert_select "ol.chat-log.is-thread[data-board-posts]", 1
   end
 
   test "with no posts it says so and shows no blank count" do

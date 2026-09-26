@@ -19,7 +19,7 @@
     <div class="card p-6 text-center text-secondary" data-board-empty>No board posts.</div>
   <% else %>
     <p class="text-sm text-muted">Showing <%= @page.first_number %>–<%= @page.last_number %> of <%= @page.total %>.</p>
-    <ol class="chat-log space-y-3" data-board-posts>
+    <ol class="chat-log is-thread" data-board-posts>
       <% @page.posts.each do |post| %>
         <li class="chat-message" data-board-post="<%= post.id %>" id="board-post-<%= post.id %>">
           <div class="flex flex-wrap items-baseline gap-x-2 text-xs text-muted wrap-anywhere">
