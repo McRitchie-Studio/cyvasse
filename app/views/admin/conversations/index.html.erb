@@ -40,7 +40,8 @@
               <%= conversation.low_user.player_name %> <span class="text-muted font-normal">&amp;</span> <%= conversation.high_user.player_name %>
             <% end %>
             <span class="text-xs text-muted">
-              <%= pluralize(conversation.messages_count, "message") %> · last <%= time_ago_in_words(conversation.last_at) %> ago
+              <%= link_to pluralize(conversation.messages_count, "message"), admin_conversation_path(conversation.key),
+                    class: "underline underline-offset-2", data: { thread_link: conversation.key } %> by game · last <%= time_ago_in_words(conversation.last_at) %> ago
             </span>
           </div>
           <% if conversation.last_message %>

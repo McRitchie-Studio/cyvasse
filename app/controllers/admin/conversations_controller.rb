@@ -4,14 +4,15 @@
 # each linking its matches. The About page tells players admins can read them.
 module Admin
   class ConversationsController < BaseController
-    SHOWN = 500
-
     def index
       @query = params[:q].to_s.strip
       @page = Conversation.page(Conversation.for_players(@query), page: params[:page])
     end
 
-    # One conversation's whole thread. :id is the pair, "low-high" user ids.
+    # One conversation's whole thread, grouped by the game each message was
+    # sent in (piece 12b): a page of games, newest first, or with ?game= one
+    # game (a match id, or "none" for messages outside any) page by page.
+    # :id is the pair, "low-high" user ids; the low user's bubbles sit left.
     def show
       low, high = Conversation.parse_key(params[:id])
       raise ActiveRecord::RecordNotFound, "bad conversation key" unless low
@@ -19,11 +20,13 @@ module Admin
       @users = User.where(id: [ low, high ]).index_by(&:id).values_at(low, high)
       raise ActiveRecord::RecordNotFound, "no such players" if @users.any?(&:nil?)
 
-      messages = Message.between(*@users)
-      @total = messages.count
+      thread = ConversationThread.new(*@users)
+      @total = thread.total
       raise ActiveRecord::RecordNotFound, "no conversation" if @total.zero?
 
-      @thread = messages.reorder(created_at: :desc, id: :desc).limit(SHOWN).includes(:sender, :match).to_a.reverse
+      @game = params[:game].presence
+      @page = @game ? thread.game(@game, page: params[:page]) : thread.page(params[:page])
+      raise ActiveRecord::RecordNotFound, "no such game in this conversation" unless @page
     end
   end
 end

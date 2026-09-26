@@ -122,7 +122,8 @@
   background: var(--color-surface-alt);
 }
 
-.chat-message.is-mine {
+.chat-message.is-mine,
+.chat-message.is-right {
   align-self: flex-end;
   background: rgb(var(--color-primary-rgb) / 0.12);
   border-color: rgb(var(--color-primary-rgb) / 0.35);
