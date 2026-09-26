@@ -148,6 +148,11 @@ export default class extends GameController {
     super.randomSetup()
   }
 
+  loadLineup(event) {
+    if (!this.state.can_set_up || this.holding) return
+    super.loadLineup(event)
+  }
+
   // "Submit army": the lineup is locked in on the server.
   start() {
     if (!this.state.can_set_up || !this.game.readyToStart || this.holding) return

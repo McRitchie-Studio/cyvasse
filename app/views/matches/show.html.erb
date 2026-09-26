@@ -57,6 +57,7 @@
           <button type="button" class="btn btn-secondary" data-action="cyvasse-match#randomSetup">Random Setup</button>
           <button type="button" class="btn btn-primary" hidden data-cyvasse-match-target="startButton" data-action="cyvasse-match#start">Submit army</button>
         </div>
+        <%= render "setups/panel", board: "cyvasse-match", slots: @setup_slots %>
       </div>
 
       <div class="card p-4" hidden data-cyvasse-match-target="info">

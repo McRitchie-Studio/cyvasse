@@ -51,6 +51,9 @@ Rails.application.routes.draw do
     resources :conversations, only: %i[index show]
     resources :matches, only: :show
   end
+  # Saved army lineups (piece 10b): save the army on the board to one of three
+  # slots; the setup panel loads them in the browser.
+  post "lineups", to: "setups#create", as: :setups
   # The public name a player is challenged by.
   get "username", to: "usernames#edit", as: :username
   patch "username", to: "usernames#update"

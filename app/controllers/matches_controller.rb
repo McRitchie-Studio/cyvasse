@@ -27,6 +27,7 @@ class MatchesController < ApplicationController
         @state = @match.state_for(current_user)
         @opponent = @match.opponent_of(current_user)
         @piece_images = Piece.all.to_h { |piece| [ piece.slug, helpers.image_path(piece.image(current_skin)) ] }
+        @setup_slots = Setup.slots_for(current_user)
       end
       format.json { render json: @match.state_for(current_user) }
     end

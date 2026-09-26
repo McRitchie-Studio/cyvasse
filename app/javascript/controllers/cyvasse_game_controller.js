@@ -75,6 +75,24 @@ export default class extends Controller {
     this.render()
   }
 
+  // Saved lineups (cyvasse-setups, setups/_panel): place one, or hand over
+  // the army on the board to be saved. `loaded` tells the panel it took.
+  loadLineup(event) {
+    if (this.game.phase !== "setup") return
+    try {
+      this.game.loadLineup(event.detail.lineup)
+    } catch {
+      return
+    }
+    event.detail.loaded = true
+    this.selectedUnitId = null
+    this.render()
+  }
+
+  collectLineup(event) {
+    if (this.game.readyToStart) event.detail.lineup = this.game.playerLineup()
+  }
+
   start() {
     if (!this.game.readyToStart) return
     this.game.start()
