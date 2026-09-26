@@ -27,6 +27,7 @@ Studio.configure do |config|
     { title: "Cyvasse", links: [
       { label: "Home", href: "/", emoji: "♟️", desc: "The front door" },
       { label: "Play", href: "/play", emoji: "🐲", desc: "A game against the computer" },
+      { label: "My games", href: "/matches", emoji: "⚔️", desc: "Online matches against players" },
       { label: "Pieces", href: "/pieces", emoji: "🐘", desc: "Both piece skins" },
       { label: "Rules", href: "/rules", emoji: "📜", desc: "How to play" },
       { label: "About", href: "/about", emoji: "🐉", desc: "Where Cyvasse came from" }

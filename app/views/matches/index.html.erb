@@ -1,0 +1,32 @@
+<% content_for(:title, "My games · Cyvasse") %>
+
+<section class="max-w-4xl mx-auto space-y-8">
+  <header class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-extrabold text-heading tracking-tight">My games</h1>
+      <p class="text-secondary">
+        Playing as <strong class="text-heading"><%= current_user.username %></strong>
+        · <span data-record><%= current_user.wins %> won, <%= current_user.losses %> lost</span>
+        · <%= link_to "change name", username_path(return_to: matches_path), class: "underline underline-offset-2" %>
+      </p>
+    </div>
+    <%= form_with url: matches_path, method: :post, class: "flex flex-wrap items-end gap-2", data: { turbo: false } do |form| %>
+      <div>
+        <%= form.label :username, "Challenge a player", class: "block text-sm font-semibold text-heading mb-1" %>
+        <%= form.text_field :username, placeholder: "their username", required: true, autocomplete: "off",
+              autocapitalize: "none", spellcheck: false, class: "input-field" %>
+      </div>
+      <%= form.submit "Challenge", class: "btn btn-primary" %>
+    <% end %>
+  </header>
+
+  <p class="text-sm text-secondary">
+    Each player has seven days to make a move; let the clock run out and you forfeit.
+    We email you when it is your turn.
+  </p>
+
+  <%= render "matches/list", title: "Your move", matches: @your_move, empty: "Nothing waiting on you." %>
+  <%= render "matches/list", title: "Set up your army", matches: @setup, empty: "No armies to place." %>
+  <%= render "matches/list", title: "Waiting on your opponent", matches: @waiting, empty: "Nothing in flight." %>
+  <%= render "matches/list", title: "Finished", matches: @finished, empty: "No finished games yet." %>
+</section>

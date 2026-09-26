@@ -291,7 +291,7 @@ export default class extends Controller {
       button.type = "button"
       button.className = "dock-unit"
       button.dataset.unitId = unit.id
-      button.dataset.action = "cyvasse-game#pickFromDock"
+      button.dataset.action = `${this.identifier}#pickFromDock`
       button.setAttribute("aria-pressed", unit.id === this.selectedUnitId)
       button.setAttribute("aria-label", unit.type.name)
       button.append(img(this.imagesValue[unit.type.codename], unit.type.name))

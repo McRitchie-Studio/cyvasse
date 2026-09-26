@@ -1,0 +1,8 @@
+<p>Hi <%= @user.username %>,</p>
+<% if @first_move %>
+  <p>Both armies are on the board, and <strong>you have the first move</strong> against <%= @opponent.username %>.</p>
+<% else %>
+  <p><strong><%= @opponent.username %></strong> has moved. It is your turn (turn <%= @match.turn %>).</p>
+<% end %>
+<p><a href="<%= @url %>">Make your move</a></p>
+<p>You have seven days to move<%= ", until #{@deadline.utc.strftime('%B %-d at %H:%M UTC')}" if @deadline %>, or you forfeit the match.</p>

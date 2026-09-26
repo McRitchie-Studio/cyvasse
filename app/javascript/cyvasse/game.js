@@ -11,7 +11,7 @@
 import { ARMY, typeAt } from "cyvasse/units";
 import { hexAt, inPlayerZone, PLAYER_ZONE } from "cyvasse/board";
 import { legalActions } from "cyvasse/rules";
-import { parseLineup, pickComputerLineup } from "cyvasse/setups";
+import { formatLineup, parseLineup, pickComputerLineup } from "cyvasse/setups";
 
 export const PLAYER = 1;
 export const COMPUTER = 0;
@@ -37,6 +37,34 @@ export class Game {
     this.lastMove = [];
     this.utilMove = null;
     this.winner = null;
+  }
+
+  // An online match as the server sends it (Match#state_for), from this
+  // player's seat: their army is PLAYER (team 1) on the bottom rows, the
+  // opponent's COMPUTER (team 0). `units` lists [team, armyIndex, hex, status];
+  // a unit it leaves out stays in the dock (the opponent's army before the
+  // game starts). The server, not this object, decides every outcome: a
+  // restored game only draws the board and offers the legal moves.
+  static restore({ phase, turn, offense, units = [], lastMove = [], utilMove = null, winner = null }) {
+    const game = new Game({ computer: { name: "", lineup: "" } });
+    for (const [team, index, hex, status] of units) {
+      const unit = game.unit(`${team}-${index}`);
+      unit.status = status;
+      unit.hex = status === "alive" ? hex : null;
+    }
+    game.phase = phase;
+    game.turn = turn ?? 0;
+    game.offense = offense ?? null;
+    game.lastMove = lastMove ?? [];
+    game.utilMove = utilMove ?? null;
+    game.winner = winner ?? null;
+    return game;
+  }
+
+  // The player's own army as the legacy setup string, from their seat
+  // ("unitIndex:hex|", hexes 52-91): what an online match submits.
+  playerLineup() {
+    return formatLineup(this.teamUnits(PLAYER).map((u) => [u.index, u.hex]));
   }
 
   // ---- The board ---------------------------------------------------------

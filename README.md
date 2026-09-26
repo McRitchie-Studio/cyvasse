@@ -11,8 +11,13 @@ landing page, the original art, a public `/pieces` gallery of it, and the
 original site's `/rules` (with the tutorial's special-rules cards) and `/about`
 pages, their copy lightly edited. Unit stats for `/rules` live in
 `app/models/rulebook.rb`. And the game itself: `/play`, a public game against
+<<<<<<< HEAD
+the computer, played entirely in the browser, and `/matches`, online matches
+between signed-in players, a turn at a time.
+=======
 the computer, played entirely in the browser, in whichever piece skin the
 player picked.
+>>>>>>> origin/accepted
 
 ## Stack
 
@@ -82,6 +87,55 @@ the one in use first.
 `test/lib/engine_rulebook_agreement_test.rb` keeps the `/rules` card's numbers
 and the engine's in step.
 
+## Online matches
+
+`/matches` (My games) is where a signed-in player challenges another by
+username, sets up, and plays, one turn at a time with seven days to make each
+move. It needs an account and a public username (`/username`, 3-20 letters,
+digits or underscores, unique in any case); matches are visible to their two
+players only.
+
+| Step | Where |
+|---|---|
+| Challenge by username; the challenged player is emailed | `POST /matches` → `Match.challenge!` |
+| Accept or decline; the challenger may set up at once | `POST /matches/:id/accept`, `DELETE /matches/:id` |
+| Each player submits their army from their own seat; the second one starts the game and the first mover is emailed | `POST /matches/:id/setup` (JSON) → `Match#set_up!` |
+| Whole turns, checked on the server; the next player is emailed | `POST /matches/:id/moves` (JSON) → `Match#play!` |
+| Resign | `POST /matches/:id/resign` |
+
+**The server checks every move by the browser's rules.** The engine in
+`app/javascript/cyvasse` stays the source of truth; `app/models/cyvasse_rules`
+is a line-for-line Ruby mirror of its board, reach, rules and turn flow, and
+`Match#play!` refuses any turn it does not allow. The two are held together
+by a recorded fixture: `bin/rules-agreement` asks the JS engine for its moves
+and captures on 60 seeded positions (both jumps for cavalry) and for six whole
+seeded games, and writes `test/fixtures/files/rules_agreement.json`.
+`test/javascript/agreement_fixture_test.js` fails if the engine no longer
+gives those answers, and `test/models/cyvasse_rules/js_agreement_test.rb`
+fails if the Ruby port does not. **Change a rule in `app/javascript/cyvasse`,
+run `bin/rules-agreement`, and port the change until both lanes are green.**
+
+**Seats.** Matches are stored exactly as the legacy app stored them, from the
+home seat: home is team 1 on hexes 52-91, away is team 0 on hexes 1-40, and
+`whos_turn` is 1 for home. The away player's board is the same board turned
+round (hex 92 - n); `Match#state_for` does that turn for the browser, and
+withholds the opponent's army until both are in.
+
+**The clock.** `time_of_last_move` starts a seven-day clock (the legacy rule).
+When it runs out, the player to move forfeits (a win and a loss on the
+players' records); an unplayed challenge simply expires. The rule is enforced
+whenever either player opens My games or the match, and on any late move, so
+it needs no scheduler; `bin/rails matches:expire` sweeps every match and may
+be run daily by one.
+
+**Legacy import.** The `matches` table and `users.username`, `wins` and
+`losses` keep the legacy names, types and nullability (see the
+`CreateMatches` migration for the column encoding), so epic piece 10 can
+import the legacy rows as they are. Two new columns, `winner_id` and
+`finish_reason`, are null on legacy rows. The users unique index is on the
+exact username, as the legacy uniqueness was; the model refuses a new name
+that collides in any case.
+
 ## Local development
 
 ```bash
@@ -98,14 +152,17 @@ bundler-audit, importmap audit and rubocop:
 | Command | What |
 |---|---|
 | `bin/rails test` | unit, component and integration tests (single-process) |
-| `bin/rails test:system` | browser tests in headless Chrome: a whole game against the computer |
+| `bin/rails test:system` | browser tests in headless Chrome: a whole game against the computer, and two players starting an online match |
 | `bin/test-js` | the game engine's unit tests, on `node:test` (Node 20+, no npm install) |
+| `bin/rules-agreement` | regenerate the JS engine's recorded answers the Ruby rules port is tested against |
 
 The seeds create three identities: `alex@mcritchie.studio` (admin),
 `mack@mcritchie.studio` (the ordinary member) and `alex@cyvasse.mcritchie.studio`
 (admin). Sign in with a magic link; on a desk the mail lands in the local inbox at
 `/_studio/local_emails`, and `/_studio/local_review?return_to=/` signs the seeded
-admin in directly.
+admin in directly. Online-match mail (a challenge, "your move") rides the same
+outbox, so it lands in that inbox too. To play yourself on a desk, sign in as
+two of the seeded identities in two browsers (or one private window).
 
 ## Auth and hub SSO
 
@@ -139,7 +196,8 @@ opt-in switch (`config/initializers/session_store.rb`):
 
 ## Deploy
 
-`Procfile` runs `bin/rails db:migrate` in the Heroku release phase. The release
+`Procfile` runs `bin/rails db:migrate` in the Heroku release phase (which
+creates `matches` and the users username/record columns). The release
 conductor's post-deploy command is `bin/rails users:seed_identities`, which
 idempotently seeds only the three identities above. The Heroku
 app, Postgres and the `cyvasse.mcritchie.studio` domain are epic piece 8 and do
