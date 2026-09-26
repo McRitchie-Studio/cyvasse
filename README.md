@@ -11,13 +11,10 @@ landing page, the original art, a public `/pieces` gallery of it, and the
 original site's `/rules` (with the tutorial's special-rules cards) and `/about`
 pages, their copy lightly edited. Unit stats for `/rules` live in
 `app/models/rulebook.rb`. And the game itself: `/play`, a public game against
-<<<<<<< HEAD
-the computer, played entirely in the browser, and `/matches`, online matches
-between signed-in players, a turn at a time.
-=======
 the computer, played entirely in the browser, in whichever piece skin the
-player picked.
->>>>>>> origin/accepted
+player picked; `/matches`, online matches between signed-in players, a turn
+at a time; and messages between players: a chat on each match, an `/inbox`,
+and an admin Conversations page.
 
 ## Stack
 
@@ -138,6 +135,40 @@ import the legacy rows as they are. Two new columns, `winner_id` and
 exact username, as the legacy uniqueness was; the model refuses a new name
 that collides in any case.
 
+## Messages
+
+Players talk in a chat on each match, and read every conversation in their
+`/inbox`. A conversation is every message between two people, in any match
+or none; it is not a table, but the unordered pair of a message's sender and
+receiver (`Conversation`, `app/models/conversation.rb`).
+
+| Where | What | Who |
+|---|---|---|
+| The match page's chat card | A Turbo frame loaded from `GET /matches/:id/messages` and reloaded every 8 s while the tab is visible; the form posts to `POST /matches/:id/messages` | the match's two players (anyone else: 404) |
+| `/inbox` | The player's conversations, newest first, with unread counts; 25 a page | the signed-in player |
+| `/conversations/:user_id` | One whole thread, each message labelled with its match, and a reply box (a reply is sent outside any match) | the conversation's two people (anyone else: 404) |
+| `/admin/conversations` | Every conversation that ever happened, newest first, searchable by player (username, name or email), 25 a page, each linking its matches | admins only (anyone else: 404) |
+| `/admin/conversations/:low-:high`, `/admin/matches/:id` | One conversation's thread; one match's facts and chat | admins only |
+
+Opening a thread or a match chat marks the messages addressed to you as read.
+The About page tells players that admins can read messages. No mail is sent
+for a message.
+
+**Legacy import.** The `messages` table keeps every legacy column (see the
+`CreateMessages` migration): `message`, `read` and the timestamps as they
+were, and `sender`, `receiver` and `match` as `sender_id`, `receiver_id` and
+`match_id` foreign keys, which the importer maps through `users.legacy_id`.
+`legacy_id` holds the legacy row's id, unique, so a re-run skips what it
+already brought over. New-message rules (text present, at most 1,000
+characters, sent between the match's players) apply to new messages only.
+
+**Demo data.** `bin/rails db:seed` in development, or `bin/rails
+messages:demo`, adds made-up players (`@example.com`), finished matches and
+about 150 messages across 44 conversations, enough to page through
+(`lib/demo_conversations.rb`; it refuses to run in production). It also gives
+`alex@mcritchie.studio` the username `alex_mcritchie` if he has none, so his
+seeded account has conversations of its own.
+
 ## Local development
 
 ```bash
@@ -199,7 +230,7 @@ opt-in switch (`config/initializers/session_store.rb`):
 ## Deploy
 
 `Procfile` runs `bin/rails db:migrate` in the Heroku release phase (which
-creates `matches` and the users username/record columns). The release
+creates `matches`, `messages` and the users username/record columns). The release
 conductor's post-deploy command is `bin/rails users:seed_identities`, which
 idempotently seeds only the three identities above. The Heroku
 app, Postgres and the `cyvasse.mcritchie.studio` domain are epic piece 8 and do
