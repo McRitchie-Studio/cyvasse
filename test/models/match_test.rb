@@ -36,6 +36,18 @@ class MatchTest < ActiveSupport::TestCase
     assert Match.challenge!(@away, "arya"), "the other way round is a different challenge"
   end
 
+  test "the old site's computer players cannot be challenged" do
+    computer = User.create!(name: "Computer Three", username: "Computer_3", legacy_id: 3)
+    error = assert_raises(Match::Refused) { Match.challenge!(@home, "computer_3") }
+    assert_match "computer", error.message
+    assert_not Match.exists?(away_user_id: computer.id)
+
+    person = User.create!(name: "Old Timer", username: "old_timer", legacy_id: 11)
+    assert Match.challenge!(@home, "old_timer"), "an imported person is still challengeable"
+    assert_predicate computer, :computer?
+    assert_not_predicate person, :computer?
+  end
+
   test "only the challenged player accepts, once" do
     match = Match.challenge!(@home, "brienne")
     assert_raises(Match::Refused) { match.accept!(@home) }
@@ -246,6 +258,17 @@ class MatchTest < ActiveSupport::TestCase
     assert_equal [ Match::FINISHED, "expired", nil ], [ match.match_status, match.finish_reason, match.winner ]
     assert_not match.away_ready?, "the late army was not locked in"
     assert_equal [ 0, 0, 0, 0 ], [ @home.reload.wins, @home.losses, @away.reload.wins, @away.losses ]
+  end
+
+  test "withdrawing a challenge after seven days is refused and the challenge expires, kept on record" do
+    match = Match.challenge!(@home, "brienne")
+    travel 8.days do
+      error = assert_raises(Match::Refused) { match.withdraw!(@home) }
+      assert_match "seven-day clock", error.message
+    end
+    assert Match.exists?(match.id), "an expired challenge is recorded, not deleted"
+    match.reload
+    assert_equal [ Match::FINISHED, "expired", nil ], [ match.match_status, match.finish_reason, match.winner ]
   end
 
   test "a challenge nobody plays expires after seven days with no result" do
