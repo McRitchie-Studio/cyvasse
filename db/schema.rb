@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_26_000040) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_26_000050) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,6 +40,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000040) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "board_posts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "legacy_id"
+    t.text "message"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["created_at", "id"], name: "index_board_posts_on_created_at_and_id"
+    t.index ["legacy_id"], name: "index_board_posts_on_legacy_id", unique: true
+    t.index ["user_id"], name: "index_board_posts_on_user_id"
   end
 
   create_table "error_logs", force: :cascade do |t|
@@ -277,6 +288,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000040) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "board_posts", "users"
   add_foreign_key "matches", "users", column: "away_user_id"
   add_foreign_key "matches", "users", column: "home_user_id"
   add_foreign_key "matches", "users", column: "winner_id"

@@ -44,7 +44,7 @@ class ConversationThread
     @per_page = per_page
   end
 
-  def messages = Message.in_pair(low_user.id, high_user.id)
+  def messages = Message.in_pair(low_user.id, high_user.id).with_text
 
   def total = summaries.sum { _1[:count] }
 

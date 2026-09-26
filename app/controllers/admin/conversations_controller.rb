@@ -6,7 +6,7 @@ module Admin
   class ConversationsController < BaseController
     def index
       @query = params[:q].to_s.strip
-      @page = Conversation.page(Conversation.for_players(@query), page: params[:page])
+      @page = Conversation.page(Conversation.for_players(@query, Message.with_text), page: params[:page])
     end
 
     # One conversation's whole thread, grouped by the game each message was

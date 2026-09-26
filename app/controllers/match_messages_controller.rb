@@ -41,6 +41,6 @@ class MatchMessagesController < ApplicationController
   end
 
   def load_messages
-    @messages = @match.messages.order(created_at: :desc, id: :desc).limit(SHOWN).includes(:sender).to_a.reverse
+    @messages = @match.messages.with_text.order(created_at: :desc, id: :desc).limit(SHOWN).includes(:sender).to_a.reverse
   end
 end
