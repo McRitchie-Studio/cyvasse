@@ -136,11 +136,13 @@ uniqueness was; the model refuses a new name that collides in any case.
 ## Legacy import
 
 `bin/rails legacy:import` (`LegacyImport`, `lib/tasks/legacy.rake`) loads the
-old Cyvasse's players and matches from the CSV export of the personal
-`cyvasse-game` database (`users.csv`, `matches.csv`, from `heroku pg:psql`
-`\copy ... TO ... CSV HEADER`). The export holds emails and password hashes:
-keep it out of the repo, and never paste a row anywhere. The task prints counts
-only.
+old Cyvasse's players, matches, messages and saved lineups from the CSV export
+of the personal `cyvasse-game` database (`users.csv`, `matches.csv`, and, when
+the folder holds them, `messages.csv` and `setups.csv`, from `heroku pg:psql`
+`\copy ... TO ... CSV HEADER`). The export holds emails, password hashes and
+private messages: keep it out of the repo, and never paste a row anywhere. The
+task prints counts only, and the run logs no SQL (`insert_all` writes its
+values into the statement).
 
 ```bash
 LEGACY_CSV_DIR=~/Backups/heroku-personal-2026-09-25/csv bin/rails legacy:import
@@ -160,6 +162,15 @@ LEGACY_CSV_DIR=~/Backups/heroku-personal-2026-09-25/csv bin/rails legacy:import
   one, and any legacy name a player of the new app already holds, becomes
   `<name>_<legacy id>`. A shared email goes to the earliest account; the later
   one imports without an email.
+- **Messages.** Every column comes over one to one, the text as it was (blank
+  ones included), sender and receiver mapped through `users.legacy_id`. A
+  message addressed to nobody (legacy receiver 0, with match 0: 638 rows in the
+  2026-09-25 export) or to a missing player is skipped and counted. A message
+  whose match was not imported (deleted on the old site) keeps its
+  conversation without a match.
+- **Lineups.** Every saved lineup comes to its owner under its legacy columns
+  (`setups`, see [Saved lineups](#saved-lineups)); one whose owner is missing
+  is skipped.
 - **Computer opponents.** Legacy ids 2-10 were the computer players (the away
   seat of every computer match). They import with no email, so nothing is ever
   mailed to them.
@@ -173,9 +184,33 @@ LEGACY_CSV_DIR=~/Backups/heroku-personal-2026-09-25/csv bin/rails legacy:import
   `wins`/`losses` are the legacy records. A match whose player is missing from
   `users.csv` is skipped and counted.
 
+A full run of the 2026-09-25 export into a desk database imported 18,789
+players, 107,940 matches, 46,338 messages (638 addressed to nobody skipped)
+and 5,004 lineups (9 saved from the away seat, 1 not a whole army); a rerun
+imported nothing.
+
 To run it against production, point a local run at the app's database
 (`DATABASE_URL="$(heroku config:get DATABASE_URL -a cyvasse)"`) rather than
 copying the CSVs onto a dyno. That run is an operator act with Alex.
+
+## Saved lineups
+
+The setup panel on `/play` and on an online match lists the signed-in
+player's three saved lineups. **Load** places the whole army on the player's
+rows at once (it can still be rearranged by hand before starting or
+submitting); **Save** stores the army on the board, under the name typed, in
+that slot, replacing what it held. A visitor is offered sign-in instead.
+
+| Where | What |
+|---|---|
+| `setups` table, `Setup` | legacy columns kept: `name`, `units_position` (the army from the owner's seat, the legacy `unitIndex:hex` string), `button_position` (the slot, 1-3), `legacy_id` |
+| `POST /lineups` (JSON `{ slot, name, lineup }`) | save a slot; answers every slot, or 422 with the reason |
+| `setups/_panel`, `cyvasse_setups_controller.js` | the panel; it asks the board to place a lineup (`Game#loadLineup`) or to hand over the army to save |
+
+The legacy save sometimes left two lineups in one slot; both import, and the
+newest is the one shown. A handful of legacy lineups were saved from the away
+seat (hexes 1-40) and are turned round when loaded; one that is not a whole
+army is kept but never offered.
 
 ## Messages
 
