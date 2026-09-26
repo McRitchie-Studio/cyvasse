@@ -18,6 +18,8 @@ class PlayAgainstComputerTest < ApplicationSystemTestCase
     assert_selector ".cyvasse-dock img[src*='/pieces/vector/']", count: 19
 
     place_one_by_hand
+    pick_up_shows_orange
+    place_one_by_keyboard
     click_on "Random Setup"
     assert_no_selector ".cyvasse-dock .dock-unit"
     screenshot("setup")
@@ -41,7 +43,9 @@ class PlayAgainstComputerTest < ApplicationSystemTestCase
     end
 
     assert_equal "over", game["data-phase"]
-    assert_selector ".cyvasse-banner", text: /You win, at turn \d+\.|You were defeated, at turn \d+\./
+    # The stalemate rule can end a game drawn (Game#beginTurn), so a draw is
+    # as good an ending as a win or a loss.
+    assert_selector ".cyvasse-banner", text: /You win, at turn \d+\.|You were defeated, at turn \d+\.|Neither side can move\. A draw\./
     screenshot("over")
   end
 
@@ -53,6 +57,30 @@ class PlayAgainstComputerTest < ApplicationSystemTestCase
     find("svg.cyvasse-board g.hex[data-hex='88']").click
     assert_selector "svg.cyvasse-board g.hex[data-hex='88'][data-unit-id='1-17']"
     assert_selector ".cyvasse-dock .dock-unit", count: 18
+  end
+
+  # A placed unit picked up again is marked orange, not left setup-blue.
+  def pick_up_shows_orange
+    find("svg.cyvasse-board g.hex[data-hex='88']").click
+    assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='88']"
+    # The fill eases over 0.25 s, so wait for it to settle.
+    page.document.synchronize(3) do
+      fill = page.evaluate_script("getComputedStyle(document.querySelector(\"g.hex[data-hex='88'] .hex-poly\")).fill")
+      raise Capybara::ExpectationNotMet, "the selected hex should be orange, was #{fill}" unless fill == "rgb(255, 165, 0)"
+    end
+    find("svg.cyvasse-board g.hex[data-hex='88']").click
+  end
+
+  # Keyboard play: pick a unit from the dock, then walk the board with the
+  # arrow keys from hex 88 to 87 and press Enter to place it there.
+  def place_one_by_keyboard
+    find(".cyvasse-dock .dock-unit[data-unit-id='1-16']").click
+    hex = find("svg.cyvasse-board g.hex[data-hex='88']")
+    page.execute_script("arguments[0].focus()", hex)
+    hex.send_keys(:arrow_left)
+    assert_equal "87", page.evaluate_script("document.activeElement.dataset.hex")
+    find("svg.cyvasse-board g.hex[data-hex='87']").send_keys(:enter)
+    assert_selector "svg.cyvasse-board g.hex[data-hex='87'][data-unit-id='1-16']"
   end
 
   def wait_for_my_move_or_the_end(game)

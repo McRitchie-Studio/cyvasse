@@ -59,9 +59,21 @@
   fill: darkblue;
 }
 
+/* The selection outranks the setup rows above (`.hex` adds the weight), so a
+ * placed unit picked up to move again shows orange, not dark blue. */
 .cyvasse-board .is-last-move .hex-poly,
-.cyvasse-board .is-selected .hex-poly {
+.cyvasse-board .hex.is-selected .hex-poly {
   fill: orange;
+}
+
+/* Keyboard play: the focused hex gets a thick yellow edge. */
+.cyvasse-board .hex:focus {
+  outline: none;
+}
+
+.cyvasse-board .hex:focus-visible .hex-poly {
+  stroke: yellow;
+  stroke-width: 4;
 }
 
 .cyvasse-board .is-move,
