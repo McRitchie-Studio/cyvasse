@@ -36,6 +36,9 @@ class Match < ApplicationRecord
   belongs_to :home_user, class_name: "User", inverse_of: :home_matches
   belongs_to :away_user, class_name: "User", inverse_of: :away_matches
   belongs_to :winner, class_name: "User", optional: true
+  # The match's chat (piece 12). A deleted match leaves its messages in the
+  # players' conversation: the foreign key nulls match_id (on_delete).
+  has_many :messages, dependent: nil
 
   validates :match_status, inclusion: { in: STATUSES }
   validates :finish_reason, inclusion: { in: REASONS }, allow_nil: true
