@@ -16,7 +16,7 @@
                    "hover:text-heading aria-pressed:bg-primary aria-pressed:text-white",
             aria: { pressed: skin == current_skin },
             data: { skin: skin } do %>
-        <%= image_tag Piece.all.first.image(skin), alt: "", class: "h-5 w-5", aria: { hidden: true } %>
+        <%= image_tag Piece.all.first.image(skin), alt: "", class: "skin-choice-art", aria: { hidden: true } %>
         <span><%= skin.to_s.capitalize %></span>
       <% end %>
     <% end %>
