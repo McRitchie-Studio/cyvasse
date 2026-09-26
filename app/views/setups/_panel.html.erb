@@ -1,0 +1,36 @@
+<%# Saved lineups in the setup panel (piece 10b): load one of the player's
+    three saved armies, or save the army on the board to a slot. Locals:
+    board, the board's Stimulus identifier (cyvasse-game or cyvasse-match),
+    which places a loaded lineup and hands over the army to save; slots,
+    Setup.slots_for(current_user), nil for a visitor. %>
+<% if slots %>
+  <div class="space-y-2 border-t border-subtle pt-3"
+       data-controller="cyvasse-setups"
+       data-cyvasse-setups-url-value="<%= setups_path %>"
+       data-action="cyvasse-setups:load-><%= board %>#loadLineup cyvasse-setups:collect-><%= board %>#collectLineup">
+    <h3 class="text-sm font-semibold uppercase tracking-widest text-muted">Saved lineups</h3>
+    <ol class="space-y-2">
+      <% slots.each do |slot, setup| %>
+        <% lineup = setup&.lineup %>
+        <li class="flex items-center gap-2" data-cyvasse-setups-target="slot" data-slot="<%= slot %>">
+          <button type="button" class="btn btn-secondary flex-1 min-w-0 truncate"
+                  data-slot-load data-lineup="<%= lineup %>" data-action="cyvasse-setups#load"
+                  aria-label="Load lineup <%= slot %>"
+                  <%= "disabled" unless lineup %>><%= setup&.name.presence || (setup ? "Lineup #{slot}" : "Empty slot #{slot}") %></button>
+          <button type="button" class="btn btn-secondary shrink-0" data-action="cyvasse-setups#save"
+                  aria-label="Save the army on the board to slot <%= slot %>">Save</button>
+        </li>
+      <% end %>
+    </ol>
+    <label class="block text-sm text-secondary">
+      Name to save as
+      <input type="text" maxlength="<%= Setup::NAME_LENGTH %>" class="input-field mt-1 w-full" autocomplete="off"
+             data-cyvasse-setups-target="name" placeholder="Up to <%= Setup::NAME_LENGTH %> characters">
+    </label>
+    <p class="text-sm text-secondary" role="status" aria-live="polite" hidden data-cyvasse-setups-target="message"></p>
+  </div>
+<% else %>
+  <p class="text-sm text-secondary border-t border-subtle pt-3">
+    <%= link_to "Sign in", signin_path, class: "underline underline-offset-2" %> to save a lineup and load it in any game.
+  </p>
+<% end %>

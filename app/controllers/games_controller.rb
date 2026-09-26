@@ -15,5 +15,8 @@ class GamesController < ApplicationController
       [ skin, Piece.all.to_h { |piece| [ piece.slug, helpers.image_path(piece.image(skin)) ] } ]
     end
     @piece_images = @skin_images.fetch(@skin)
+    # A signed-in player's saved lineups (piece 10b); a visitor is offered
+    # sign-in instead.
+    @setup_slots = Setup.slots_for(current_user) if current_user
   end
 end

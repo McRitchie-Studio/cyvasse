@@ -122,6 +122,27 @@ export class Game {
     }
   }
 
+  // A saved lineup (setups.js, "unitIndex:hex|" from the player's seat)
+  // takes the board: every unit of the army stands where it was saved,
+  // replacing whatever was placed. Throws, leaving the board untouched, on
+  // anything but a whole army on distinct hexes of the player's five rows
+  // (legacy Setup.executeSetup).
+  loadLineup(string) {
+    this.#requirePhase("setup");
+    const pairs = parseLineup(string);
+    const indices = pairs.map(([index]) => index).sort((a, b) => a - b);
+    if (pairs.length !== ARMY.length || indices.some((index, i) => index !== i + 1)) {
+      throw new Error("a saved lineup must place the whole army");
+    }
+    if (!pairs.every(([, hex]) => inPlayerZone(hex))) throw new Error("a saved lineup must stand on your five rows");
+    if (new Set(pairs.map(([, hex]) => hex)).size !== pairs.length) throw new Error("two units of the lineup share a hex");
+    for (const [index, hex] of pairs) {
+      const unit = this.unit(`${PLAYER}-${index}`);
+      unit.status = "alive";
+      unit.hex = hex;
+    }
+  }
+
   get readyToStart() {
     return this.phase === "setup" && this.teamUnits(PLAYER, "unplaced").length === 0;
   }

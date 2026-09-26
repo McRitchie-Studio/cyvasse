@@ -20,6 +20,8 @@ class User < ApplicationRecord
   # Messages (piece 12). A player with messages is kept, like one with matches.
   has_many :sent_messages, class_name: "Message", foreign_key: :sender_id, inverse_of: :sender, dependent: :restrict_with_error
   has_many :received_messages, class_name: "Message", foreign_key: :receiver_id, inverse_of: :receiver, dependent: :restrict_with_error
+  # Saved army lineups (piece 10b), three slots; they go with the player.
+  has_many :setups, dependent: :delete_all
 
   # The piece art this player chose (PieceSkinPreference); nil until they do.
   validates :piece_skin, inclusion: { in: Piece::SKINS.keys.map(&:to_s) }, allow_nil: true
