@@ -196,6 +196,58 @@ class MatchTest < ActiveSupport::TestCase
     assert_equal "forfeit", match.reload.finish_reason
   end
 
+  # A stale page can still post resign, accept or setup after the clock ran
+  # out. The forfeit is settled first: the late request never changes the
+  # result the clock already decided.
+  test "resigning after the opponent's clock ran out is refused and the resigner wins by forfeit" do
+    match = started_match(@home, @away)
+    mover = match.user_to_move
+    resigner = match.opponent_of(mover)
+    travel 8.days do
+      error = assert_raises(Match::Refused) { match.resign!(resigner) }
+      assert_match "seven-day clock", error.message
+    end
+    match.reload
+    assert_equal [ Match::FINISHED, "forfeit", resigner ], [ match.match_status, match.finish_reason, match.winner ]
+    assert_equal [ 1, 0 ], [ resigner.reload.wins, resigner.losses ]
+    assert_equal [ 0, 1 ], [ mover.reload.wins, mover.losses ]
+  end
+
+  test "resigning after your own clock ran out records the forfeit, not the resignation" do
+    match = started_match(@home, @away)
+    mover = match.user_to_move
+    travel 8.days do
+      assert_raises(Match::Refused) { match.resign!(mover) }
+    end
+    match.reload
+    assert_equal [ "forfeit", match.opponent_of(mover) ], [ match.finish_reason, match.winner ]
+    assert_equal 1, mover.reload.losses
+  end
+
+  test "accepting a challenge after seven days is refused and the challenge expires" do
+    match = Match.challenge!(@home, "brienne")
+    travel 8.days do
+      error = assert_raises(Match::Refused) { match.accept!(@away) }
+      assert_match "seven-day clock", error.message
+    end
+    match.reload
+    assert_equal [ Match::FINISHED, "expired", nil ], [ match.match_status, match.finish_reason, match.winner ]
+  end
+
+  test "setting up after seven days is refused and the match expires with no result" do
+    match = Match.challenge!(@home, "brienne")
+    match.accept!(@away)
+    match.set_up!(@home, home_lineup)
+    travel 8.days do
+      error = assert_raises(Match::Refused) { match.set_up!(@away, away_lineup) }
+      assert_match "seven-day clock", error.message
+    end
+    match.reload
+    assert_equal [ Match::FINISHED, "expired", nil ], [ match.match_status, match.finish_reason, match.winner ]
+    assert_not match.away_ready?, "the late army was not locked in"
+    assert_equal [ 0, 0, 0, 0 ], [ @home.reload.wins, @home.losses, @away.reload.wins, @away.losses ]
+  end
+
   test "a challenge nobody plays expires after seven days with no result" do
     match = Match.challenge!(@home, "brienne")
     Match.expire_stale!(now: 8.days.from_now)
