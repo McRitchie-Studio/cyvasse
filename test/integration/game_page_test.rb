@@ -19,6 +19,15 @@ class GamePageTest < ActionDispatch::IntegrationTest
     assert_select "button[hidden]", text: "Start Game"
   end
 
+  test "offers the opening picker to every player, wired to the board" do
+    get play_path
+
+    assert_select "[data-controller=cyvasse-openings][data-action='cyvasse-openings:load->cyvasse-game#loadLineup']" do
+      assert_select "select[data-cyvasse-openings-target=select]"
+      assert_select "button[data-action='cyvasse-openings#load']", text: "Load"
+    end
+  end
+
   test "draws the vector skin by default, one image per piece" do
     get play_path
 
