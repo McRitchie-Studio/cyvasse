@@ -4,7 +4,7 @@ module Admin
   class MatchesController < BaseController
     def show
       @match = Match.includes(:home_user, :away_user, :winner).find(params[:id])
-      @messages = @match.messages.chronological.includes(:sender)
+      @messages = @match.messages.chronological.includes(:sender).to_a
     end
   end
 end
