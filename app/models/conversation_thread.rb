@@ -36,9 +36,12 @@ class ConversationThread
 
   attr_reader :low_user, :high_user
 
-  def initialize(low_user, high_user)
+  def initialize(low_user, high_user, groups_per_page: GROUPS_PER_PAGE, per_group: PER_GROUP, per_page: PER_PAGE)
     @low_user = low_user
     @high_user = high_user
+    @groups_per_page = groups_per_page
+    @per_group = per_group
+    @per_page = per_page
   end
 
   def messages = Message.in_pair(low_user.id, high_user.id)
@@ -49,8 +52,8 @@ class ConversationThread
   # messages oldest first.
   def page(number)
     number = [ number.to_i, 1 ].max
-    shown = summaries.drop((number - 1) * GROUPS_PER_PAGE).first(GROUPS_PER_PAGE)
-    Page.new(groups: build_groups(shown), page: number, total: summaries.size, per_page: GROUPS_PER_PAGE)
+    shown = summaries.drop((number - 1) * @groups_per_page).first(@groups_per_page)
+    Page.new(groups: build_groups(shown), page: number, total: summaries.size, per_page: @groups_per_page)
   end
 
   # One group whole, a page of PER_PAGE messages at a time, oldest first;
@@ -60,11 +63,11 @@ class ConversationThread
     return unless summary
 
     number = [ page.to_i, 1 ].max
-    offset = (number - 1) * PER_PAGE
-    rows = in_group(summary[:match_id]).chronological.includes(:sender).offset(offset).limit(PER_PAGE).to_a
+    offset = (number - 1) * @per_page
+    rows = in_group(summary[:match_id]).chronological.includes(:sender).offset(offset).limit(@per_page).to_a
     group = Group.new(match: matches_for([ summary ])[summary[:match_id]], messages: rows, count: summary[:count],
                       first_at: summary[:first_at], last_at: summary[:last_at], first_number: offset + 1)
-    Page.new(groups: [ group ], page: number, total: summary[:count], per_page: PER_PAGE)
+    Page.new(groups: [ group ], page: number, total: summary[:count], per_page: @per_page)
   end
 
   private
@@ -84,7 +87,7 @@ class ConversationThread
 
     ranked = messages.where(match_id: shown.map { _1[:match_id] })
                      .select("messages.*, ROW_NUMBER() OVER (PARTITION BY messages.match_id ORDER BY messages.created_at DESC, messages.id DESC) AS nth")
-    rows = Message.from(ranked, :messages).where("messages.nth <= ?", PER_GROUP)
+    rows = Message.from(ranked, :messages).where("messages.nth <= ?", @per_group)
                   .order(:created_at, :id).includes(:sender).to_a.group_by(&:match_id)
     matches = matches_for(shown)
     shown.map do |summary|

@@ -53,17 +53,33 @@ module DemoConversations
     created
   end
 
+  # One to three finished games between the pair, a few days apart, each
+  # with its own chat, and for every other pair a couple of messages outside
+  # any game, so the admin thread has several groups to show (piece 12b).
   def converse(one, other, n, last_at)
-    # Finished matches only: a demo match has no armies on its board, so one
-    # left in play could never be played on.
-    match = Match.create!(home_user: one, away_user: other, match_status: Match::FINISHED,
-                          winner: n.even? ? one : other, finish_reason: n.even? ? "king" : "resigned",
-                          turn: 10 + n, time_of_last_move: last_at)
-    count = 2 + (n % 4)
+    created = 0
+    games = 1 + (n % 3)
+    games.times do |g|
+      ended_at = last_at - ((games - 1 - g) * 3).days
+      created += chat(one, other, n + g, ended_at, game(one, other, n + g, ended_at))
+    end
+    created += chat(one, other, n + 1, last_at + 2.hours, nil, count: 1 + (n % 2)) if n.even?
+    created
+  end
+
+  # Finished matches only: a demo match has no armies on its board, so one
+  # left in play could never be played on.
+  def game(one, other, n, ended_at)
+    Match.create!(home_user: one, away_user: other, match_status: Match::FINISHED,
+                  winner: n.even? ? one : other, finish_reason: n.even? ? "king" : "resigned",
+                  turn: 10 + n, time_of_last_move: ended_at)
+  end
+
+  def chat(one, other, n, last_at, match, count: 2 + (n % 4))
     count.times do |i|
-      sender, receiver = i.even? ? [ one, other ] : [ other, one ]
+      sender, receiver = (i + n).even? ? [ one, other ] : [ other, one ]
       at = last_at - ((count - i) * 17).minutes
-      Message.create!(sender: sender, receiver: receiver, match: i.zero? && n % 5 == 0 ? nil : match,
+      Message.create!(sender: sender, receiver: receiver, match: match,
                       message: LINES[(n + i) % LINES.size], read: i < count - 1, created_at: at, updated_at: at)
     end
     count
