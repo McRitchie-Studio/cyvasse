@@ -1,6 +1,8 @@
 <% content_for(:title, "#{current_user.username} vs #{@opponent.username} · Cyvasse") %>
 <% content_for(:head) do %>
   <%= stylesheet_link_tag "game", "data-turbo-track": "reload" %>
+  <%# A match moves on without this page: never restore a cached board. %>
+  <meta name="turbo-cache-control" content="no-cache">
 <% end %>
 
 <section class="cyvasse-game max-w-6xl mx-auto"
