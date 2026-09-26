@@ -54,9 +54,11 @@ module DemoConversations
   end
 
   def converse(one, other, n, last_at)
-    match = Match.create!(home_user: one, away_user: other, match_status: n.even? ? Match::FINISHED : Match::IN_PROGRESS,
-                          winner: n.even? ? one : nil, finish_reason: n.even? ? "king" : nil,
-                          turn: 10 + n, whos_turn: n.even? ? nil : 1, time_of_last_move: last_at)
+    # Finished matches only: a demo match has no armies on its board, so one
+    # left in play could never be played on.
+    match = Match.create!(home_user: one, away_user: other, match_status: Match::FINISHED,
+                          winner: n.even? ? one : other, finish_reason: n.even? ? "king" : "resigned",
+                          turn: 10 + n, time_of_last_move: last_at)
     count = 2 + (n % 4)
     count.times do |i|
       sender, receiver = i.even? ? [ one, other ] : [ other, one ]
