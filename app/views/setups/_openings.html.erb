@@ -6,12 +6,10 @@
      data-controller="cyvasse-openings"
      data-action="cyvasse-openings:load-><%= board %>#loadLineup">
   <h3 class="text-sm font-semibold uppercase tracking-widest text-muted">Openings</h3>
-  <div class="flex gap-2">
-    <label class="sr-only" for="<%= board %>-opening">Opening</label>
-    <select id="<%= board %>-opening" class="input-field flex-1 min-w-0"
-            data-cyvasse-openings-target="select" data-action="cyvasse-openings#choose"></select>
-    <button type="button" class="btn btn-secondary shrink-0" data-action="cyvasse-openings#load">Load</button>
-  </div>
+  <label class="sr-only" for="<%= board %>-opening">Opening</label>
+  <select id="<%= board %>-opening" class="input-field w-full"
+          data-cyvasse-openings-target="select" data-action="cyvasse-openings#choose"></select>
   <p class="text-sm text-secondary" data-cyvasse-openings-target="idea"></p>
+  <button type="button" class="btn btn-secondary" data-action="cyvasse-openings#load">Load opening</button>
   <p class="text-sm text-secondary" role="status" aria-live="polite" hidden data-cyvasse-openings-target="message"></p>
 </div>

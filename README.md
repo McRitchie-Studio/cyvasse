@@ -229,6 +229,19 @@ newest is the one shown. A handful of legacy lineups were saved from the away
 seat (hexes 1-40) and are turned round when loaded; one that is not a whole
 army is kept but never offered.
 
+## Openings
+
+Every player, signed in or not, also gets **Openings** in the setup panel:
+twenty named lineups, each built round one idea, with a line saying what it
+is for. **Load opening** places it exactly as a saved lineup is placed. They
+are drawn row by row in `app/javascript/cyvasse/openings.js` (a letter per
+hex), and `test/javascript/openings_test.js` holds each to the rules: a whole
+army on the player's rows, and, all but the King's Gambit, a king that no
+enemy dragon can reach on the first turn.
+
+On the board the king, the dragon, the elephants and the trebuchet wear a
+gold halo and crest (a crown for the king) so they stand out.
+
 ## Messages
 
 Players talk in a chat on each match, and read every conversation in their

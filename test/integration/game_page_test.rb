@@ -24,7 +24,7 @@ class GamePageTest < ActionDispatch::IntegrationTest
 
     assert_select "[data-controller=cyvasse-openings][data-action='cyvasse-openings:load->cyvasse-game#loadLineup']" do
       assert_select "select[data-cyvasse-openings-target=select]"
-      assert_select "button[data-action='cyvasse-openings#load']", text: "Load"
+      assert_select "button[data-action='cyvasse-openings#load']", text: "Load opening"
     end
   end
 

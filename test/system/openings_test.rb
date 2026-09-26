@@ -11,7 +11,7 @@ class OpeningsSystemTest < ApplicationSystemTestCase
 
     select "Crown Forward", from: "Opening"
     assert_text "near enough the middle to move first"
-    within("[data-controller=cyvasse-openings]") { click_on "Load" }
+    within("[data-controller=cyvasse-openings]") { click_on "Load opening" }
 
     assert_text "Loaded Crown Forward."
     assert_no_selector ".cyvasse-dock .dock-unit"

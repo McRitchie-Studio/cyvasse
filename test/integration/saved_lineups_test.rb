@@ -33,13 +33,14 @@ class SavedLineupsTest < ActionDispatch::IntegrationTest
     assert_select "[data-slot='3'] button[data-slot-load][disabled]", text: "Broken"
   end
 
-  test "a match in setup offers the player's slots to the match board" do
+  test "a match in setup offers the player's slots and the openings to the match board" do
     Setup.create!(user: @arya, button_position: 2, name: "Hammer", units_position: army(73..91))
     match = Match.challenge!(@arya, "brienne")
     log_in_as(@arya)
     get match_path(match)
 
     assert_select "[data-controller=cyvasse-setups][data-action*='cyvasse-setups:load->cyvasse-match#loadLineup']"
+    assert_select "[data-controller=cyvasse-openings][data-action='cyvasse-openings:load->cyvasse-match#loadLineup']"
     assert_select "[data-slot='2'] button[data-slot-load][data-lineup=?]", army(73..91), text: "Hammer"
   end
 
