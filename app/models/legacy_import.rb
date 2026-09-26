@@ -1,10 +1,15 @@
-# Imports the players and matches of the old Cyvasse (the personal Heroku app
-# cyvasse-game, 2014-2023) from the CSV export of its database: epic
-# cyvasse-revival piece 10a. `bin/rails legacy:import` runs it.
+# Imports the players, matches, messages and saved lineups of the old Cyvasse
+# (the personal Heroku app cyvasse-game, 2014-2023) from the CSV export of its
+# database: epic cyvasse-revival pieces 10a (players, matches) and 10b
+# (messages, lineups). `bin/rails legacy:import` runs it.
 #
-#   LegacyImport.new(users_csv: path, matches_csv: path).run  # => LegacyImport::Report
+#   LegacyImport.new(users_csv: path, matches_csv: path,
+#                    messages_csv: path, setups_csv: path).run  # => LegacyImport::Report
 #
-# The CSVs hold emails and password hashes: never commit them or print a row.
+# messages_csv and setups_csv are optional; left out, that part is not run.
+#
+# The CSVs hold emails, password hashes and private messages: never commit
+# them or print a row.
 # The importer reads only the columns below; the password digest (and every
 # other profile column) is never read, so it cannot land here. The Report
 # carries counts only.
@@ -46,6 +51,23 @@
 #   player's record. Win/loss counters are never touched: users.wins/losses
 #   are the legacy records, which already counted every legacy result.
 #   A match whose player is missing from users.csv is skipped.
+#
+# Messages (messages.csv)
+#   Every column comes over one to one (see the CreateMessages migration):
+#   the text as it was, blank ones included (the legacy chat stored them);
+#   sender and receiver mapped to the imported players through their legacy
+#   ids; read as it was. A message addressed to nobody (legacy receiver 0,
+#   posted with match 0) or to a player missing from users.csv is skipped: a
+#   conversation needs both people. A message whose match was not imported
+#   (deleted on the legacy site, or skipped above) keeps its conversation with
+#   no match, as a message of a deleted match does in the new app.
+#
+# Lineups (setups.csv)
+#   Every column comes over one to one (see the CreateSetups migration), each
+#   lineup to its owner through their legacy id; one whose owner is missing is
+#   skipped. The army string is kept verbatim; Setup#lineup reads it, turns
+#   round the few saved from the away seat, and offers nothing for one that is
+#   not a whole army. Both are counted.
 require "csv"
 
 class LegacyImport
@@ -56,11 +78,18 @@ class LegacyImport
   # Counts only; never a row.
   Report = Struct.new(:users_read, :users_imported, :users_already_present, :usernames_renamed,
                       :emails_dropped_duplicate, :emails_dropped_computer, :matches_read, :matches_imported,
-                      :matches_already_present, :matches_by_outcome, :matches_skipped, keyword_init: true) do
+                      :matches_already_present, :matches_by_outcome, :matches_skipped,
+                      :messages_read, :messages_imported, :messages_already_present, :messages_blank,
+                      :messages_without_match, :messages_skipped,
+                      :setups_read, :setups_imported, :setups_already_present, :setups_turned_round,
+                      :setups_not_an_army, :setups_skipped, keyword_init: true) do
     def self.empty
       new(users_read: 0, users_imported: 0, users_already_present: 0, usernames_renamed: 0,
           emails_dropped_duplicate: 0, emails_dropped_computer: 0, matches_read: 0, matches_imported: 0,
-          matches_already_present: 0, matches_by_outcome: Hash.new(0), matches_skipped: Hash.new(0))
+          matches_already_present: 0, matches_by_outcome: Hash.new(0), matches_skipped: Hash.new(0),
+          messages_imported: 0, messages_already_present: 0, messages_blank: 0, messages_without_match: 0,
+          messages_skipped: Hash.new(0), setups_imported: 0, setups_already_present: 0, setups_turned_round: 0,
+          setups_not_an_army: 0, setups_skipped: Hash.new(0))
     end
 
     def lines
@@ -75,24 +104,58 @@ class LegacyImport
         "  imported: #{matches_imported}",
         "  already present (legacy id): #{matches_already_present}",
         *matches_by_outcome.sort.map { |outcome, n| "  imported as #{outcome}: #{n}" },
-        *matches_skipped.sort.map { |reason, n| "  skipped, #{reason}: #{n}" }
+        *matches_skipped.sort.map { |reason, n| "  skipped, #{reason}: #{n}" },
+        *message_lines,
+        *setup_lines
+      ]
+    end
+
+    # messages_read and setups_read stay nil when that part was not run.
+    def message_lines
+      return [ "Messages: not run (no messages.csv)" ] if messages_read.nil?
+
+      [
+        "Messages read: #{messages_read}",
+        "  imported: #{messages_imported}",
+        "  already present (legacy id): #{messages_already_present}",
+        "  imported with blank text: #{messages_blank}",
+        "  imported without a match (match not imported): #{messages_without_match}",
+        *messages_skipped.sort.map { |reason, n| "  skipped, #{reason}: #{n}" }
+      ]
+    end
+
+    def setup_lines
+      return [ "Lineups: not run (no setups.csv)" ] if setups_read.nil?
+
+      [
+        "Lineups read: #{setups_read}",
+        "  imported: #{setups_imported}",
+        "  already present (legacy id): #{setups_already_present}",
+        "  imported, saved from the away seat (turned round when loaded): #{setups_turned_round}",
+        "  imported, not a whole army (never offered): #{setups_not_an_army}",
+        *setups_skipped.sort.map { |reason, n| "  skipped, #{reason}: #{n}" }
       ]
     end
   end
 
-  def initialize(users_csv:, matches_csv:)
+  def initialize(users_csv:, matches_csv:, messages_csv: nil, setups_csv: nil)
     @users_csv = users_csv
     @matches_csv = matches_csv
+    @messages_csv = messages_csv
+    @setups_csv = setups_csv
     @report = Report.empty
   end
 
   # insert_all writes its values into the SQL string, so a debug-level SQL log
-  # (development's default) would hold every legacy email: the run logs no SQL.
+  # (development's default) would hold every legacy email and message: the run
+  # logs no SQL.
   def run
     ActiveRecord::Base.logger.silence(Logger::WARN) do
       ActiveRecord::Base.transaction do
         import_users
         import_matches
+        import_messages if @messages_csv
+        import_setups if @setups_csv
       end
     end
     @report
@@ -165,7 +228,7 @@ class LegacyImport
   def import_matches
     rows = read(@matches_csv)
     @report.matches_read = rows.size
-    user_ids = User.where.not(legacy_id: nil).pluck(:legacy_id, :id).to_h
+    user_ids = legacy_user_ids
     present = Match.where.not(legacy_id: nil).pluck(:legacy_id).to_set
 
     records = []
@@ -237,6 +300,113 @@ class LegacyImport
       created_at: time(row["created_at"]),
       updated_at: time(row["updated_at"]) || time(row["created_at"])
     }
+  end
+
+  # ---- Messages ----------------------------------------------------------------
+
+  def import_messages
+    rows = read(@messages_csv)
+    @report.messages_read = rows.size
+    user_ids = legacy_user_ids
+    # legacy match id -> [id, the pair of players], to keep a match only on a
+    # message between its two players.
+    matches = Match.where.not(legacy_id: nil).pluck(:legacy_id, :id, :home_user_id, :away_user_id)
+                   .to_h { |legacy_id, id, home, away| [ legacy_id, [ id, [ home, away ].sort ] ] }
+    present = Message.where.not(legacy_id: nil).pluck(:legacy_id).to_set
+
+    records = []
+    rows.each do |row|
+      if present.include?(row["id"].to_i)
+        @report.messages_already_present += 1
+        next
+      end
+      reason = message_skip_reason(row, user_ids)
+      if reason
+        @report.messages_skipped[reason] += 1
+        next
+      end
+
+      sender = user_ids[row["sender"].to_i]
+      receiver = user_ids[row["receiver"].to_i]
+      match_id, players = matches[row["match"].to_i]
+      match_id = nil unless players == [ sender, receiver ].sort
+      @report.messages_without_match += 1 if match_id.nil? && row["match"].to_i.positive?
+      @report.messages_blank += 1 if row["message"].to_s.strip.empty?
+      records << {
+        legacy_id: row["id"].to_i,
+        message: row["message"],
+        sender_id: sender,
+        receiver_id: receiver,
+        match_id: match_id,
+        read: boolean(row["read"]) || false,
+        created_at: time(row["created_at"]),
+        updated_at: time(row["updated_at"]) || time(row["created_at"])
+      }
+    end
+    records.each_slice(BATCH) { |batch| Message.insert_all!(batch) }
+    @report.messages_imported = records.size
+  end
+
+  def message_skip_reason(row, user_ids)
+    sender, receiver = row["sender"].to_i, row["receiver"].to_i
+    return "addressed to no player (legacy receiver 0)" if receiver.zero?
+    return "sent by no player (legacy sender 0)" if sender.zero?
+    return "a sender or receiver missing from users.csv" unless user_ids[sender] && user_ids[receiver]
+
+    "sent to themselves" if sender == receiver
+  end
+
+  # ---- Lineups -----------------------------------------------------------------
+
+  def import_setups
+    rows = read(@setups_csv)
+    @report.setups_read = rows.size
+    user_ids = legacy_user_ids
+    present = Setup.where.not(legacy_id: nil).pluck(:legacy_id).to_set
+
+    records = []
+    rows.each do |row|
+      if present.include?(row["id"].to_i)
+        @report.setups_already_present += 1
+        next
+      end
+      owner = user_ids[row["user_id"].to_i]
+      reason = if owner.nil? then "an owner missing from users.csv"
+      elsif row["units_position"].blank? then "no army saved"
+      elsif row["button_position"].blank? then "no slot"
+      end
+      if reason
+        @report.setups_skipped[reason] += 1
+        next
+      end
+
+      count_lineup_shape(row["units_position"])
+      records << {
+        legacy_id: row["id"].to_i,
+        user_id: owner,
+        name: row["name"],
+        units_position: row["units_position"],
+        button_position: row["button_position"].to_i,
+        created_at: time(row["created_at"]),
+        updated_at: time(row["updated_at"]) || time(row["created_at"])
+      }
+    end
+    records.each_slice(BATCH) { |batch| Setup.insert_all!(batch) }
+    @report.setups_imported = records.size
+  end
+
+  def count_lineup_shape(units_position)
+    CyvasseRules::Game.parse_lineup!(units_position)
+  rescue CyvasseRules::Game::IllegalMove
+    if Setup.new(units_position: units_position).lineup
+      @report.setups_turned_round += 1
+    else
+      @report.setups_not_an_army += 1
+    end
+  end
+
+  def legacy_user_ids
+    User.where.not(legacy_id: nil).pluck(:legacy_id, :id).to_h
   end
 
   # ---- Reading the export --------------------------------------------------------
