@@ -26,8 +26,9 @@ class Match < ApplicationRecord
   # Legacy commit 3d5e288: "Now you may take seven days to make a move."
   MOVE_CLOCK = 7.days
 
-  # Why a match ended. Legacy rows leave finish_reason null.
-  REASONS = %w[king draw resigned forfeit expired].freeze
+  # Why a match ended. "abandoned" is the legacy import's (LegacyImport): a
+  # match the old app left unfinished, closed with no result.
+  REASONS = %w[king draw resigned forfeit expired abandoned].freeze
 
   # A request the rules or the match's state refuse. The message is for the
   # player; controllers show it and log nothing.

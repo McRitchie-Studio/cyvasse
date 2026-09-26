@@ -39,8 +39,9 @@ class User < ApplicationRecord
     name.present? ? name.parameterize : "user-#{id}"
   end
 
+  # A legacy player (LegacyImport) has a username and no name.
   def display_name
-    name.presence || email&.split("@")&.first || "User"
+    name.presence || username.presence || email&.split("@")&.first || "User"
   end
 
   def avatar_initials

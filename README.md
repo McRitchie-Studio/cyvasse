@@ -128,13 +128,55 @@ whenever either player opens My games or the match, and on any late move, so
 it needs no scheduler; `bin/rails matches:expire` sweeps every match and may
 be run daily by one.
 
-**Legacy import.** The `matches` table and `users.username`, `wins` and
+**Legacy columns.** The `matches` table and `users.username`, `wins` and
 `losses` keep the legacy names, types and nullability (see the
-`CreateMatches` migration for the column encoding), so epic piece 10 can
-import the legacy rows as they are. Two new columns, `winner_id` and
-`finish_reason`, are null on legacy rows. The users unique index is on the
-exact username, as the legacy uniqueness was; the model refuses a new name
-that collides in any case.
+`CreateMatches` migration for the column encoding), so the legacy rows import
+as they are. The users unique index is on the exact username, as the legacy
+uniqueness was; the model refuses a new name that collides in any case.
+
+## Legacy import
+
+`bin/rails legacy:import` (`LegacyImport`, `lib/tasks/legacy.rake`) loads the
+old Cyvasse's players and matches from the CSV export of the personal
+`cyvasse-game` database (`users.csv`, `matches.csv`, from `heroku pg:psql`
+`\copy ... TO ... CSV HEADER`). The export holds emails and password hashes:
+keep it out of the repo, and never paste a row anywhere. The task prints counts
+only.
+
+```bash
+LEGACY_CSV_DIR=~/Backups/heroku-personal-2026-09-25/csv bin/rails legacy:import
+```
+
+- **Idempotent.** Each row keeps its old id in `users.legacy_id` /
+  `matches.legacy_id`; a rerun inserts only the ids it lacks and never updates
+  a row, so running it twice changes nothing. One transaction: a failure
+  imports nothing. Later pieces (messages, setups) map legacy rows through
+  these ids.
+- **Players.** Username, wins, losses and joined date come over as they were;
+  the email is trimmed and downcased (the engine's sign-in looks it up that
+  way). The password hash and every other profile column are never read:
+  players sign in by magic link. Nobody is made an admin; no email is sent.
+- **Duplicate names.** Once trimmed and compared in any case, some legacy names
+  collide. The earliest account (lowest legacy id) keeps the name; every later
+  one, and any legacy name a player of the new app already holds, becomes
+  `<name>_<legacy id>`. A shared email goes to the earliest account; the later
+  one imports without an email.
+- **Computer opponents.** Legacy ids 2-10 were the computer players (the away
+  seat of every computer match). They import with no email, so nothing is ever
+  mailed to them.
+- **Matches.** Every legacy column comes over verbatim. The winner, which the
+  old app never stored, is derived as its code decided it: a king in the
+  graveyard (`king`); a finished human match with a player on the move lost on
+  the clock (`forfeit`); a finished human match never started (`expired`, no
+  winner). Every unfinished match, and a finished computer match with no king
+  taken, closes as `finished` / `abandoned` with no winner, so the seven-day
+  clock never forfeits a years-old game. Win/loss counters are not touched:
+  `wins`/`losses` are the legacy records. A match whose player is missing from
+  `users.csv` is skipped and counted.
+
+To run it against production, point a local run at the app's database
+(`DATABASE_URL="$(heroku config:get DATABASE_URL -a cyvasse)"`) rather than
+copying the CSVs onto a dyno. That run is an operator act with Alex.
 
 ## Local development
 

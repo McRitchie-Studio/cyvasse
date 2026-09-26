@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_26_000011) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_26_000020) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -69,6 +69,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000011) do
     t.string "home_units_position"
     t.bigint "home_user_id", null: false
     t.string "last_move"
+    t.integer "legacy_id"
     t.string "match_against", default: "human"
     t.string "match_status", default: "pending"
     t.datetime "time_of_last_move"
@@ -80,6 +81,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000011) do
     t.bigint "winner_id"
     t.index ["away_user_id"], name: "index_matches_on_away_user_id"
     t.index ["home_user_id"], name: "index_matches_on_home_user_id"
+    t.index ["legacy_id"], name: "index_matches_on_legacy_id", unique: true
     t.index ["match_status", "time_of_last_move"], name: "index_matches_on_match_status_and_time_of_last_move"
     t.index ["winner_id"], name: "index_matches_on_winner_id"
   end
@@ -226,6 +228,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000011) do
     t.string "email"
     t.string "first_name"
     t.jsonb "ip_locations", default: [], null: false
+    t.integer "legacy_id"
     t.integer "losses", default: 0, null: false
     t.string "name"
     t.string "piece_skin"
@@ -238,6 +241,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000011) do
     t.integer "wins", default: 0, null: false
     t.index "lower((username)::text)", name: "index_users_on_lower_username"
     t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["legacy_id"], name: "index_users_on_legacy_id", unique: true
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true
     t.index ["slug"], name: "index_users_on_slug", unique: true
     t.index ["username"], name: "index_users_on_username", unique: true

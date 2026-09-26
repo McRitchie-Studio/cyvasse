@@ -223,6 +223,7 @@ export default class extends GameController {
     const { winner, finish_reason: reason, opponent } = this.state
     if (reason === "draw") return "Neither side can move. A draw."
     if (reason === "expired") return `This challenge with ${opponent.username} expired unplayed.`
+    if (reason === "abandoned") return "This match was left unfinished on the old Cyvasse."
     const lines = REASON_TEXT[reason]
     if (lines && winner !== null) return lines[winner]
     return winner === 1 ? "You win." : winner === 0 ? "You were defeated." : "The match is over."
