@@ -1,0 +1,29 @@
+<% content_for(:title, "#{@other.player_name} · Inbox · Cyvasse") %>
+
+<section class="max-w-3xl mx-auto space-y-6">
+  <header>
+    <p class="text-sm text-secondary"><%= link_to "← Inbox", inbox_path, class: "underline underline-offset-2" %></p>
+    <h1 class="text-3xl font-extrabold text-heading tracking-tight"><%= @other.player_name %></h1>
+    <p class="text-sm text-secondary">
+      <%= pluralize(@total, "message") %><%= ", the latest #{@thread.size} shown" if @total > @thread.size %>.
+      Only the two of you can read this, and site admins.
+    </p>
+  </header>
+
+  <div class="card p-4">
+    <ol class="chat-log is-thread" data-thread>
+      <%= render partial: "messages/message", collection: @thread, as: :message,
+            locals: { viewer: current_user, show_match: true,
+                      match_link: ->(match) { match.player?(current_user) ? match_path(match) : nil } } %>
+    </ol>
+  </div>
+
+  <%= form_with url: reply_conversation_path(@other), class: "card p-4 space-y-2", id: "latest", data: { turbo: false } do |form| %>
+    <% if @error %>
+      <p class="text-sm chat-error" role="alert"><%= @error %></p>
+    <% end %>
+    <%= form.label :message, "Reply to #{@other.player_name}", class: "block text-sm font-semibold text-heading" %>
+    <%= form.text_area :message, rows: 3, required: true, maxlength: Message::MAX_LENGTH, class: "input-field w-full" %>
+    <%= form.submit "Send", class: "btn btn-primary" %>
+  <% end %>
+</section>

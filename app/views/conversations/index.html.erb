@@ -1,0 +1,41 @@
+<% content_for(:title, "Inbox · Cyvasse") %>
+
+<section class="max-w-3xl mx-auto space-y-6">
+  <header>
+    <h1 class="text-3xl font-extrabold text-heading tracking-tight">Inbox</h1>
+    <p class="text-secondary">
+      Your conversations with other players, newest first. Start one from a match's chat on
+      <%= link_to "My games", matches_path, class: "underline underline-offset-2" %>.
+    </p>
+  </header>
+
+  <% if @page.total.zero? %>
+    <div class="card p-6 text-center text-secondary" data-inbox-empty>No messages yet.</div>
+  <% else %>
+    <ul class="card divide-y divide-[var(--color-border)]" data-inbox>
+      <% @page.conversations.each do |conversation| %>
+        <% other = conversation.other(current_user) %>
+        <li data-conversation="<%= other.id %>">
+          <%= link_to conversation_path(other, anchor: "latest"), class: "flex items-start justify-between gap-4 p-4 hover:bg-[var(--color-surface-alt)]" do %>
+            <div class="min-w-0">
+              <p class="font-semibold text-heading">
+                <%= other.player_name %>
+                <% if conversation.unread? %>
+                  <span class="unread-dot" title="Unread messages"><%= conversation.unread_count %></span>
+                <% end %>
+              </p>
+              <p class="text-sm text-secondary truncate">
+                <%= "You: " if conversation.last_message&.sender_id == current_user.id %><%= conversation.last_message&.message.to_s.truncate(120) %>
+              </p>
+            </div>
+            <p class="shrink-0 text-xs text-muted text-right">
+              <%= time_ago_in_words(conversation.last_at) %> ago<br>
+              <%= pluralize(conversation.messages_count, "message") %>
+            </p>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+    <%= render "messages/pager", page: @page, path: ->(n) { inbox_path(page: n) } %>
+  <% end %>
+</section>
