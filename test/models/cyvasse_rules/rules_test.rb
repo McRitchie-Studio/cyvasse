@@ -111,6 +111,28 @@ class CyvasseRules::RulesTest < ActiveSupport::TestCase
     end
   end
 
+  # The horse jumps 46 -> 49 and has a second jump from 49. A client that
+  # names any other hex as the second step's start (another of its own units,
+  # an enemy, the hex the horse just left) is refused, and nothing moves: the
+  # server never lets a second jump teleport the horse from elsewhere. The
+  # same position as game_test.js "cavalry jumps twice with the same unit".
+  test "a cavalry unit's second jump must start where its first ended" do
+    game = Game.new(home: boxed(1, 8 => 46, 17 => 91), away: boxed(0, 17 => 1, 1 => 5), offense: Game::HOME, turn: 3)
+    assert_raises(Game::IllegalMove, "the horse owes a second jump from 49") { game.play!([ [ 46, 49 ] ]) }
+    before = [ game.position(0), game.position(1), game.offense, game.turn ]
+
+    { 91 => "the home king", 5 => "an away rabble", 46 => "the hex the horse left" }.each do |from2, what|
+      to2 = game.legal_actions(from2, jump: 2).moves.first || 51
+      assert_raises(Game::IllegalMove, "second step from #{what}") { game.play!([ [ 46, 49 ], [ from2, to2 ] ]) }
+      assert_equal before, [ game.position(0), game.position(1), game.offense, game.turn ], "#{what}: nothing moved"
+    end
+
+    result = game.play!([ [ 46, 49 ], [ 49, 51 ] ])
+    assert_equal [ 49, 51 ], result.last_move
+    assert_equal 46, result.util_move, "the first jump's start stays marked"
+    assert_equal 51, game.units.find { |u| u.team == Game::HOME && u.index == 8 }.hex
+  end
+
   # A king in the corner behind its own two mountains and its trebuchet, the
   # rest of the army captured: none of the four can act (the trebuchet has no
   # move and nothing in range).
