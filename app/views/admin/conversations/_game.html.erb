@@ -1,0 +1,35 @@
+<%# One game's messages in the admin thread (piece 12b). Locals: group (a
+    ConversationThread::Group), users ([left, right]), conversation_key,
+    whole (true on the one-game page, where the pager replaces the
+    "show all" link). %>
+<% left, right = users %>
+<% match = group.match %>
+<section class="card p-4 space-y-3" data-game="<%= group.key %>" aria-labelledby="game-<%= group.key %>">
+  <header class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+    <h2 id="game-<%= group.key %>" class="font-semibold text-heading">
+      <% if match %>
+        <%= link_to "Match ##{match.id}", admin_match_path(match), class: "underline underline-offset-2", data: { match_link: match.id } %>
+        <span class="text-sm font-normal text-secondary" data-game-status>
+          · <%= match.match_status %><%= " (#{match.finish_reason})" if match.finish_reason %><%= " · won by #{match.winner.player_name}" if match.winner %>
+        </span>
+      <% else %>
+        Outside any game
+      <% end %>
+    </h2>
+    <p class="text-xs text-muted" data-game-span>
+      <%= pluralize(group.count, "message") %> ·
+      <time datetime="<%= group.first_at.iso8601 %>"><%= l(group.first_at.to_date, format: :long) %></time><% if group.last_at.to_date != group.first_at.to_date %>
+      – <time datetime="<%= group.last_at.iso8601 %>"><%= l(group.last_at.to_date, format: :long) %></time><% end %>
+    </p>
+  </header>
+  <% if !local_assigns[:whole] && group.earlier_count.positive? %>
+    <p class="text-sm text-secondary" data-earlier>
+      <%= pluralize(group.earlier_count, "earlier message") %> not shown.
+      <%= link_to "Show all #{group.count}", admin_conversation_path(conversation_key, game: group.key), class: "underline underline-offset-2" %>
+    </p>
+  <% end %>
+  <ol class="chat-log is-thread" data-thread>
+    <%= render partial: "messages/message", collection: group.messages, as: :message,
+          locals: { right_id: right.id, dated: true } %>
+  </ol>
+</section>
