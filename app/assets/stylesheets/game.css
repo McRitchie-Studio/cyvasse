@@ -98,8 +98,8 @@
   pointer-events: none;
 }
 
-/* A unit's hex is shaded in its team's colour from the edge in, heavier for
- * the marquee pieces (the gradients are built in the controller). */
+/* A unit's hex is shaded in its team's colour from the edge in, deeper the
+ * more the piece is worth (the gradients are built in the controller). */
 .cyvasse-board .unit-shade {
   display: none;
   pointer-events: none;

@@ -240,8 +240,9 @@ army on the player's rows, and, all but the King's Gambit, a king that no
 enemy dragon can reach on the first turn.
 
 On the board every unit's hex is shaded in its team's colour from the edge
-in (blue yours, red theirs); the king, the dragon, the elephants and the
-trebuchet take a much heavier shade so they stand out.
+in (blue yours, red theirs), and the more the piece is worth the deeper and
+stronger the shade: mountains faintest, then rabble up to the king, in the
+order the computer values them (`KILL_PRIORITY` in `cyvasse/ai.js`).
 
 ## Messages
 

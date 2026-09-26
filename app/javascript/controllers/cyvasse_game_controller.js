@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { Game, PLAYER, COMPUTER } from "cyvasse/game"
-import { chooseAction } from "cyvasse/ai"
+import { chooseAction, KILL_PRIORITY } from "cyvasse/ai"
 import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
 import { UNIT_TYPES } from "cyvasse/units"
 import { Banner, passNotice } from "cyvasse/banner"
@@ -40,16 +40,20 @@ const RANGE_STROKE = { 1: "red", 2: "red", 3: "blue", 4: "blue" }
 const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", unique: "Unique", mountain: "Mountain" }
 
 // Every unit's hex is shaded in its team's colour from the edge in towards
-// the centre (blue yours, red theirs). The pieces that decide games take a
-// much heavier shade so they stand out on a crowded board: the king (lose it
-// and you lose), the dragon, the elephant, and the trebuchet that brings
-// dragons down.
+// the centre (blue yours, red theirs), and the more a piece is worth the
+// deeper the shade reaches and the stronger it gets. Worth is the computer's
+// own ranking (KILL_PRIORITY, rabble up to king); mountains sit below it.
 const TEAM_SHADE = { 1: "#3b82f6", 0: "#dc2626" }
-const SHADE_STOPS = {
-  normal: [["55%", 0], ["100%", 0.55]],
-  strong: [["20%", 0], ["55%", 0.45], ["100%", 1]]
+const SHADE_RANKS = ["mountain", ...KILL_PRIORITY]
+const TOP_RANK = SHADE_RANKS.length - 1
+
+// Rank 0 is a faint rim; the top rank floods in to near the centre.
+function shadeStops(rank) {
+  const t = rank / TOP_RANK
+  const clear = Math.round(62 - t * 50)
+  const edge = (0.3 + t * 0.7).toFixed(2)
+  return [[`${clear}%`, 0], ["100%", edge]]
 }
-const MARQUEE = Object.freeze(["king", "dragon", "elephant", "trebuchet"])
 
 export default class extends Controller {
   static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent"]
@@ -253,13 +257,13 @@ export default class extends Controller {
     svg.replaceChildren()
     const defs = el("defs", {})
     for (const [team, color] of Object.entries(TEAM_SHADE)) {
-      for (const [weight, stops] of Object.entries(SHADE_STOPS)) {
-        const gradient = el("radialGradient", { id: `shade-${team}-${weight}`, r: "60%" })
-        for (const [offset, opacity] of stops) {
+      SHADE_RANKS.forEach((_, rank) => {
+        const gradient = el("radialGradient", { id: `shade-${team}-${rank}`, r: "60%" })
+        for (const [offset, opacity] of shadeStops(rank)) {
           gradient.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
         }
         defs.append(gradient)
-      }
+      })
     }
     svg.append(defs)
     this.hexNodes = new Map()
@@ -357,11 +361,12 @@ export default class extends Controller {
       node.group.classList.remove("is-move", "is-attack", "is-selected", "is-deploy", "is-last-move")
       node.group.dataset.unitId = unit?.id ?? ""
       node.group.dataset.team = unit ? unit.team : ""
-      const marquee = !!unit && MARQUEE.includes(unit.type.codename)
-      node.group.classList.toggle("is-marquee", marquee)
       if (unit) {
-        node.shade.setAttribute("fill", `url(#shade-${unit.team}-${marquee ? "strong" : "normal"})`)
+        const rank = SHADE_RANKS.indexOf(unit.type.codename)
+        node.group.dataset.rank = rank
+        node.shade.setAttribute("fill", `url(#shade-${unit.team}-${rank})`)
       } else {
+        delete node.group.dataset.rank
         node.shade.removeAttribute("fill")
       }
       node.group.setAttribute("aria-label", unit ? `${unit.team === PLAYER ? "Your" : "Enemy"} ${unit.type.name.toLowerCase()}` : `Hex ${index}`)
