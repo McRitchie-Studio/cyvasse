@@ -1,0 +1,13 @@
+<%# A page header over one of the original site's background screenshots.
+    Locals: image (logical asset path), title, subtitle (optional). The art
+    is decorative, so its alt is empty and the title carries the meaning; the
+    black scrim keeps the white type legible in both themes. %>
+<header class="page-banner relative overflow-hidden rounded-xl mb-10">
+  <%= image_tag image, alt: "", class: "absolute inset-0 w-full h-full object-cover", decoding: "async" %>
+  <div class="relative px-6 py-12 sm:py-16 text-center page-banner-scrim">
+    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-2"><%= title %></h1>
+    <% if local_assigns[:subtitle] %>
+      <p class="text-white/85 leading-relaxed max-w-xl mx-auto"><%= subtitle %></p>
+    <% end %>
+  </div>
+</header>

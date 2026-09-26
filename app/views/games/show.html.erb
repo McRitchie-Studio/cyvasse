@@ -1,0 +1,70 @@
+<% content_for(:title, "Play · Cyvasse") %>
+<% content_for(:head) do %>
+  <%= stylesheet_link_tag "game", "data-turbo-track": "reload" %>
+<% end %>
+
+<section class="cyvasse-game max-w-6xl mx-auto"
+         data-controller="cyvasse-game"
+         data-cyvasse-game-skin-value="<%= @skin %>"
+         data-cyvasse-game-images-value="<%= @piece_images.to_json %>"
+         data-cyvasse-game-skins-value="<%= @skin_images.to_json %>"
+         data-skin="<%= @skin %>">
+  <header class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+    <div>
+      <h1 class="text-3xl font-extrabold text-heading tracking-tight">Play Cyvasse</h1>
+      <p class="text-secondary">
+        Against <span class="font-semibold text-heading" data-cyvasse-game-target="opponent">the computer</span>
+      </p>
+    </div>
+    <%= render "skins/toggle", form_data: { action: "submit->cyvasse-game#switchSkin" } %>
+    <p class="text-secondary font-medium" role="status" aria-live="polite" data-cyvasse-game-target="status">Loading the board…</p>
+  </header>
+
+  <div class="cyvasse-layout">
+    <div class="cyvasse-board-wrap">
+      <svg class="cyvasse-board" role="group" aria-label="The Cyvasse board. Arrow keys move between hexes; Enter selects."
+           data-cyvasse-game-target="board" data-action="click->cyvasse-game#clickHex keydown->cyvasse-game#keyHex"></svg>
+      <div class="cyvasse-banner" hidden data-cyvasse-game-target="banner"></div>
+    </div>
+
+    <aside class="cyvasse-panel space-y-4">
+      <div class="card p-4 space-y-3" data-cyvasse-game-target="setupControls">
+        <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">Your army</h2>
+        <p class="text-sm text-secondary">
+          Pick a unit, then a lit hex in your five rows. Click a placed unit to move it again.
+        </p>
+        <div class="cyvasse-dock" data-cyvasse-game-target="dock"></div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="btn btn-secondary" data-action="cyvasse-game#randomSetup">Random Setup</button>
+          <button type="button" class="btn btn-primary" hidden data-cyvasse-game-target="startButton" data-action="cyvasse-game#start">Start Game</button>
+        </div>
+        <%= render "setups/panel", board: "cyvasse-game", slots: @setup_slots %>
+      </div>
+
+      <div class="card p-4" hidden data-cyvasse-game-target="info">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="cyvasse-info-art" data-info="image"></div>
+          <h2 class="text-lg font-bold text-heading" data-info="name"></h2>
+        </div>
+        <dl class="cyvasse-stats" data-info="stats"></dl>
+        <p class="cyvasse-trump text-sm text-secondary mt-2" data-info="trump">Trumps <span></span></p>
+      </div>
+
+      <div class="card p-4 space-y-3">
+        <div>
+          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted mb-1">Your fallen</h2>
+          <div class="cyvasse-graveyard" data-team="1" data-cyvasse-game-target="graveyard"></div>
+        </div>
+        <div>
+          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted mb-1">Opponent's fallen</h2>
+          <div class="cyvasse-graveyard" data-team="0" data-cyvasse-game-target="graveyard"></div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <button type="button" class="btn btn-secondary" data-action="cyvasse-game#newGame">New game</button>
+        <%= link_to "How to play", rules_path, class: "text-sm text-secondary underline underline-offset-2" %>
+      </div>
+    </aside>
+  </div>
+</section>

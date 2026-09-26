@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    # Every rung of the ladder earns its own verdict: review merges several PRs
+    # onto `accepted` (a combination nothing else executes), and `bin/release
+    # prepare` refuses to promote a RED `accepted`, which it can only do if this
+    # workflow builds that branch. Guarded by test/lib/ci_workflow_test.rb.
+    branches: [ main, release, accepted ]
+
+# No `concurrency:` block, deliberately: a cancelled run's conclusion is
+# `cancelled`, which the release tooling folds as RED, and back-to-back pushes
+# to `accepted` are normal. (mcritchie-studio's ci.yml carries the argument.)
+
+jobs:
+  # Brakeman, bundler-audit, importmap audit and rubocop in ONE job, so the setup
+  # is paid once. `if: always()` on the later checks lets every scanner report
+  # in the same run while the job still goes RED if any failed.
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Scan for common Rails security vulnerabilities using static analysis
+        run: bin/brakeman --no-pager
+
+      - name: Scan for known security vulnerabilities in gems used
+        if: always()
+        run: bin/bundler-audit
+
+      - name: Scan for security vulnerabilities in JavaScript dependencies
+        if: always()
+        run: bin/importmap audit
+
+      - name: Lint code for consistent style
+        if: always()
+        run: bin/rubocop -f github
+
+  # The game engine's JavaScript unit tests (app/javascript/cyvasse), on
+  # node:test with no npm install: bin/test-js is the whole lane.
+  javascript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run JavaScript unit tests
+        run: bin/test-js
+
+  # The unit, integration and system suites. `test:system` drives headless
+  # Chrome (preinstalled on ubuntu-latest) through the game board; it joined
+  # with the first browser test, test/system/play_against_computer_test.rb.
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install packages
+        # Bounded and retried; see .github/scripts/apt-retry for the incident.
+        timeout-minutes: 25
+        run: .github/scripts/apt-retry libpq-dev libvips postgresql-client
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      # Integration tests render pages that link the compiled Tailwind build;
+      # without it every page render 500s.
+      - name: Build Tailwind CSS
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432
+        run: bin/rails tailwindcss:build
+
+      - name: Run tests
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432
+        run: bin/rails db:test:prepare test test:system

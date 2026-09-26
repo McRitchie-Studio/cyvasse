@@ -1,0 +1,169 @@
+<% content_for(:title, "Rules · Cyvasse") %>
+
+<article class="max-w-3xl mx-auto rules-page">
+  <%= render "pages/banner", image: "backgrounds/cyvasse_rules_background.png", title: "Rules",
+                             subtitle: "The goal of Cyvasse is to capture your opponent's king." %>
+
+  <%# The quick version the original tutorial opened with (legacy features/tutorial.js). %>
+  <section id="quick-start" class="card p-5 mb-10">
+    <h2 class="text-xl font-bold text-heading mb-4">The Short Version</h2>
+    <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-sm">
+      <dt class="font-semibold text-heading">Goal</dt>
+      <dd class="text-secondary">Capture your opponent's king, so hide yours!</dd>
+      <dt class="font-semibold text-heading">Setup</dt>
+      <dd class="text-secondary">Each player secretly creates an opening array with their army.</dd>
+      <dt class="font-semibold text-heading">First move</dt>
+      <dd class="text-secondary">The first turn is awarded to the army whose king is closest to the front line.</dd>
+      <dt class="font-semibold text-heading">Game</dt>
+      <dd class="text-secondary">Players trade moves until a king is captured. If neither side can move, it is a draw.</dd>
+      <dt class="font-semibold text-heading">Combat</dt>
+      <dd class="text-secondary">A unit may capture an enemy if the Attacker has more or equal Strength to the Defender.</dd>
+    </dl>
+  </section>
+
+  <div class="rules-prose space-y-8 mb-12">
+    <section id="goal">
+      <h2>Goal</h2>
+      <p>The goal of Cyvasse is to capture your opponent's king.</p>
+    </section>
+
+    <section id="pregame">
+      <h2>Pregame</h2>
+      <p>
+        Before the first move can be made, each player must place all their
+        pieces on the board. Each hex on the board may hold only one unit at a
+        time.
+      </p>
+      <p>When both players are satisfied with the arrangement of their army, the game can begin.</p>
+    </section>
+
+    <section id="who-goes-first">
+      <h2>Who Goes First</h2>
+      <p>
+        The first move is awarded to the player whose King is closest to the
+        middle row of the board. In the case of a tie, the first move is chosen
+        at random. Now the game is ready to begin.
+      </p>
+    </section>
+
+    <section id="game">
+      <h2>Game</h2>
+      <p>
+        Now players exchange moves until one of the kings is captured. A move
+        is made up of moving one of your units to a new space, or attacking an
+        enemy.
+      </p>
+    </section>
+
+    <%# Alex, 2026-09-25: keep the stalemate rule (Game#beginTurn, CyvasseRules::Game). %>
+    <section id="no-legal-move">
+      <h2>No Legal Move</h2>
+      <p>
+        If it is your turn and none of your units can move or attack, your turn
+        passes to your opponent. The game tells you when a turn is passed.
+      </p>
+      <p>If neither player can move, the game ends in a draw.</p>
+    </section>
+
+    <section id="moving">
+      <h2>Moving</h2>
+      <p>
+        All units have a Movement attribute, which explains how they may
+        traverse the board. The magnitude of a unit's movement is how many
+        jumps it can make in one turn. For all non-Range units, an attack
+        counts as a jump.
+      </p>
+      <p>
+        Units may not move through other units. The exception to this rule is
+        the Dragon, which may fly over all units and mountains, unless they are
+        enemy Range units (Crossbowman, Catapult and Trebuchet).
+      </p>
+    </section>
+
+    <section id="combat">
+      <h2>Combat</h2>
+      <p>
+        With the exception of the Range units, a combat is made by moving to the
+        hex occupied by an opponent's piece. Range units instead choose to
+        attack or move, but may not do both in one turn.
+      </p>
+      <p>
+        A combat is fought between two pieces, an Attacker and a Defender. The
+        Attacker is the unit initiating the combat; the Defender is the unit
+        being attacked.
+      </p>
+      <p>
+        When the Attacker attacks a Defender, the Strength of the Defender is
+        compared to the Strength of the Attacker. The piece with the higher
+        Strength wins, and in the case of a tie, the Attacker wins.
+      </p>
+      <p>
+        There are two exceptions to this rule. The first is a Trump. Some units
+        have a Trump against other units: for example, a Spearman will always
+        defeat a Light Horse, because a Spearman trumps Light Horse pieces, even
+        though the Light Horse has equal Strength to the Spearman. The second
+        exception is that Range units can be taken by any attack, regardless of
+        the Strengths of the Attacker and Defender, unless a Trump is involved.
+      </p>
+      <p>
+        A Range unit may attack an enemy within its Range, unless a Mountain
+        blocks the direct path between the Range unit and its target.
+      </p>
+    </section>
+  </div>
+
+  <section id="special-rules" class="mb-12">
+    <h2 class="text-2xl font-bold text-heading mb-2">Special Rules</h2>
+    <p class="text-secondary leading-relaxed mb-5">The four rules the in-game tutorial calls out.</p>
+    <%= render "pages/special_rules" %>
+  </section>
+
+  <section id="units" class="mb-12">
+    <h2 class="text-2xl font-bold text-heading mb-2">Units</h2>
+    <p class="text-secondary leading-relaxed mb-6">
+      There are 10 military pieces in each player's army. Each piece has a
+      unique set of attributes, which it uses to interact with the map and
+      enemy units. Below is a description of all the units and their
+      attributes, grouped by class.
+    </p>
+    <div class="mb-6"><%= render "skins/toggle" %></div>
+
+    <div class="space-y-8">
+      <% @unit_classes.each do |unit_class| %>
+        <section id="class-<%= unit_class.name.downcase %>" class="unit-class">
+          <h3 class="unit-class-title text-xs font-semibold uppercase tracking-widest text-muted mb-4"><%= unit_class.name %></h3>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <% unit_class.units.each do |unit| %>
+              <article id="unit-<%= unit.slug %>" class="unit-card card p-3 flex items-center gap-4">
+                <figure class="piece-tile unit-card-art shrink-0" data-skin="<%= current_skin %>">
+                  <%= image_tag unit.piece.image(current_skin), alt: unit.name, loading: "lazy", decoding: "async" %>
+                </figure>
+                <div class="min-w-0">
+                  <h4 class="text-lg font-bold text-heading mb-1"><%= unit.name %></h4>
+                  <dl class="unit-stats text-sm grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+                    <dt class="text-muted">Movement</dt><dd class="text-body"><%= unit.movement %></dd>
+                    <dt class="text-muted">Strength</dt><dd class="text-body"><%= unit.strength %></dd>
+                    <% if unit.range %>
+                      <dt class="text-muted">Range</dt><dd class="text-body"><%= unit.range %></dd>
+                    <% end %>
+                    <dt class="text-muted">Trump</dt><dd class="text-body"><%= Rulebook.trump_list(unit) %></dd>
+                  </dl>
+                </div>
+              </article>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
+    </div>
+  </section>
+
+  <section id="rule-changes" class="card p-5 mb-6">
+    <h2 class="text-xl font-bold text-heading mb-1">Rule Changes</h2>
+    <p class="text-muted text-sm mb-4">Implemented on April 14, 2015. The unit stats above include them.</p>
+    <ul class="list-disc pl-5 space-y-1 text-secondary">
+      <% Rulebook::CHANGES_2015.each do |change| %>
+        <li><%= change %></li>
+      <% end %>
+    </ul>
+  </section>
+</article>

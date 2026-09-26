@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+// Regenerate test/fixtures/files/rules_agreement.json from the JavaScript
+// engine: the record the Ruby rules port (app/models/cyvasse_rules) is held
+// to. Run after any change to app/javascript/cyvasse/{board,potential_range,
+// rules,game,units}.js, then run both test lanes. See
+// test/javascript/support/agreement.js.
+import { register } from "node:module";
+import { writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+register("../test/javascript/support/importmap_hooks.mjs", import.meta.url);
+const { buildAgreementFixture, serialize } = await import("../test/javascript/support/agreement.js");
+const path = fileURLToPath(new URL("../test/fixtures/files/rules_agreement.json", import.meta.url));
+writeFileSync(path, serialize(buildAgreementFixture()));
+console.log(`wrote ${path}`);

@@ -1,0 +1,172 @@
+@import "tailwindcss";
+@import "../builds/tailwind/studio_engine";
+@config "../../../config/tailwind.config.js";
+
+/* The shared component classes (.card, .input-field, the .btn system, .badge,
+ * .empty-state) come from the engine import above — see
+ * studio-engine/docs/NEW_APP_SETUP.md section 13. Do NOT redeclare them here:
+ * the engine ships them as Tailwind v4 @utility, which outranks
+ * @layer components, so a local redeclaration silently loses.
+ *
+ * App-local styles (the game board, piece skins) belong below this comment. */
+
+/* Piece tiles (/pieces). The tile is parchment in BOTH themes on purpose: the
+ * pencil skin is black linework on a transparent ground, so a dark tile would
+ * swallow it. */
+.piece-tile {
+  margin: 0;
+  aspect-ratio: 1;
+  display: grid;
+  /* minmax(0, 1fr) pins the single track to the tile: an auto track grows to
+   * the image's intrinsic size, and the vector SVGs carry only a viewBox. */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  min-width: 0;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background: #f7f4ec;
+}
+
+.piece-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@media (max-width: 480px) {
+  .piece-tile {
+    padding: 0.5rem;
+  }
+}
+
+/* The piece-skin switcher's king thumbnails (skins/_toggle): each sits on the
+ * parchment disc, since the pencil king is black linework that vanishes on a
+ * dark ground or a pressed (primary) button. */
+.skin-choice-art {
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 1px;
+  border-radius: 9999px;
+  background: #f7f4ec;
+  object-fit: contain;
+}
+
+/* Rules and about pages (/rules, /about). */
+.page-banner-scrim {
+  background: rgb(0 0 0 / 0.6);
+}
+
+.rules-prose h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.rules-prose p {
+  color: var(--color-text-body);
+  line-height: 1.7;
+}
+
+.rules-prose p + p {
+  margin-top: 0.75rem;
+}
+
+.rules-prose a,
+.about-page a,
+.tutorial-card figcaption a {
+  color: rgb(var(--color-primary-rgb));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* The gold primary is 2.9:1 on the light page, under WCAG AA's 4.5:1 for
+ * text; its 700 shade is 5.4:1. Dark mode keeps the brighter gold. */
+html:not(.dark) .rules-prose a,
+html:not(.dark) .about-page a,
+html:not(.dark) .tutorial-card figcaption a {
+  color: rgb(var(--color-primary-700-rgb));
+}
+
+/* A unit card's art tile: the parchment .piece-tile above, at a fixed size. */
+.unit-card-art {
+  width: 5.5rem;
+  height: 5.5rem;
+  padding: 0.5rem;
+}
+
+.about-portrait {
+  width: 9rem;
+  height: 9rem;
+}
+
+.thanks-portrait {
+  width: 6rem;
+  height: 6rem;
+}
+
+/* Messages (piece 12): the match chat, the inbox thread and the admin
+ * thread share these. Colours come from the engine's theme tokens, so both
+ * themes follow. */
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.chat-log.is-thread {
+  max-height: none;
+  overflow: visible;
+}
+
+.chat-message {
+  align-self: flex-start;
+  max-width: 90%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+}
+
+.chat-message.is-mine,
+.chat-message.is-right {
+  align-self: flex-end;
+  background: rgb(var(--color-primary-rgb) / 0.12);
+  border-color: rgb(var(--color-primary-rgb) / 0.35);
+}
+
+.chat-text {
+  color: var(--color-text-body);
+  overflow-wrap: anywhere;
+}
+
+.chat-text p + p {
+  margin-top: 0.25rem;
+}
+
+.chat-error {
+  color: var(--color-danger);
+}
+
+/* Long unbroken text (an email, a legacy username) wraps instead of pushing
+ * the page wider than a 375px phone. Inherited, so set it on a container. */
+.wrap-anywhere {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.unread-dot {
+  display: inline-block;
+  min-width: 1.25rem;
+  padding: 0 0.375rem;
+  border-radius: 9999px;
+  background: rgb(var(--color-primary-rgb));
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+  text-align: center;
+}

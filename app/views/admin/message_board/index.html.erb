@@ -1,0 +1,36 @@
+<% content_for(:title, "Message Board · Admin · Cyvasse") %>
+
+<section class="max-w-3xl mx-auto space-y-6">
+  <header class="space-y-1">
+    <p class="text-sm text-secondary">
+      <span class="text-xs font-semibold uppercase tracking-widest text-muted">Admin</span>
+      · <%= link_to "Conversations", admin_conversations_path, class: "underline underline-offset-2" %>
+    </p>
+    <h1 class="text-3xl font-extrabold text-heading tracking-tight">Message Board</h1>
+    <p class="text-secondary" data-total>
+      The old public message board, now read by admins only: <%= pluralize(@page.total, "post") %>, newest first.
+    </p>
+    <% if @blank.positive? %>
+      <p class="text-xs text-muted" data-blank><%= pluralize(@blank, "blank post") %> kept but not shown.</p>
+    <% end %>
+  </header>
+
+  <% if @page.total.zero? %>
+    <div class="card p-6 text-center text-secondary" data-board-empty>No board posts.</div>
+  <% else %>
+    <p class="text-sm text-muted">Showing <%= @page.first_number %>–<%= @page.last_number %> of <%= @page.total %>.</p>
+    <ol class="chat-log is-thread" data-board-posts>
+      <% @page.posts.each do |post| %>
+        <li class="chat-message" data-board-post="<%= post.id %>" id="board-post-<%= post.id %>">
+          <div class="flex flex-wrap items-baseline gap-x-2 text-xs text-muted wrap-anywhere">
+            <span class="font-semibold text-heading" data-author><%= post.user.player_name %></span>
+            <% if post.user.email.present? %><span><%= post.user.email %></span><% end %>
+            <time datetime="<%= post.created_at.iso8601 %>"><%= l(post.created_at, format: :long) %></time>
+          </div>
+          <div class="chat-text"><%= simple_format(h(post.message.to_s), {}, wrapper_tag: "p") %></div>
+        </li>
+      <% end %>
+    </ol>
+    <%= render "messages/pager", page: @page, path: ->(n) { admin_message_board_path(page: n) } %>
+  <% end %>
+</section>

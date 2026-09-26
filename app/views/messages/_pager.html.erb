@@ -1,0 +1,18 @@
+<%# Previous / next for a Conversation::Page or ConversationThread::Page.
+    Locals: page, path (a lambda from page number to URL), and optionally
+    prev_label and next_label. %>
+<% if page.pages > 1 %>
+  <nav class="flex items-center justify-between gap-2 text-sm" aria-label="Pages" data-pager>
+    <% if page.prev_page %>
+      <%= link_to local_assigns.fetch(:prev_label, "← Newer"), path.call(page.prev_page), class: "btn btn-secondary btn-sm", rel: "prev" %>
+    <% else %>
+      <span></span>
+    <% end %>
+    <span class="text-secondary">Page <%= page.page %> of <%= page.pages %></span>
+    <% if page.next_page %>
+      <%= link_to local_assigns.fetch(:next_label, "Older →"), path.call(page.next_page), class: "btn btn-secondary btn-sm", rel: "next" %>
+    <% else %>
+      <span></span>
+    <% end %>
+  </nav>
+<% end %>

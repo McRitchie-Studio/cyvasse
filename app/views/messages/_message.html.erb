@@ -1,0 +1,27 @@
+<%# One message in a thread. Locals: message; viewer (the reader, whose own
+    messages are marked is-mine; nil on admin pages); show_match (label the
+    match it was sent in); match_link (a lambda from a match to its URL,
+    or to nil for no link); right_id (the admin thread: whose messages sit
+    on the right, is-right, with both people named); dated (show the date
+    and time sent rather than how long ago). %>
+<% viewer = local_assigns[:viewer] %>
+<% mine = viewer && message.sender_id == viewer.id %>
+<% right = local_assigns.key?(:right_id) && message.sender_id == local_assigns[:right_id] %>
+<% match_link = local_assigns[:match_link] %>
+<li class="chat-message<%= ' is-mine' if mine %><%= ' is-right' if right %>" data-message-id="<%= message.id %>" data-sender-id="<%= message.sender_id %>" id="message-<%= message.id %>">
+  <div class="flex flex-wrap items-baseline gap-x-2 text-xs text-muted">
+    <span class="font-semibold text-heading" data-sender><%= mine ? "You" : message.sender.player_name %></span>
+    <time datetime="<%= message.created_at.iso8601 %>" title="<%= l(message.created_at, format: :long) %>"><%= local_assigns[:dated] ? l(message.created_at, format: :long) : "#{time_ago_in_words(message.created_at)} ago" %></time>
+    <% if local_assigns[:show_match] && message.match %>
+      <span>· in
+        <% url = match_link&.call(message.match) %>
+        <% if url %>
+          <%= link_to "match ##{message.match_id}", url, class: "underline underline-offset-2" %>
+        <% else %>
+          match #<%= message.match_id %>
+        <% end %>
+      </span>
+    <% end %>
+  </div>
+  <div class="chat-text"><%= simple_format(h(message.message.to_s), {}, wrapper_tag: "p") %></div>
+</li>
