@@ -42,8 +42,10 @@ Imported from the legacy repo and served through Propshaft
 `Piece` (`app/models/piece.rb`) is the lineup and resolves each skin's path.
 The rasters were compressed on import (256-colour PNG, JPEG q82, title art
 halved); `test/lib/art_assets_test.rb` fails on any raster over 250 KB, so
-compress a new one before adding it. `public/favicon.png` and the PWA icons
-are drawn from the vector elephant, the legacy site's share image. Left
+compress a new one before adding it. `public/favicon.png`, `public/favicon.ico`
+(for browsers that ask for it unprompted) and the PWA icons are drawn from the
+vector elephant, the legacy site's share image; `public/icon-maskable.png` is
+the same art padded onto parchment so a round mask never crops it. Left
 behind: user uploads, the Game of Thrones actor photos, `dragonOld.svg`,
 `human.svg`, `unFilteredSVGs/`, and the tutorial `draft1/` drafts.
 
@@ -65,7 +67,11 @@ piece of the epic. The rules are the legacy engine's, ported line for line from
 | `ai.js` | the computer opponent (`ai.js`) |
 
 `app/javascript/controllers/cyvasse_game_controller.js` draws the board and turns
-clicks into `Game` calls; it holds no rules. The modules import each other as
+clicks into `Game` calls; it holds no rules. The board plays from the keyboard
+too (it is one tab stop: arrows move between hexes, Enter or Space selects),
+and when a side has no legal move its turn passes and the page says who passed
+(`cyvasse/banner.js`); if neither side can move the game is a draw. `/rules`
+states that rule. The modules import each other as
 `cyvasse/<module>`, pinned in `config/importmap.rb`.
 
 ## Piece skins
@@ -95,7 +101,7 @@ players only.
 | Step | Where |
 |---|---|
 | Challenge by username; the challenged player is emailed | `POST /matches` → `Match.challenge!` |
-| Accept or decline; the challenger may set up at once | `POST /matches/:id/accept`, `DELETE /matches/:id` |
+| Accept or decline; the challenger may set up at once. A challenge declined or withdrawn in time is deleted, as in the legacy app; one whose seven days ran out is kept as `expired` | `POST /matches/:id/accept`, `DELETE /matches/:id` |
 | Each player submits their army from their own seat; the second one starts the game and the first mover is emailed | `POST /matches/:id/setup` (JSON) → `Match#set_up!` |
 | Whole turns, checked on the server; the next player is emailed | `POST /matches/:id/moves` (JSON) → `Match#play!` |
 | Resign | `POST /matches/:id/resign` |
@@ -162,7 +168,8 @@ LEGACY_CSV_DIR=~/Backups/heroku-personal-2026-09-25/csv bin/rails legacy:import
   one imports without an email.
 - **Computer opponents.** Legacy ids 2-10 were the computer players (the away
   seat of every computer match). They import with no email, so nothing is ever
-  mailed to them.
+  mailed to them, and `User#computer?` refuses a challenge to them: the
+  computer lives on `/play`.
 - **Matches.** Every legacy column comes over verbatim. The winner, which the
   old app never stored, is derived as its code decided it: a king in the
   graveyard (`king`); a finished human match with a player on the move lost on
@@ -186,7 +193,7 @@ receiver (`Conversation`, `app/models/conversation.rb`).
 
 | Where | What | Who |
 |---|---|---|
-| The match page's chat card | A Turbo frame loaded from `GET /matches/:id/messages` and reloaded every 8 s while the tab is visible; the form posts to `POST /matches/:id/messages` | the match's two players (anyone else: 404) |
+| The match page's chat card | A Turbo frame loaded from `GET /matches/:id/messages` and reloaded every 8 s while the tab is visible (a reader scrolled up keeps their place, and a refused message's error stays up); the form posts to `POST /matches/:id/messages`. Enter sends on a keyboard; on a touch screen Enter is a new line and Send sends. New messages are announced to screen readers | the match's two players (anyone else: 404) |
 | `/inbox` | The player's conversations, newest first, with unread counts; 25 a page | the signed-in player |
 | `/conversations/:user_id` | One whole thread, each message labelled with its match, and a reply box (a reply is sent outside any match) | the conversation's two people (anyone else: 404) |
 | `/admin/conversations` | Every conversation that ever happened, newest first, searchable by player (username, name or email), 25 a page, each linking its matches | admins only (anyone else: 404) |
@@ -226,8 +233,8 @@ bundler-audit, importmap audit and rubocop:
 
 | Command | What |
 |---|---|
-| `bin/rails test` | unit, component and integration tests (single-process) |
-| `bin/rails test:system` | browser tests in headless Chrome: a whole game against the computer, and two players starting an online match |
+| `bin/rails test` | unit, component and integration tests (single-process), and a guard that fails on a committed merge-conflict marker (`lib/conflict_markers.rb`) |
+| `bin/rails test:system` | browser tests in headless Chrome: a whole game against the computer (a win, a loss or a draw), keyboard play, the match chat, and two players starting an online match |
 | `bin/test-js` | the game engine's unit tests, on `node:test` (Node 20+, no npm install) |
 | `bin/rules-agreement` | regenerate the JS engine's recorded answers the Ruby rules port is tested against |
 

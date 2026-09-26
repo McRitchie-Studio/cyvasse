@@ -36,4 +36,23 @@ class ArtAssetsTest < ActiveSupport::TestCase
     assert favicon.file?, "public/favicon.png"
     assert_equal "\x89PNG".b, File.binread(favicon, 4)
   end
+
+  # Browsers ask for /favicon.ico whatever the head links; it used to 404.
+  test "/favicon.ico is a real icon file" do
+    ico = Rails.root.join("public/favicon.ico")
+    assert ico.file?, "public/favicon.ico"
+    assert_equal "\x00\x00\x01\x00".b, File.binread(ico, 4), "an ICO header"
+  end
+
+  # A maskable icon is cropped to a circle 80% of its width, so its art must
+  # sit inside that and its ground be opaque; the plain icon's art runs to the
+  # edges, so the manifest points the maskable slot at its own padded copy.
+  test "the manifest's maskable icon is its own padded, opaque image" do
+    manifest = Rails.root.join("app/views/pwa/manifest.json.erb").read
+    maskable = JSON.parse(manifest).fetch("icons").find { _1["purpose"] == "maskable" }
+    assert_equal "/icon-maskable.png", maskable["src"]
+    image = Rails.root.join("public/icon-maskable.png")
+    assert_equal "\x89PNG".b, File.binread(image, 4)
+    assert_equal [ 512, 512 ], File.binread(image, 24)[16, 8].unpack("NN")
+  end
 end
