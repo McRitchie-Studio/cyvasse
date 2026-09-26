@@ -20,5 +20,5 @@
       </span>
     <% end %>
   </div>
-  <div class="chat-text"><%= simple_format(message.message.to_s, {}, wrapper_tag: "p") %></div>
+  <div class="chat-text"><%= simple_format(h(message.message.to_s), {}, wrapper_tag: "p") %></div>
 </li>
