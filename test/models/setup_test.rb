@@ -40,6 +40,19 @@ class SetupTest < ActiveSupport::TestCase
     assert_equal [ nil, nil, nil ], Setup.slots_for(nil).values
   end
 
+  test "a newer legacy row that is not a whole army never hides an older lineup in its slot" do
+    valid = create(slot: 1, name: "Valid", at: 2.days.ago)
+    Setup.insert_all!([ { user_id: @player.id, name: "Broken", units_position: army(52..69), button_position: 1,
+                          created_at: 1.day.ago, updated_at: 1.day.ago } ])
+    Setup.insert_all!([ { user_id: @player.id, name: "Only broken", units_position: army(52..69), button_position: 2,
+                          created_at: 1.day.ago, updated_at: 1.day.ago } ])
+
+    slots = Setup.slots_for(@player)
+    assert_equal valid, slots[1], "the newest row with a whole army wins"
+    assert_equal "Only broken", slots[2].name, "a slot with no whole army still shows its newest row"
+    assert_nil slots[2].lineup
+  end
+
   test "saving to a slot replaces every lineup it held, and leaves the other slots alone" do
     create(slot: 2, name: "Old", at: 2.days.ago)
     create(slot: 2, name: "Older", at: 3.days.ago)

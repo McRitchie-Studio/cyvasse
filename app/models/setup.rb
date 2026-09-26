@@ -18,12 +18,14 @@ class Setup < ApplicationRecord
   validates :button_position, inclusion: { in: SLOTS }, on: :create
   validate :a_whole_army, on: :create
 
-  # Each slot's lineup: the newest in it. The legacy save meant to replace a
-  # slot's lineup but sometimes left the old row behind; the newest is the one
-  # the player saved last.
+  # Each slot's lineup: the newest in it that is a whole army. The legacy save
+  # meant to replace a slot's lineup but sometimes left the old row behind; the
+  # newest is the one the player saved last, unless it is not a whole army,
+  # when the one before it still loads. A slot with no whole army shows its
+  # newest row, which the page offers as nothing to load.
   def self.slots_for(user)
-    newest = user ? where(user: user, button_position: SLOTS).order(:created_at, :id).index_by(&:button_position) : {}
-    SLOTS.to_h { |slot| [ slot, newest[slot] ] }
+    rows = user ? where(user: user, button_position: SLOTS).order(created_at: :desc, id: :desc).group_by(&:button_position) : {}
+    SLOTS.to_h { |slot| [ slot, rows[slot] && (rows[slot].find(&:lineup) || rows[slot].first) ] }
   end
 
   # Save `lineup` (from the player's seat) as `name` in `slot`, replacing
