@@ -1,0 +1,15 @@
+<% content_for(:title, "Chat · Cyvasse") %>
+<%# The match chat's message list, the frame the match page loads and
+    reloads (MatchMessagesController). A direct visit renders it on its own. %>
+<%= turbo_frame_tag "match_chat_messages" do %>
+  <% if @error %>
+    <p class="text-sm chat-error mb-2" role="alert"><%= @error %></p>
+  <% end %>
+  <% if @messages.empty? %>
+    <p class="text-sm text-secondary" data-chat-empty>No messages yet. Say hello to <%= @match.opponent_of(current_user).username %>.</p>
+  <% else %>
+    <ol class="chat-log" data-chat-log>
+      <%= render partial: "messages/message", collection: @messages, as: :message, locals: { viewer: current_user } %>
+    </ol>
+  <% end %>
+<% end %>

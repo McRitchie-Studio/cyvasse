@@ -1,0 +1,22 @@
+<% low, high = @users %>
+<% content_for(:title, "#{low.player_name} & #{high.player_name} · Admin · Cyvasse") %>
+
+<section class="max-w-3xl mx-auto space-y-6">
+  <header>
+    <p class="text-sm text-secondary"><%= link_to "← Conversations", admin_conversations_path, class: "underline underline-offset-2" %></p>
+    <h1 class="text-3xl font-extrabold text-heading tracking-tight">
+      <%= low.player_name %> <span class="text-muted font-semibold">&amp;</span> <%= high.player_name %>
+    </h1>
+    <p class="text-sm text-secondary">
+      <%= pluralize(@total, "message") %><%= ", the latest #{@thread.size} shown" if @total > @thread.size %>.
+      <%= low.email %> · <%= high.email %>
+    </p>
+  </header>
+
+  <div class="card p-4">
+    <ol class="chat-log is-thread" data-thread>
+      <%= render partial: "messages/message", collection: @thread, as: :message,
+            locals: { show_match: true, match_link: ->(match) { admin_match_path(match) } } %>
+    </ol>
+  </div>
+</section>

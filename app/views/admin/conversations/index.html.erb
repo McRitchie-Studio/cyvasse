@@ -1,0 +1,67 @@
+<% content_for(:title, "Conversations · Admin · Cyvasse") %>
+
+<section class="max-w-5xl mx-auto space-y-6">
+  <header class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-widest text-muted">Admin</p>
+      <h1 class="text-3xl font-extrabold text-heading tracking-tight">Conversations</h1>
+      <p class="text-secondary" data-total>
+        <% if @query.present? %>
+          <%= pluralize(@page.total, "conversation") %> with a player matching “<%= @query %>”.
+        <% else %>
+          Every conversation that ever happened, newest first: <%= pluralize(@page.total, "conversation") %>.
+        <% end %>
+      </p>
+    </div>
+    <%= form_with url: admin_conversations_path, method: :get, class: "flex flex-wrap items-end gap-2", role: "search" do |form| %>
+      <div>
+        <%= form.label :q, "Search by player", class: "block text-sm font-semibold text-heading mb-1" %>
+        <%= form.search_field :q, value: @query, placeholder: "username, name or email", autocomplete: "off",
+              autocapitalize: "none", spellcheck: false, class: "input-field" %>
+      </div>
+      <%= form.submit "Search", class: "btn btn-primary", name: nil %>
+      <% if @query.present? %>
+        <%= link_to "Clear", admin_conversations_path, class: "btn btn-secondary" %>
+      <% end %>
+    <% end %>
+  </header>
+
+  <% if @page.total.zero? %>
+    <div class="card p-6 text-center text-secondary" data-conversations-empty>
+      <%= @query.present? ? "No conversations with a player matching that." : "No messages yet." %>
+    </div>
+  <% else %>
+    <p class="text-sm text-muted">Showing <%= @page.first_number %>–<%= @page.last_number %> of <%= @page.total %>.</p>
+    <ul class="card divide-y divide-[var(--color-border)]" data-conversations>
+      <% @page.conversations.each do |conversation| %>
+        <li class="p-4 space-y-1" data-conversation="<%= conversation.key %>">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <%= link_to admin_conversation_path(conversation.key), class: "font-semibold text-heading underline-offset-2 hover:underline" do %>
+              <%= conversation.low_user.player_name %> <span class="text-muted font-normal">&amp;</span> <%= conversation.high_user.player_name %>
+            <% end %>
+            <span class="text-xs text-muted">
+              <%= pluralize(conversation.messages_count, "message") %> · last <%= time_ago_in_words(conversation.last_at) %> ago
+            </span>
+          </div>
+          <% if conversation.last_message %>
+            <p class="text-sm text-secondary truncate">
+              <span class="font-semibold"><%= conversation.last_message.sender_id == conversation.low_user.id ? conversation.low_user.player_name : conversation.high_user.player_name %>:</span>
+              <%= conversation.last_message.message.to_s.truncate(140) %>
+            </p>
+          <% end %>
+          <p class="text-xs text-secondary">
+            <% if conversation.matches.any? %>
+              Matches:
+              <% conversation.matches.each do |match| %>
+                <%= link_to "##{match.id} (#{match.match_status})", admin_match_path(match), class: "underline underline-offset-2 mr-1", data: { match_link: match.id } %>
+              <% end %>
+            <% else %>
+              Not in a match.
+            <% end %>
+          </p>
+        </li>
+      <% end %>
+    </ul>
+    <%= render "messages/pager", page: @page, path: ->(n) { admin_conversations_path(q: @query.presence, page: n) } %>
+  <% end %>
+</section>

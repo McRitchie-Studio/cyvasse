@@ -17,6 +17,9 @@ class User < ApplicationRecord
 
   has_many :home_matches, class_name: "Match", foreign_key: :home_user_id, inverse_of: :home_user, dependent: :restrict_with_error
   has_many :away_matches, class_name: "Match", foreign_key: :away_user_id, inverse_of: :away_user, dependent: :restrict_with_error
+  # Messages (piece 12). A player with messages is kept, like one with matches.
+  has_many :sent_messages, class_name: "Message", foreign_key: :sender_id, inverse_of: :sender, dependent: :restrict_with_error
+  has_many :received_messages, class_name: "Message", foreign_key: :receiver_id, inverse_of: :receiver, dependent: :restrict_with_error
 
   # The piece art this player chose (PieceSkinPreference); nil until they do.
   validates :piece_skin, inclusion: { in: Piece::SKINS.keys.map(&:to_s) }, allow_nil: true
@@ -65,6 +68,16 @@ class User < ApplicationRecord
 
   def admin?
     role == "admin"
+  end
+
+  # The name shown beside a message: the public username, or for an account
+  # that never chose one, its display name.
+  def player_name
+    username.presence || display_name
+  end
+
+  def unread_messages_count
+    Message.unread_by(self).count
   end
 
   # Idempotent: creates any missing identity, never overwrites an existing row.

@@ -79,6 +79,8 @@
         </div>
       </div>
 
+      <%= render "matches/chat", match: @match, opponent: @opponent %>
+
       <div class="flex flex-wrap items-center gap-3">
         <% if @match.in_progress? %>
           <%= button_to "Resign", resign_match_path(@match), class: "btn btn-secondary",

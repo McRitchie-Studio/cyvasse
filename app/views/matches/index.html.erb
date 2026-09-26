@@ -8,6 +8,10 @@
         Playing as <strong class="text-heading"><%= current_user.username %></strong>
         · <span data-record><%= current_user.wins %> won, <%= current_user.losses %> lost</span>
         · <%= link_to "change name", username_path(return_to: matches_path), class: "underline underline-offset-2" %>
+        · <%= link_to inbox_path, class: "underline underline-offset-2", data: { inbox_link: true } do %>Inbox<% end %>
+        <% if (unread = current_user.unread_messages_count).positive? %>
+          <span class="unread-dot" title="Unread messages"><%= unread %></span>
+        <% end %>
       </p>
     </div>
     <%= form_with url: matches_path, method: :post, class: "flex flex-wrap items-end gap-2", data: { turbo: false } do |form| %>
