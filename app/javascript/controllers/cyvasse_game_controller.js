@@ -39,9 +39,16 @@ const RANGE_STROKE = { 1: "red", 2: "red", 3: "blue", 4: "blue" }
 
 const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", unique: "Unique", mountain: "Mountain" }
 
-// The pieces that decide games are lit from behind by a white point of light
-// so they stand out on a crowded board: the king (lose it and you lose), the
-// dragon, the elephant, and the trebuchet that brings dragons down.
+// Every unit's hex is shaded in its team's colour from the edge in towards
+// the centre (blue yours, red theirs). The pieces that decide games take a
+// much heavier shade so they stand out on a crowded board: the king (lose it
+// and you lose), the dragon, the elephant, and the trebuchet that brings
+// dragons down.
+const TEAM_SHADE = { 1: "#3b82f6", 0: "#dc2626" }
+const SHADE_STOPS = {
+  normal: [["55%", 0], ["100%", 0.55]],
+  strong: [["20%", 0], ["55%", 0.45], ["100%", 1]]
+}
 const MARQUEE = Object.freeze(["king", "dragon", "elephant", "trebuchet"])
 
 export default class extends Controller {
@@ -244,12 +251,16 @@ export default class extends Controller {
     const svg = this.boardTarget
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`)
     svg.replaceChildren()
-    const glow = el("radialGradient", { id: "marquee-glow" })
-    for (const [offset, color, opacity] of [["0%", "#ffffff", 0.95], ["25%", "#ffffff", 0.45], ["60%", "#ffffff", 0]]) {
-      glow.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
-    }
     const defs = el("defs", {})
-    defs.append(glow)
+    for (const [team, color] of Object.entries(TEAM_SHADE)) {
+      for (const [weight, stops] of Object.entries(SHADE_STOPS)) {
+        const gradient = el("radialGradient", { id: `shade-${team}-${weight}`, r: "60%" })
+        for (const [offset, opacity] of stops) {
+          gradient.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
+        }
+        defs.append(gradient)
+      }
+    }
     svg.append(defs)
     this.hexNodes = new Map()
     this.hexCentres = new Map()
@@ -265,12 +276,12 @@ export default class extends Controller {
         transform: `translate(${cx.toFixed(2)} ${cy.toFixed(2)})`
       })
       const polygon = el("polygon", { class: "hex-poly", points: corners })
-      const glow = el("circle", { class: "unit-glow", r: 24 })
+      const shade = el("polygon", { class: "unit-shade", points: corners })
       const disc = el("circle", { class: "unit-disc", r: 24 })
       const image = el("image", { class: "unit-image", x: -22, y: -24, width: 44, height: 48 })
-      group.append(polygon, glow, disc, image)
+      group.append(polygon, shade, disc, image)
       svg.append(group)
-      this.hexNodes.set(hex.index, { group, polygon, disc, image })
+      this.hexNodes.set(hex.index, { group, polygon, shade, disc, image })
       this.hexCentres.set(hex.index, { x: cx, row: hex.y })
     }
   }
@@ -348,6 +359,11 @@ export default class extends Controller {
       node.group.dataset.team = unit ? unit.team : ""
       const marquee = !!unit && MARQUEE.includes(unit.type.codename)
       node.group.classList.toggle("is-marquee", marquee)
+      if (unit) {
+        node.shade.setAttribute("fill", `url(#shade-${unit.team}-${marquee ? "strong" : "normal"})`)
+      } else {
+        node.shade.removeAttribute("fill")
+      }
       node.group.setAttribute("aria-label", unit ? `${unit.team === PLAYER ? "Your" : "Enemy"} ${unit.type.name.toLowerCase()}` : `Hex ${index}`)
       if (unit) {
         node.image.setAttribute("href", this.imagesValue[unit.type.codename])
