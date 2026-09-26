@@ -159,6 +159,12 @@ LEGACY_CSV_DIR=~/Backups/heroku-personal-2026-09-25/csv bin/rails legacy:import
   a row, so running it twice changes nothing. One transaction: a failure
   imports nothing. Later pieces (messages, setups) map legacy rows through
   these ids.
+- **A failure prints no row.** The database quotes the failing row in its
+  error, so the task replaces it: it exits 1 with one line naming the table,
+  the batch and its legacy id range (or the step), and the error's class,
+  such as `Legacy import failed: messages batch 3 of 47 (legacy ids
+  2001-3000), ActiveRecord::NotNullViolation.` Find the row by those ids in
+  the CSV on your own machine; never paste it.
 - **Players.** Username, wins, losses and joined date come over as they were;
   the email is trimmed and downcased (the engine's sign-in looks it up that
   way). The password hash and every other profile column are never read:

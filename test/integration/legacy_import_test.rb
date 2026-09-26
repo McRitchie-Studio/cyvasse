@@ -5,6 +5,8 @@ require "rake"
 # CSVs, a rerun that changes nothing, and an imported player signing in to
 # find their old games on My games and the match board.
 class LegacyImportIntegrationTest < ActionDispatch::IntegrationTest
+  include LegacyFixtureValues
+
   DIR = Rails.root.join("test/fixtures/files/legacy")
 
   setup do
@@ -30,6 +32,22 @@ class LegacyImportIntegrationTest < ActionDispatch::IntegrationTest
     with_env("LEGACY_CSV_DIR" => nil) do
       assert_raises(SystemExit) { capture_io { @task.invoke } }
     end
+  end
+
+  test "a failed insert exits nonzero with a redacted message and imports nothing" do
+    # One synthetic message breaks a CHECK constraint (NOT VALID: the rows
+    # already in the table are not checked); the test transaction drops it.
+    ActiveRecord::Base.connection.execute("ALTER TABLE messages ADD CONSTRAINT legacy_import_integration_test " \
+                                          "CHECK (message IS DISTINCT FROM 'SYNTHETIC wrong match') NOT VALID")
+    exit = nil
+    out, err = with_env("LEGACY_CSV_DIR" => DIR.to_s) do
+      capture_io { exit = assert_raises(SystemExit) { @task.invoke } }
+    end
+    refute exit.success?, "the task must exit nonzero"
+    assert_match(/\ALegacy import failed: messages batch 1 of 1 \(legacy ids 201-210\), ActiveRecord::CheckViolation\. /, err)
+    assert_includes err, "Nothing was imported"
+    refute_legacy_values(out + err, "the task's output")
+    assert_equal 0, User.where.not(legacy_id: nil).count + Match.where.not(legacy_id: nil).count
   end
 
   test "an imported player signs in and finds their legacy games" do

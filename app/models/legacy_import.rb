@@ -19,6 +19,12 @@
 # second run changes nothing. It runs in one transaction: a failure leaves
 # nothing half-imported.
 #
+# A failure prints no row. Postgres quotes the failing row in its error and
+# ActiveRecord adds the whole INSERT with every value, so any error inside the
+# run is replaced by LegacyImport::Failed, which names only the table, the
+# batch and its legacy id range (or the step), and the error's class, and
+# carries no cause (Ruby and rake print a cause under the error).
+#
 # Players (users.csv)
 #   username, wins, losses and the joined date (created_at) come over as they
 #   were; the email is trimmed and downcased, as the engine's sign-in looks it
@@ -74,6 +80,11 @@ class LegacyImport
   COMPUTER_LEGACY_IDS = User::COMPUTER_LEGACY_IDS
   KING_INDEX = 17
   BATCH = 1_000
+  ROLLED_BACK = "Nothing was imported: the whole run rolled back. " \
+                "The database's message is withheld because it quotes row values."
+
+  # The only error the run raises. Its message is safe to print.
+  class Failed < StandardError; end
 
   # Counts only; never a row.
   Report = Struct.new(:users_read, :users_imported, :users_already_present, :usernames_renamed,
@@ -138,7 +149,8 @@ class LegacyImport
     end
   end
 
-  def initialize(users_csv:, matches_csv:, messages_csv: nil, setups_csv: nil)
+  def initialize(users_csv:, matches_csv:, messages_csv: nil, setups_csv: nil, batch_size: BATCH)
+    @batch_size = batch_size
     @users_csv = users_csv
     @matches_csv = matches_csv
     @messages_csv = messages_csv
@@ -152,16 +164,40 @@ class LegacyImport
   def run
     ActiveRecord::Base.logger.silence(Logger::WARN) do
       ActiveRecord::Base.transaction do
-        import_users
-        import_matches
-        import_messages if @messages_csv
-        import_setups if @setups_csv
+        step("users") { import_users }
+        step("matches") { import_matches }
+        step("messages") { import_messages } if @messages_csv
+        step("setups") { import_setups } if @setups_csv
       end
     end
     @report
   end
 
   private
+
+  # ---- Failing without a row -------------------------------------------------------
+
+  # Any error in a step but a batch's own becomes a Failed naming the step.
+  def step(table)
+    yield
+  rescue Failed
+    raise
+  rescue StandardError => e
+    raise Failed, "Legacy import failed: importing #{table}, #{e.class.name}. #{ROLLED_BACK}", cause: nil
+  end
+
+  # insert_all! in batches; a failed batch is named by its place and the
+  # legacy ids it spans, never by its rows.
+  def insert_batches(model, records)
+    batches = records.each_slice(@batch_size).to_a
+    batches.each.with_index(1) do |batch, index|
+      model.insert_all!(batch)
+    rescue StandardError => e
+      ids = batch.map { |record| record[:legacy_id] }
+      raise Failed, "Legacy import failed: #{model.table_name} batch #{index} of #{batches.size} " \
+                    "(legacy ids #{ids.min}-#{ids.max}), #{e.class.name}. #{ROLLED_BACK}", cause: nil
+    end
+  end
 
   # ---- Players -----------------------------------------------------------------
 
@@ -187,7 +223,7 @@ class LegacyImport
         updated_at: time(row["updated_at"]) || time(row["created_at"])
       }
     end
-    records.each_slice(BATCH) { |batch| User.insert_all!(batch) }
+    insert_batches(User, records)
     # Sluggable's name_slug for a nameless player, which a later save would set
     # anyway; insert_all runs no callbacks.
     User.where(legacy_id: records.map { |r| r[:legacy_id] }, slug: nil).update_all("slug = 'user-' || id") if records.any?
@@ -252,7 +288,7 @@ class LegacyImport
       @report.matches_by_outcome["#{row['match_against']} #{row['match_status']} -> #{reason}"] += 1
       records << match_record(row, home, away, winner_seat, reason)
     end
-    records.each_slice(BATCH) { |batch| Match.insert_all!(batch) }
+    insert_batches(Match, records)
     @report.matches_imported = records.size
   end
 
@@ -343,7 +379,7 @@ class LegacyImport
         updated_at: time(row["updated_at"]) || time(row["created_at"])
       }
     end
-    records.each_slice(BATCH) { |batch| Message.insert_all!(batch) }
+    insert_batches(Message, records)
     @report.messages_imported = records.size
   end
 
@@ -391,7 +427,7 @@ class LegacyImport
         updated_at: time(row["updated_at"]) || time(row["created_at"])
       }
     end
-    records.each_slice(BATCH) { |batch| Setup.insert_all!(batch) }
+    insert_batches(Setup, records)
     @report.setups_imported = records.size
   end
 
