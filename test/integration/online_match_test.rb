@@ -127,6 +127,22 @@ class OnlineMatchTest < ActionDispatch::IntegrationTest
     assert_select "[data-section=finished] li", /won \(out of time\)/
   end
 
+  # A page left open past the opponent's deadline still carries the Resign
+  # button. Posting it is refused with the clock's answer, and the resigner
+  # keeps the win the clock gave them.
+  test "a resign posted from a stale page after the opponent's clock ran out keeps the forfeit win" do
+    match = started_match(@home, @away)
+    resigner = match.opponent_of(match.user_to_move)
+    log_in_as(resigner)
+
+    travel 8.days do
+      post resign_match_path(match)
+    end
+    assert_redirected_to match_path(match)
+    assert_match "seven-day clock", flash[:alert]
+    assert_equal [ "forfeit", resigner ], [ match.reload.finish_reason, match.winner ]
+  end
+
   test "resigning and declining from the page" do
     match = started_match(@home, @away)
     log_in_as(@home)
