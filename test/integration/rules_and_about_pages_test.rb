@@ -29,6 +29,28 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     assert_select "#class-range .unit-card", count: 3
   end
 
+  test "rules states the stalemate rule: no legal move passes the turn, and neither side moving is a draw" do
+    get rules_path
+
+    assert_select "section#no-legal-move" do
+      assert_select "h2", text: "No Legal Move"
+      assert_select "p", text: /none of your units can move or attack, your turn passes/
+      assert_select "p", text: /neither player can move, the game ends in a draw/
+    end
+    assert_select "#quick-start dd", text: /neither side can move, it is a draw/
+  end
+
+  test "the screenshots from before the April 2015 changes say so" do
+    get rules_path
+
+    assert_select "#special-rules .tutorial-card[data-tutorial=trump] figcaption",
+                  text: /Before the April 2015 rule changes.*Spearmen no longer trump Heavy Horse/m
+    assert_select "#special-rules .tutorial-card[data-tutorial=range] figcaption",
+                  text: /Before the April 2015 rule changes.*Trebuchets can no longer move/m
+    assert_select "#special-rules .tutorial-card[data-tutorial=cavalry] figcaption", 0
+    assert_select "#special-rules .tutorial-card[data-tutorial=dragon] figcaption", 0
+  end
+
   test "rules carries the four tutorial images where the tutorial used them" do
     get rules_path
 
