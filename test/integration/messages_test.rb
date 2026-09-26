@@ -121,7 +121,9 @@ class MessagesTest < ActionDispatch::IntegrationTest
     Message.post_in_match!(@match, @arya, secret)
     log_in_as(@arya)
 
-    [ admin_conversations_path, admin_conversation_path("#{@arya.id}-#{@brienne.id}"), admin_match_path(@match) ].each do |path|
+    key = "#{@arya.id}-#{@brienne.id}"
+    [ admin_conversations_path, admin_conversation_path(key), admin_conversation_path(key, game: @match.id),
+      admin_conversation_path(key, game: "none"), admin_match_path(@match) ].each do |path|
       get path
       assert_response :not_found, path
       assert_not_includes response.body, secret
@@ -178,7 +180,7 @@ class MessagesTest < ActionDispatch::IntegrationTest
     get admin_conversation_path("#{@brienne.id}-#{@arya.id}")
     assert_response :success
     assert_select "[data-thread] .chat-message", 2
-    assert_select "[data-thread] a[href=?]", admin_match_path(@match)
+    assert_select "[data-game=?] a[href=?]", @match.id.to_s, admin_match_path(@match)
 
     get admin_match_path(@match)
     assert_response :success
@@ -188,6 +190,40 @@ class MessagesTest < ActionDispatch::IntegrationTest
     get admin_conversation_path("#{@arya.id}-#{@cersei.id}")
     assert_response :not_found
     get admin_conversation_path("nonsense")
+    assert_response :not_found
+  end
+
+  test "an admin reads a thread grouped by game, arya left and brienne right, every word of it" do
+    long = "#{"a very long line about elephants and trebuchets " * 18}<script>alert(1)</script>"
+    Message.post_in_match!(@match, @arya, "before the game")
+    Message.post_in_match!(@match, @brienne, long)
+    Message.create!(sender: @arya, receiver: @brienne, message: "outside any game", created_at: 1.minute.from_now)
+    key = "#{@arya.id}-#{@brienne.id}"
+
+    log_in_as(@admin)
+    get admin_conversations_path
+    assert_select "a[data-thread-link=?][href=?]", key, admin_conversation_path(key)
+
+    get admin_conversation_path(key)
+    assert_response :success
+    assert_select "[data-sides]", /arya.*left.*brienne.*right/m
+    assert_select "[data-game]", 2
+    assert_select "[data-game]:first-of-type h2", /Outside any game/
+    assert_select "[data-game=?] [data-game-status]", @match.id.to_s, /pending/
+    assert_select "[data-game=?] .chat-message", @match.id.to_s, 2
+    assert_select "[data-game=?] .chat-message.is-right[data-sender-id=?]", @match.id.to_s, @brienne.id.to_s, 1
+    assert_select "[data-game=?] .chat-message:not(.is-right)[data-sender-id=?]", @match.id.to_s, @arya.id.to_s, 1
+    assert_includes response.body, long.split("<script>").first.strip, "no message is truncated"
+    assert_includes response.body, "&lt;script&gt;alert(1)&lt;/script&gt;"
+    assert_not_includes response.body, "<script>alert(1)"
+
+    get admin_conversation_path(key, game: @match.id)
+    assert_response :success
+    assert_select "[data-game]", 1
+    assert_select ".chat-message", 2
+    get admin_conversation_path(key, game: "none")
+    assert_select ".chat-message", 1
+    get admin_conversation_path(key, game: 0)
     assert_response :not_found
   end
 
