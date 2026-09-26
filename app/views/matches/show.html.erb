@@ -28,8 +28,8 @@
 
   <div class="cyvasse-layout">
     <div class="cyvasse-board-wrap">
-      <svg class="cyvasse-board" role="group" aria-label="The Cyvasse board"
-           data-cyvasse-match-target="board" data-action="click->cyvasse-match#clickHex"></svg>
+      <svg class="cyvasse-board" role="group" aria-label="The Cyvasse board. Arrow keys move between hexes; Enter selects."
+           data-cyvasse-match-target="board" data-action="click->cyvasse-match#clickHex keydown->cyvasse-match#keyHex"></svg>
       <div class="cyvasse-banner" hidden data-cyvasse-match-target="banner"></div>
     </div>
 

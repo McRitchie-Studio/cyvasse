@@ -20,6 +20,8 @@ class SkinSwitcherSystemTest < ApplicationSystemTestCase
     assert_selector "[data-controller=cyvasse-game][data-skin=pencil]"
     assert_selector ".skin-toggle button[data-skin=pencil][aria-pressed=true]"
     assert_selector ".skin-toggle button[data-skin=vector][aria-pressed=false]"
+    assert_equal "pencil", page.evaluate_script("document.activeElement.dataset.skin"),
+                 "keyboard focus stays on the toggle through the save"
     assert_selector ".cyvasse-dock img[src*='/pieces/pencil/']", count: 18
     assert_no_selector ".cyvasse-dock img[src*='/pieces/vector/']"
     king = find("svg.cyvasse-board g.hex[data-hex='88'][data-unit-id='1-17'] image.unit-image")

@@ -49,7 +49,7 @@
 require "csv"
 
 class LegacyImport
-  COMPUTER_LEGACY_IDS = (2..10)
+  COMPUTER_LEGACY_IDS = User::COMPUTER_LEGACY_IDS
   KING_INDEX = 17
   BATCH = 1_000
 

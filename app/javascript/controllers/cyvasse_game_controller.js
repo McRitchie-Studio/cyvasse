@@ -3,6 +3,7 @@ import { Game, PLAYER, COMPUTER } from "cyvasse/game"
 import { chooseAction } from "cyvasse/ai"
 import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
 import { UNIT_TYPES } from "cyvasse/units"
+import { Banner, passNotice } from "cyvasse/banner"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -26,7 +27,6 @@ const W = 60
 const H = W * 2 / Math.sqrt(3)
 const PAD = 4
 const RIPPLE_MS = 120
-const BANNER_MS = 1800
 
 // Legacy Animation.hslRange: saturation and lightness per ring, brightening
 // outward. The dragon's longer reach uses the ten-step table.
@@ -51,6 +51,7 @@ export default class extends Controller {
 
   disconnect() {
     this.clearTimers()
+    this.bannerBox.hide()
   }
 
   // ---- Game lifecycle ------------------------------------------------------
@@ -62,6 +63,7 @@ export default class extends Controller {
     this.selectedUnitId = null
     this.selectedHex = null
     this.actions = null
+    this.notice = null
     this.opponentTarget.textContent = this.game.computer.name
     this.setupControlsTarget.hidden = false
     this.hideBanner()
@@ -90,14 +92,19 @@ export default class extends Controller {
   }
 
   // Game.runTurn: announce the turn, mark the last move, let the computer think.
-  runTurn() {
+  // `result` is what Game#act answered for the turn just played; when the
+  // side after it had no legal move, its turn passed (the stalemate rule), and
+  // the player is told who passed.
+  runTurn(result = {}) {
     this.holding = false
     this.clearSelection()
+    const passed = result.passed && this.game.phase !== "over"
+    this.notice = passed ? passNotice(1 - this.game.offense, this.game.computer.name) : null
     this.render()
     if (this.game.phase === "over") return this.announceWinner()
 
     const whose = this.game.offense === PLAYER ? "Your move" : "Opponent’s move"
-    this.banner(`Turn ${this.game.turn} · ${whose}`)
+    this.banner(`${passed ? (this.game.offense === PLAYER ? "Opponent passes · " : "You pass · ") : ""}Turn ${this.game.turn} · ${whose}`)
     if (this.game.offense === COMPUTER) this.computerTurn()
   }
 
@@ -114,11 +121,10 @@ export default class extends Controller {
           this.select(this.game.activeHex)
           this.later(1000, () => {
             const next = chooseAction(this.game)
-            this.game.act(next.from, next.to)
-            this.runTurn()
+            this.runTurn(this.game.act(next.from, next.to))
           })
         } else {
-          this.runTurn()
+          this.runTurn(result)
         }
       })
     })
@@ -138,6 +144,42 @@ export default class extends Controller {
     const hex = Number(node.dataset.hex)
     if (this.game.phase === "setup") return this.setupClick(hex)
     if (this.game.phase === "play" && this.game.offense === PLAYER) this.playClick(hex)
+  }
+
+  // Keyboard play: the board is one tab stop. Arrows move between hexes
+  // (up and down to the nearest hex in the next row), Enter or Space clicks.
+  keyHex(event) {
+    const node = event.target.closest("[data-hex]")
+    if (!node) return
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      return this.clickHex(event)
+    }
+    const next = this.neighbourFor(Number(node.dataset.hex), event.key)
+    if (!next) return
+    event.preventDefault()
+    this.focusHex(next)
+  }
+
+  neighbourFor(index, key) {
+    const here = this.hexCentres.get(index)
+    const row = { ArrowUp: here.row - 1, ArrowDown: here.row + 1 }[key]
+    if (key === "ArrowLeft" || key === "ArrowRight") {
+      const next = index + (key === "ArrowLeft" ? -1 : 1)
+      return this.hexCentres.get(next)?.row === here.row ? next : null
+    }
+    if (row === undefined) return null
+    let best = null
+    for (const [i, centre] of this.hexCentres) {
+      if (centre.row !== row) continue
+      if (best === null || Math.abs(centre.x - here.x) < Math.abs(this.hexCentres.get(best).x - here.x)) best = i
+    }
+    return best
+  }
+
+  focusHex(index) {
+    for (const [i, { group }] of this.hexNodes) group.setAttribute("tabindex", i === index ? "0" : "-1")
+    this.hexNodes.get(index).group.focus()
   }
 
   pickFromDock(event) {
@@ -164,7 +206,7 @@ export default class extends Controller {
         this.render()
         this.select(this.game.activeHex)
       } else {
-        this.runTurn()
+        this.runTurn(result)
       }
       return
     }
@@ -180,6 +222,7 @@ export default class extends Controller {
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`)
     svg.replaceChildren()
     this.hexNodes = new Map()
+    this.hexCentres = new Map()
 
     const corners = [[0, -H / 2], [W / 2, -H / 4], [W / 2, H / 4], [0, H / 2], [-W / 2, H / 4], [-W / 2, -H / 4]]
       .map(([x, y]) => `${(x * 0.97).toFixed(2)},${(y * 0.97).toFixed(2)}`).join(" ")
@@ -187,13 +230,17 @@ export default class extends Controller {
     for (const hex of HEXES) {
       const cx = PAD + (11 - hex.size) * W / 2 + (hex.x - 0.5) * W
       const cy = PAD + H / 2 + (hex.y - 1) * H * 0.75
-      const group = el("g", { class: "hex", "data-hex": hex.index, transform: `translate(${cx.toFixed(2)} ${cy.toFixed(2)})` })
+      const group = el("g", {
+        class: "hex", "data-hex": hex.index, role: "button", tabindex: hex.index === 1 ? "0" : "-1",
+        transform: `translate(${cx.toFixed(2)} ${cy.toFixed(2)})`
+      })
       const polygon = el("polygon", { class: "hex-poly", points: corners })
       const disc = el("circle", { class: "unit-disc", r: 24 })
       const image = el("image", { class: "unit-image", x: -22, y: -24, width: 44, height: 48 })
       group.append(polygon, disc, image)
       svg.append(group)
       this.hexNodes.set(hex.index, { group, polygon, disc, image })
+      this.hexCentres.set(hex.index, { x: cx, row: hex.y })
     }
   }
 
@@ -207,8 +254,16 @@ export default class extends Controller {
     event.preventDefault()
     const form = event.target
     const skin = form.dataset.skinChoice
-    if (!this.skinsValue[skin] || skin === this.skinValue) return
+    // One switch at a time: a second click while the first is saving could
+    // land its answers out of order and leave the board in one skin while
+    // the server holds the other.
+    if (this.switchingSkin || !this.skinsValue[skin] || skin === this.skinValue) return
 
+    this.switchingSkin = true
+    // Disabling the focused button drops focus to <body>; put it back after.
+    const focused = document.activeElement
+    const buttons = this.element.querySelectorAll(".skin-choice")
+    for (const button of buttons) button.disabled = true
     let response = null
     try {
       response = await fetch(form.action, {
@@ -219,6 +274,10 @@ export default class extends Controller {
       })
     } catch {
       response = null
+    } finally {
+      this.switchingSkin = false
+      for (const button of buttons) button.disabled = false
+      if (focused?.isConnected && document.activeElement !== focused) focused.focus()
     }
     if (!response?.ok) return form.submit()
     this.applySkin(skin)
@@ -313,7 +372,7 @@ export default class extends Controller {
     } else {
       text = `Turn ${game.turn}: the opponent is thinking.`
     }
-    this.statusTarget.textContent = text
+    this.statusTarget.textContent = this.notice && game.phase === "play" ? `${this.notice} ${text}` : text
   }
 
   renderGraveyards() {
@@ -429,26 +488,17 @@ export default class extends Controller {
 
   // ---- The banner (goodCode/rotator.js) --------------------------------------
 
-  banner(text, then = null, { stay = false } = {}) {
-    const node = this.bannerTarget
-    node.textContent = text
-    node.hidden = false
-    node.classList.remove("is-leaving")
-    node.classList.add("is-showing")
-    if (stay) {
-      if (then) then()
-      return
-    }
-    this.later(BANNER_MS, () => {
-      node.classList.add("is-leaving")
-      node.classList.remove("is-showing")
-      if (then) then()
-    })
+  banner(text, then = null, options = {}) {
+    this.bannerBox.show(text, then, options)
   }
 
   hideBanner() {
-    this.bannerTarget.hidden = true
-    this.bannerTarget.classList.remove("is-showing", "is-leaving")
+    this.bannerBox.hide()
+  }
+
+  get bannerBox() {
+    this.bannerInstance ??= new Banner(this.bannerTarget, { pace: () => this.paceValue })
+    return this.bannerInstance
   }
 
   // ---- Timers ------------------------------------------------------------------

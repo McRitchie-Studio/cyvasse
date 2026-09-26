@@ -3,7 +3,7 @@
 <% content_for(:title, "#{left.player_name} & #{right.player_name} · Admin · Cyvasse") %>
 
 <section class="max-w-3xl mx-auto space-y-6">
-  <header class="space-y-1">
+  <header class="space-y-1 wrap-anywhere">
     <p class="text-sm text-secondary">
       <%= link_to "← Conversations", admin_conversations_path, class: "underline underline-offset-2" %>
       <% if @game %>
@@ -14,8 +14,7 @@
       <%= left.player_name %> <span class="text-muted font-semibold">&amp;</span> <%= right.player_name %>
     </h1>
     <p class="text-sm text-secondary break-words" data-total>
-      <%= pluralize(@total, "message") %>
-      <% unless @game %>in <%= pluralize(@page.total, "group") %>, newest game first<% end %>.
+      <%= pluralize(@total, "message") %><% unless @game %> in <%= pluralize(@page.total, "group") %>, newest game first<% end %>.
       <%= left.email %> · <%= right.email %>
     </p>
     <p class="text-xs text-muted" data-sides>

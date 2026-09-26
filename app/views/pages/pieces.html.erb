@@ -15,7 +15,7 @@
   <div class="grid grid-cols-2 gap-3 sm:gap-6 border-b border-subtle pb-2 mb-6 text-xs font-semibold uppercase tracking-widest text-muted">
     <% @skins.each do |skin| %>
       <span data-skin-heading="<%= skin %>">
-        <%= skin.to_s.capitalize %><% if skin == current_skin %> <span class="text-primary">· in use</span><% end %>
+        <%= skin.to_s.capitalize %><% if skin == current_skin %> <span class="text-primary-700 dark:text-primary">· in use</span><% end %>
       </span>
     <% end %>
   </div>

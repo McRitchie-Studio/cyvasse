@@ -67,6 +67,15 @@ class User < ApplicationRecord
     Match.involving(self)
   end
 
+  # The legacy app's computer opponents (legacy ids 2-10) came over with the
+  # import (LegacyImport) so their old matches keep both players; nobody can
+  # challenge them now. The computer lives on /play.
+  COMPUTER_LEGACY_IDS = (2..10)
+
+  def computer?
+    legacy_id.present? && COMPUTER_LEGACY_IDS.cover?(legacy_id)
+  end
+
   def admin?
     role == "admin"
   end

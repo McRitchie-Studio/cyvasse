@@ -221,6 +221,7 @@ class MessagesTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "[data-game]", 1
     assert_select ".chat-message", 2
+    assert_select "[data-total]", /\A\s*3 messages\.\s/, "no space before the full stop on a one-game page"
     get admin_conversation_path(key, game: "none")
     assert_select ".chat-message", 1
     get admin_conversation_path(key, game: 0)

@@ -13,7 +13,7 @@
             params: { skin: skin, return_to: request.path },
             form: { class: "contents", data: form_data.merge(skin_choice: skin) },
             class: "skin-choice inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium text-secondary " \
-                   "hover:text-heading aria-pressed:bg-primary aria-pressed:text-white",
+                   "hover:text-heading aria-pressed:bg-primary-700 aria-pressed:text-white",
             aria: { pressed: skin == current_skin },
             data: { skin: skin } do %>
         <%= image_tag Piece.all.first.image(skin), alt: "", class: "skin-choice-art", aria: { hidden: true } %>

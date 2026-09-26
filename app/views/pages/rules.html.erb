@@ -15,7 +15,7 @@
       <dt class="font-semibold text-heading">First move</dt>
       <dd class="text-secondary">The first turn is awarded to the army whose king is closest to the front line.</dd>
       <dt class="font-semibold text-heading">Game</dt>
-      <dd class="text-secondary">Players trade moves until a king is captured.</dd>
+      <dd class="text-secondary">Players trade moves until a king is captured. If neither side can move, it is a draw.</dd>
       <dt class="font-semibold text-heading">Combat</dt>
       <dd class="text-secondary">A unit may capture an enemy if the Attacker has more or equal Strength to the Defender.</dd>
     </dl>
@@ -53,6 +53,16 @@
         is made up of moving one of your units to a new space, or attacking an
         enemy.
       </p>
+    </section>
+
+    <%# Alex, 2026-09-25: keep the stalemate rule (Game#beginTurn, CyvasseRules::Game). %>
+    <section id="no-legal-move">
+      <h2>No Legal Move</h2>
+      <p>
+        If it is your turn and none of your units can move or attack, your turn
+        passes to your opponent. The game tells you when a turn is passed.
+      </p>
+      <p>If neither player can move, the game ends in a draw.</p>
     </section>
 
     <section id="moving">

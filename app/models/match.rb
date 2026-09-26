@@ -56,6 +56,7 @@ class Match < ApplicationRecord
     opponent = User.find_by_username(username)
     raise Refused, "No player is called #{username.to_s.strip.presence || 'that'}." unless opponent
     raise Refused, "You cannot challenge yourself." if opponent.id == challenger.id
+    raise Refused, "#{opponent.username} was one of the old site's computer players. Play the computer on the Play page." if opponent.computer?
     if where(home_user: challenger, away_user: opponent, match_status: PENDING).exists?
       raise Refused, "You have already challenged #{opponent.username}."
     end
@@ -76,9 +77,11 @@ class Match < ApplicationRecord
   end
 
   # Decline (the challenged player) or withdraw (the challenger), any time
-  # before the first move. The legacy app deleted the match; so does this.
+  # before the first move. The legacy app deleted the match; so does this,
+  # unless the clock already ran out: then the match is kept as expired, like
+  # every other late request (change_on_clock).
   def withdraw!(user)
-    change(user) do
+    change_on_clock(user) do
       raise Refused, "A match in play can only be resigned." unless PREGAME.include?(match_status)
 
       destroy!
