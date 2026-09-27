@@ -108,6 +108,8 @@ jobs:
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
+          # Keep the failing page's HTML beside its screenshot.
+          RAILS_SYSTEM_TESTING_SCREENSHOT_HTML: "1"
         run: bin/rails db:test:prepare test test:system
 
       # A system test that fails saves a screenshot of the browser at that
