@@ -244,6 +244,17 @@ in (blue yours, red theirs), and the more the piece is worth the deeper and
 stronger the shade: mountains faintest, then rabble up to the king, in the
 order the computer values them (`KILL_PRIORITY` in `cyvasse/ai.js`).
 
+## Email results
+
+A player who arrives from a McRitchie Studio email carries `?ref=<delivery
+token>` from the hub's click redirect. `EmailReferral`
+(`app/controllers/concerns/email_referral.rb`) keeps it for thirty days and
+reports results to the hub's email analytics as beacons: `signed_in` on the
+first full page a signed-in player sees, `played_match` when a game starts or
+an online army is accepted. `EMAIL_ANALYTICS_URL` names the hub; production
+defaults to `https://mcritchie.studio`, anywhere else to `http://localhost:3000`,
+so a desk or a test never reports to production.
+
 ## Messages
 
 Players talk in a chat on each match, and read every conversation in their
