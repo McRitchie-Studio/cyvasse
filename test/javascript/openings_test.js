@@ -105,3 +105,21 @@ test("the computer lineups the first-move test reads keep their kings on the top
     }
   }
 });
+
+// Grey Wall and Crossbow Ambush make claims about who takes an elephant; the
+// capture rules answer them, so a change to either shows up here.
+test("what the openings say about elephants is what the rules do", () => {
+  const takes = (attacker, defender) => {
+    const position = { pieceAt: (i) => ({ 60: { team: PLAYER, type: UNIT_TYPES[attacker] }, 50: { team: COMPUTER, type: UNIT_TYPES[defender] } })[i] };
+    const { attacks } = legalActions(position, 60);
+    // A shooter takes from range; everyone else by stepping onto the hex.
+    return attacks.includes(50);
+  };
+  const elephantTakers = Object.keys(UNIT_TYPES).filter((codename) => takes(codename, "elephant")).sort();
+  assert.deepEqual(elephantTakers, ["crossbowman", "dragon", "elephant"]);
+  assert.match(OPENINGS.find((o) => o.slug === "grey-wall").idea, /a dragon, a crossbow or another elephant/);
+
+  assert.equal(takes("elephant", "crossbowman"), false, "an elephant cannot take a crossbow");
+  assert.equal(takes("crossbowman", "elephant"), true, "a crossbow can take an elephant");
+  assert.match(OPENINGS.find((o) => o.slug === "crossbow-ambush").idea, /a crossbow, which it cannot take and which can take it/);
+});
