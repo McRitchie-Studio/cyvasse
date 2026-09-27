@@ -106,6 +106,7 @@ export default class extends GameController {
     }, this.pollMsValue)
   }
 
+  // Answers true when the server took the action.
   async send(url, body) {
     this.holding = true
     this.showError(null)
@@ -125,10 +126,11 @@ export default class extends GameController {
     if (data?.state) {
       this.load(data.state, { announce: true })
       if (!response.ok) this.showError(data.error || "The server refused that.")
-      return
+      return response.ok
     }
     this.showError("Could not reach the server. Reload the page to see the match.")
     this.holding = false
+    return false
   }
 
   // ---- Setup -----------------------------------------------------------------
@@ -156,7 +158,9 @@ export default class extends GameController {
   // "Submit army": the lineup is locked in on the server.
   start() {
     if (!this.state.can_set_up || !this.game.readyToStart || this.holding) return
-    this.send(this.setupUrlValue, { lineup: this.game.playerLineup() })
+    this.send(this.setupUrlValue, { lineup: this.game.playerLineup() }).then((ok) => {
+      if (ok) this.emailGoal("played_match")
+    })
   }
 
   // ---- Turns -----------------------------------------------------------------

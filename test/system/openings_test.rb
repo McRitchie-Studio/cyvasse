@@ -69,6 +69,31 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     screenshot("play")
   end
 
+  # [component] A player who came from an email (?ref=) reports "played a
+  # match" to the hub the moment a game starts (EmailReferral).
+  test "starting a game fires the played_match beacon for a player from an email" do
+    visit play_path(ref: "AbCdEfGhIjKlMnOpQrSt12")
+    assert_selector "[data-controller=cyvasse-game][data-phase=setup]"
+    click_on "Random Setup"
+    click_on "Start Game"
+    assert_selector "[data-controller=cyvasse-game][data-phase=play]"
+
+    src = page.evaluate_script(<<~JS)
+      Stimulus.getControllerForElementAndIdentifier(document.querySelector("[data-controller=cyvasse-game]"), "cyvasse-game").emailBeacon?.src
+    JS
+    assert_equal "#{EmailReferral.hub_url}/e/g/AbCdEfGhIjKlMnOpQrSt12?g=played_match", src
+  end
+
+  test "a player with no ref fires no beacon" do
+    visit play_path
+    click_on "Random Setup"
+    click_on "Start Game"
+    assert_selector "[data-controller=cyvasse-game][data-phase=play]"
+    assert_nil page.evaluate_script(<<~JS)
+      Stimulus.getControllerForElementAndIdentifier(document.querySelector("[data-controller=cyvasse-game]"), "cyvasse-game").emailBeacon?.src ?? null
+    JS
+  end
+
   private
 
   # Put a play-phase cue class on a hex directly: the rule under test is the
