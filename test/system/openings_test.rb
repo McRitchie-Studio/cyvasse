@@ -81,7 +81,7 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     src = page.evaluate_script(<<~JS)
       Stimulus.getControllerForElementAndIdentifier(document.querySelector("[data-controller=cyvasse-game]"), "cyvasse-game").emailBeacon?.src
     JS
-    assert_equal "https://mcritchie.studio/e/g/AbCdEfGhIjKlMnOpQrSt12?g=played_match", src
+    assert_equal "#{EmailReferral.hub_url}/e/g/AbCdEfGhIjKlMnOpQrSt12?g=played_match", src
   end
 
   test "a player with no ref fires no beacon" do
