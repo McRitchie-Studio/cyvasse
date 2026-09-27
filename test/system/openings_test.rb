@@ -26,6 +26,14 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     assert_selector "g.hex[data-rank]", count: 19
     screenshot("crown-forward")
 
+    # Picking the king up again marks it selected; its heavy shade gives way
+    # so the orange shows.
+    find("g.hex[data-hex='66']").click
+    assert_selector "g.hex[data-hex='66'].is-selected"
+    assert_operator shade_opacity(66), :<, 0.5
+    assert_operator shade_opacity(56), :==, 1.0
+    find("g.hex[data-hex='66']").click
+
     click_on "Start Game"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
     assert_selector "g.hex[data-rank]", count: 38
@@ -34,6 +42,10 @@ class OpeningsSystemTest < ApplicationSystemTestCase
   end
 
   private
+
+  def shade_opacity(hex)
+    page.evaluate_script("parseFloat(getComputedStyle(document.querySelector(\"g.hex[data-hex='#{hex}'] .unit-shade\")).opacity)")
+  end
 
   def screenshot(name)
     page.save_screenshot(Rails.root.join("tmp/screenshots/openings-#{name}.png")) if ENV["SCREENSHOTS"]
