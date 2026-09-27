@@ -114,6 +114,7 @@ export default class extends Controller {
   start() {
     if (!this.game.readyToStart) return
     this.game.start()
+    this.emailGoal("played_match")
     // Hold the board until the opening banner hands over to turn 1: a move
     // made under the banner would start a second turn loop when it closes.
     this.holding = true
@@ -168,6 +169,16 @@ export default class extends Controller {
     if (this.game.winner === null) return this.banner("Neither side can move. A draw.", null, { stay: true })
     const text = this.game.winner === PLAYER ? `You win, at turn ${this.game.turn}.` : `You were defeated, at turn ${this.game.turn}.`
     this.banner(text, null, { stay: true })
+  }
+
+  // A player who came from an email: tell the hub's email analytics this
+  // result happened (EmailReferral). The meta tag is there only for them.
+  emailGoal(goal) {
+    const url = document.querySelector("meta[name='email-goal-url']")?.content
+    if (!url) return
+    const beacon = new Image()
+    beacon.src = url + goal
+    this.emailBeacon = beacon
   }
 
   // ---- Clicks --------------------------------------------------------------

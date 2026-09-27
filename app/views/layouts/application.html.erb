@@ -3,6 +3,7 @@
   <head>
     <title><%= content_for(:title) || "Cyvasse" %></title>
     <%= render "layouts/studio/head" %>
+    <% if email_goal_url %><meta name="email-goal-url" content="<%= email_goal_url %>"><% end %>
   </head>
 
   <body x-data class="bg-page text-body min-h-screen" :class="{ 'dev-mode': $store.devMode }">
@@ -15,6 +16,7 @@
     <main class="max-w-7xl mx-auto px-4 py-6">
       <%= render "layouts/studio/flash" %>
       <%= yield %>
+      <% email_goal_beacons.each do |beacon| %><img src="<%= beacon %>" alt="" width="1" height="1" hidden data-email-beacon><% end %>
     </main>
   </body>
 </html>

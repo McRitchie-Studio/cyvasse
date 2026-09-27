@@ -156,6 +156,7 @@ export default class extends GameController {
   // "Submit army": the lineup is locked in on the server.
   start() {
     if (!this.state.can_set_up || !this.game.readyToStart || this.holding) return
+    this.emailGoal("played_match")
     this.send(this.setupUrlValue, { lineup: this.game.playerLineup() })
   }
 

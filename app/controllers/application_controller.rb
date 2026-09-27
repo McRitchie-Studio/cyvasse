@@ -8,6 +8,9 @@ class ApplicationController < ActionController::Base
   # current_skin: which piece art (pencil or vector) this player sees.
   include PieceSkinPreference
 
+  # email_ref: credits sign-ins and games to the email that brought a player.
+  include EmailReferral
+
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
