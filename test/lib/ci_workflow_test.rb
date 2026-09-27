@@ -44,4 +44,17 @@ class CiWorkflowTest < ActiveSupport::TestCase
     assert runs.any? { |run| run.include?("bin/test-js") }, "no step runs the game engine's unit tests"
     refute_empty Dir[Rails.root.join("test/javascript/*_test.js")], "bin/test-js would have nothing to run"
   end
+
+  test "a failed system test's screenshots and pages are kept as an artifact" do
+    steps = workflow.dig("jobs", "test", "steps")
+    suite = steps.index { |step| step["run"].to_s.include?("test:system") }
+    upload = steps.index { |step| step["uses"].to_s.start_with?("actions/upload-artifact") }
+
+    assert suite, "the test job runs no system tests"
+    assert upload, "the test job uploads no failure screenshots"
+    assert_operator upload, :>, suite, "the upload must come after the suite that writes the screenshots"
+    assert_equal "failure()", steps[upload]["if"], "only a failed run needs them"
+    assert_equal "tmp/screenshots", steps[upload].dig("with", "path")
+    assert_equal "1", steps[suite].dig("env", "RAILS_SYSTEM_TESTING_SCREENSHOT_HTML"), "keep the page HTML too"
+  end
 end

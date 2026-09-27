@@ -74,7 +74,29 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
     end
   end
 
+  # Rails screenshots only the default browser (arya's) when a test fails, but
+  # this test plays in two: a failure in brienne's browser would be captured
+  # from the wrong board. Keep her screenshot and page too (CI uploads
+  # tmp/screenshots), so the next flake explains itself.
+  def before_teardown
+    save_session_evidence("brienne") unless passed? || skipped?
+    super
+  end
+
   private
+
+  def save_session_evidence(name)
+    return unless Capybara.send(:session_pool).keys.any? { |key| key.split(":")[1] == name }
+
+    Capybara.using_session(name) do
+      stem = Rails.root.join("tmp/screenshots/failures_#{method_name.tr(",", "-").tr(" ", "_")}-#{name}")
+      FileUtils.mkdir_p(File.dirname(stem))
+      page.save_screenshot("#{stem}.png")
+      File.write("#{stem}.html", page.html)
+    end
+  rescue StandardError => e
+    warn "could not save #{name}'s evidence: #{e.class}: #{e.message}"
+  end
 
   def sign_in(user)
     # The link's confirm page submits itself and lands on the front page.
