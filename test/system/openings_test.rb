@@ -48,6 +48,12 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     mark(79, "is-last-move")
     assert_edge 79, "rgb(59, 130, 246)"
     screenshot("last-move-rabble")
+    # The keyboard's focus edge still shows over the team mark.
+    page.execute_script("arguments[0].focus()", find("g.hex[data-hex='80']"))
+    find("g.hex[data-hex='80']").send_keys(:arrow_left)
+    assert_equal "79", page.evaluate_script("document.activeElement.dataset.hex")
+    assert_edge 79, "rgb(255, 255, 0)"
+    page.execute_script("document.activeElement.blur()")
     unmark(79)
     assert_edge 79, "rgb(255, 255, 255)"
 

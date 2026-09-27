@@ -120,13 +120,14 @@
 /* The last move stays orange for a whole turn, and both armies share the art,
  * so the unit standing there needs another mark of its team. A low-worth unit
  * has almost no shade to spare, so the mark is the hex's own edge, drawn in
- * the team colour whatever the unit is worth. */
-.cyvasse-board .hex.is-last-move.has-unit[data-team="1"] .hex-poly {
+ * the team colour whatever the unit is worth. It yields to the keyboard's
+ * yellow focus edge, or a keyboard player loses the cursor on that hex. */
+.cyvasse-board .hex.is-last-move.has-unit[data-team="1"]:not(:focus-visible) .hex-poly {
   stroke: #3b82f6;
   stroke-width: 4;
 }
 
-.cyvasse-board .hex.is-last-move.has-unit[data-team="0"] .hex-poly {
+.cyvasse-board .hex.is-last-move.has-unit[data-team="0"]:not(:focus-visible) .hex-poly {
   stroke: #dc2626;
   stroke-width: 4;
 }
