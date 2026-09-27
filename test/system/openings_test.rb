@@ -34,19 +34,32 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     assert_operator shade_opacity(56), :==, 1.0
     find("g.hex[data-hex='66']").click
 
-    # The last move and an attacked hex: the attack cue gets the same room as
-    # the selection, while the last move keeps enough shade to show its team.
+    # The cues let the orange and red through by thinning the shade.
     mark(56, "is-last-move")
-    assert_includes 0.4..0.7, shade_opacity(56)
+    assert_operator shade_opacity(56), :<, 0.3
     mark(56, "is-attack")
     assert_operator shade_opacity(56), :<, 0.3
-    page.execute_script("document.querySelector(\"g.hex[data-hex='56']\").classList.remove('is-last-move', 'is-attack')")
+    unmark(56)
     assert_operator shade_opacity(56), :==, 1.0
+
+    # The last move keeps a team mark whatever the unit is worth: a rabble
+    # (rank 1, the faintest shade) on hex 79 gets a blue edge.
+    assert_selector "g.hex[data-hex='79'][data-rank='1'][data-team='1']"
+    mark(79, "is-last-move")
+    assert_edge 79, "rgb(59, 130, 246)"
+    screenshot("last-move-rabble")
+    unmark(79)
+    assert_edge 79, "rgb(255, 255, 255)"
 
     click_on "Start Game"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
     assert_selector "g.hex[data-rank]", count: 38
     assert_selector "g.hex[data-team='0'][data-rank='10'] .unit-shade[fill='url(#shade-0-10)']"
+    enemy_rabble = find("g.hex.has-unit[data-team='0'][data-rank='1']", match: :first)["data-hex"].to_i
+    mark(enemy_rabble, "is-last-move")
+    assert_edge enemy_rabble, "rgb(220, 38, 38)"
+    screenshot("last-move-enemy-rabble")
+    unmark(enemy_rabble)
     screenshot("play")
   end
 
@@ -57,6 +70,25 @@ class OpeningsSystemTest < ApplicationSystemTestCase
   # dice.
   def mark(hex, cue)
     page.execute_script("const g = document.querySelector(\"g.hex[data-hex='#{hex}']\"); g.classList.remove('is-last-move', 'is-attack'); g.classList.add('#{cue}')")
+  end
+
+  def unmark(hex)
+    page.execute_script("document.querySelector(\"g.hex[data-hex='#{hex}']\").classList.remove('is-last-move', 'is-attack')")
+  end
+
+  # The hex edge settles on `colour` (the edge fades over 0.25s), four wide
+  # for a team mark.
+  def assert_edge(hex, colour)
+    script = "getComputedStyle(document.querySelector(\"g.hex[data-hex='#{hex}'] .hex-poly\")).stroke"
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 2
+    seen = page.evaluate_script(script)
+    while seen != colour && Process.clock_gettime(Process::CLOCK_MONOTONIC) < deadline
+      sleep 0.05
+      seen = page.evaluate_script(script)
+    end
+    assert_equal colour, seen, "hex #{hex} edge"
+    width = page.evaluate_script(script.sub(".stroke", ".strokeWidth")).to_f
+    assert_equal(colour == "rgb(255, 255, 255)" ? 1.5 : 4.0, width, "hex #{hex} edge width")
   end
 
   def shade_opacity(hex)
