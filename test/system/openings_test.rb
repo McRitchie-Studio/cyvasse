@@ -34,6 +34,15 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     assert_operator shade_opacity(56), :==, 1.0
     find("g.hex[data-hex='66']").click
 
+    # The last move and an attacked hex: the attack cue gets the same room as
+    # the selection, while the last move keeps enough shade to show its team.
+    mark(56, "is-last-move")
+    assert_includes 0.4..0.7, shade_opacity(56)
+    mark(56, "is-attack")
+    assert_operator shade_opacity(56), :<, 0.3
+    page.execute_script("document.querySelector(\"g.hex[data-hex='56']\").classList.remove('is-last-move', 'is-attack')")
+    assert_operator shade_opacity(56), :==, 1.0
+
     click_on "Start Game"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
     assert_selector "g.hex[data-rank]", count: 38
@@ -42,6 +51,13 @@ class OpeningsSystemTest < ApplicationSystemTestCase
   end
 
   private
+
+  # Put a play-phase cue class on a hex directly: the rule under test is the
+  # stylesheet's, and a real last move or attack depends on the computer's
+  # dice.
+  def mark(hex, cue)
+    page.execute_script("const g = document.querySelector(\"g.hex[data-hex='#{hex}']\"); g.classList.remove('is-last-move', 'is-attack'); g.classList.add('#{cue}')")
+  end
 
   def shade_opacity(hex)
     page.evaluate_script("parseFloat(getComputedStyle(document.querySelector(\"g.hex[data-hex='#{hex}'] .unit-shade\")).opacity)")

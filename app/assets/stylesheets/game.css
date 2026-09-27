@@ -109,12 +109,17 @@
   display: inline;
 }
 
-/* A heavy shade would mute the orange of the selected unit and the last
- * move, and the red of a hex under attack: those hexes let the cue through. */
+/* A heavy shade would mute the orange of the selected unit and the red of a
+ * hex under attack: those hexes let the cue through. The last move stays on
+ * the board for a whole turn, and the shade is the only mark of whose unit
+ * stands there (both armies share the art), so it gives way only halfway. */
 .cyvasse-board .is-selected .unit-shade,
-.cyvasse-board .is-last-move .unit-shade,
 .cyvasse-board .is-attack .unit-shade {
   opacity: 0.2;
+}
+
+.cyvasse-board .is-last-move .unit-shade {
+  opacity: 0.55;
 }
 
 /* The rotator banner: slides in from the left, out to the right. */
