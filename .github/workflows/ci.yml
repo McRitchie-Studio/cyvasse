@@ -109,3 +109,16 @@ jobs:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
         run: bin/rails db:test:prepare test test:system
+
+      # A system test that fails saves a screenshot of the browser at that
+      # moment (tmp/screenshots); keep it, or the runner throws it away. The
+      # online-match test has failed twice on unrelated diffs and passed 24
+      # times locally, so the screenshot is how the next failure gets explained.
+      - name: Keep failed system test screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: system-test-screenshots
+          path: tmp/screenshots
+          if-no-files-found: ignore
+          retention-days: 14

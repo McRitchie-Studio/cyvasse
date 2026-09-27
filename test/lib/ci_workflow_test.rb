@@ -44,4 +44,13 @@ class CiWorkflowTest < ActiveSupport::TestCase
     assert runs.any? { |run| run.include?("bin/test-js") }, "no step runs the game engine's unit tests"
     refute_empty Dir[Rails.root.join("test/javascript/*_test.js")], "bin/test-js would have nothing to run"
   end
+
+  test "a failed system test's screenshots are kept as an artifact" do
+    steps = workflow["jobs"].values.flat_map { |job| job["steps"] || [] }
+    upload = steps.find { |step| step["uses"].to_s.start_with?("actions/upload-artifact") }
+
+    assert upload, "no step uploads the failure screenshots"
+    assert_equal "failure()", upload["if"], "only a failed run needs them"
+    assert_equal "tmp/screenshots", upload.dig("with", "path")
+  end
 end
