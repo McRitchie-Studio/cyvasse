@@ -4,7 +4,17 @@ require "test_helper"
 # Headless Chrome ships on ubuntu-latest; locally Selenium Manager fetches the
 # matching driver.
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
-  driven_by :selenium, using: :headless_chrome, screen_size: [ 1400, 1100 ]
+  SCREEN_SIZE = [ 1400, 1100 ].freeze
+  driven_by :selenium, using: :headless_chrome, screen_size: SCREEN_SIZE
+
+  # One browser serves every test, so a window a test resized (the admin
+  # phone-width tests: Chrome clamps 375px to 500px) would stay that size, and
+  # a later test that expects the desktop board would be scrolled, clicked
+  # off target, and fail (task cyvasse-system-test-flakes). Put it back.
+  teardown do
+    window = page.current_window
+    window.resize_to(*SCREEN_SIZE) unless window.size == SCREEN_SIZE
+  end
 
   # Waits until every element carrying each Stimulus identifier has its
   # controller connected. stimulus-loading's eagerLoadControllersFrom imports
