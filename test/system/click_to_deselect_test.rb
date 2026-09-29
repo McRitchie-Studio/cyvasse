@@ -9,20 +9,28 @@ class ClickToDeselectTest < ApplicationSystemTestCase
   SELECTED = "svg.cyvasse-board g.hex.is-selected".freeze
   TARGETS = "svg.cyvasse-board g.hex.is-move, svg.cyvasse-board g.hex.is-attack".freeze
 
-  test "on /play, a picked piece is let go three ways" do
-    visit play_path
-    assert_selector "[data-controller=cyvasse-game][data-phase=setup]"
-    find("button.cyvasse-smart").click
-    click_on "Ready"
-    # As the sibling /play tests do: the game has started before the pace
-    # drops, and a computer that moves first gets the time its paced turn takes.
-    assert_selector "[data-controller=cyvasse-game][data-phase=play]"
-    page.execute_script("document.querySelector('[data-controller=cyvasse-game]').dataset.cyvasseGamePaceValue = '0'")
-    assert_selector "[data-controller=cyvasse-game][data-phase=play][data-offense='1'][data-holding=false]", wait: 25
+  # One fixed /play game (see with_seeded_random): the player moves first and
+  # the game is still on after the computer's reply. A random game can end
+  # before a single step below runs (with Random Setup, seed 18 ended on the
+  # computer's first turn); a seeded one is the same game every run.
+  PLAY_SEED = 7
 
-    deselects_three_ways
-    turn = find("[data-controller=cyvasse-game]")["data-turn"].to_i
-    switches_keeps_and_moves("[data-controller=cyvasse-game]") { |node| node["data-turn"].to_i > turn }
+  test "on /play, a picked piece is let go three ways" do
+    with_seeded_random(PLAY_SEED) do
+      visit play_path
+      assert_selector "[data-controller=cyvasse-game][data-phase=setup]"
+      find("button.cyvasse-smart").click
+      click_on "Ready"
+      # As the sibling /play tests do: the game has started before the pace
+      # drops, and a computer that moves first gets the time its paced turn takes.
+      assert_selector "[data-controller=cyvasse-game][data-phase=play]"
+      page.execute_script("document.querySelector('[data-controller=cyvasse-game]').dataset.cyvasseGamePaceValue = '0'")
+      assert_selector "[data-controller=cyvasse-game][data-phase=play][data-offense='1'][data-holding=false]", wait: 25
+
+      deselects_three_ways
+      turn = find("[data-controller=cyvasse-game]")["data-turn"].to_i
+      switches_keeps_and_moves("[data-controller=cyvasse-game]") { |node| node["data-turn"].to_i > turn }
+    end
   end
 
   test "in setup, a picked unit is let go three ways and placement still works" do
