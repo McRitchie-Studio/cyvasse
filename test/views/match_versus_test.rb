@@ -1,7 +1,7 @@
 require "test_helper"
 
-# [component] The match header's versus line (matches/_versus, players/_avatar):
-# an avatar at each outer edge around the vs, a person's photo or else their
+# [component] The match's versus card (matches/_versus, players/_avatar):
+# you over them, each an avatar then a name, a vs between, a person's photo or else their
 # own piece art in their colour, a computer player's portrait from
 # app/assets/images/bots when one is there and its piece art on the computer
 # accent when not.
@@ -17,15 +17,17 @@ class MatchVersusTest < ActionView::TestCase
     render partial: "matches/versus", locals: { me:, opponent:, opponent_name: name }
   end
 
-  test "reads avatar, name, vs, name, avatar" do
+  test "reads avatar, name, vs, avatar, name, with a quiet Computer caption" do
     render_versus
     order = css_select("h1.match-versus [data-avatar], h1.match-versus .match-versus-name, h1.match-versus .match-versus-vs")
               .map { |n| n["data-avatar"] ? "avatar" : n.text.squish }
-    assert_equal [ "avatar", "arya", "vs", "Haldon Halfmaester computer", "avatar" ], order
+    assert_equal [ "avatar", "arya", "vs", "avatar", "Haldon Halfmaester" ], order
+    assert_select ".match-versus-card > h1.match-versus", 1
     assert_select "[data-side=me] > :first-child[data-avatar=piece]"
-    assert_select "[data-side=them] > :last-child[data-avatar=bot-fallback]"
+    assert_select "[data-side=them] > :first-child[data-avatar=bot-fallback]"
     assert_select "[data-side=them] [data-cyvasse-match-target=opponent]", "Haldon Halfmaester"
-    assert_select ".live-computer-tag", "computer"
+    assert_select "[data-side=them] .match-versus-who > .match-versus-bot", "Computer"
+    assert_select ".live-computer-tag", 0
   end
 
   test "a person with no photo gets their own piece art in their colour, not initials" do
@@ -38,7 +40,7 @@ class MatchVersusTest < ActionView::TestCase
     end
     assert_select "[data-side=me] [data-avatar=piece][aria-label=arya]"
     assert_select "[data-avatar=initials]", 0
-    assert_select ".live-computer-tag", 0
+    assert_select ".match-versus-bot", 0
   end
 
   test "a person keeps the same piece every render, drawn from the lineup" do

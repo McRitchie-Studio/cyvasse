@@ -1,8 +1,8 @@
 require "test_helper"
 
-# [component] The match page's layout (matches/show): the versus row across
-# the top, then the board and a side panel that holds the clock, the status,
-# the notices, the links and the controls.
+# [component] The match page's layout (matches/show): the board beside a
+# sidebar that opens with the versus card, you over them, then the panel that
+# holds the clock, the status, the notices, the links and the controls.
 class MatchLayoutTest < ActionDispatch::IntegrationTest
   include MatchPlay
 
@@ -11,18 +11,43 @@ class MatchLayoutTest < ActionDispatch::IntegrationTest
     @away = make_player("brienne")
   end
 
-  def top_level(selector)
-    css_select("section[data-controller=cyvasse-match] > *").index { |node| node.matches?(selector) }
-  end
-
-  test "the versus row sits above the board and the side panel" do
+  test "the versus card comes first, then the board, then the panel, with no row across the top" do
     log_in_as(@home)
     get match_path(started_match(@home, @away))
 
-    assert_operator top_level(".match-top"), :<, top_level(".match-layout")
-    assert_select ".match-top h1.match-versus", 1
-    assert_select ".match-layout > .cyvasse-board-wrap + aside.match-panel", 1
+    assert_select ".match-top", 0
+    assert_select "section[data-controller=cyvasse-match] > .match-layout", 1
+    children = css_select(".match-layout > *")
+    assert_equal 3, children.size
+    [ ".match-versus-card", ".cyvasse-board-wrap", "aside.match-panel" ].zip(children).each do |css, node|
+      assert node.matches?(css), "expected #{css}, got #{node.name}.#{node['class']}"
+    end
+    assert_select ".match-layout > .match-versus-card:first-child h1.match-versus", 1
     assert_select ".cyvasse-board-wrap .cyvasse-threat-toggle", 0
+  end
+
+  test "the versus card stacks you over your opponent, avatar then name, around a vs" do
+    log_in_as(@home)
+    get match_path(started_match(@home, @away))
+
+    order = css_select(".match-versus-card [data-avatar], .match-versus-card .match-versus-name, .match-versus-card .match-versus-vs")
+              .map { |n| n["data-avatar"] ? "avatar" : n.text.squish }
+    assert_equal [ "avatar", "arya", "vs", "avatar", "brienne" ], order
+    assert_select ".match-versus [data-side=me] + .match-versus-vs + [data-side=them]", 1
+    assert_select "[data-side=them] [data-cyvasse-match-target=opponent]", "brienne"
+    assert_select ".match-versus-bot", 0
+  end
+
+  test "a computer opponent is marked by a quiet caption, not a pill" do
+    match = Match.start_live!(@home, computer: true, rng: Random.new(4))
+    log_in_as(@home)
+    get match_path(match)
+
+    assert_select "h1.match-versus [data-side=them] .match-versus-who" do
+      assert_select "[data-cyvasse-match-target=opponent]", match.display_name_of(match.away_user)
+      assert_select ".match-versus-bot", "Computer"
+    end
+    assert_select ".live-computer-tag", 0
   end
 
   test "the panel holds the clock, the status, the notices, the links and the controls" do
