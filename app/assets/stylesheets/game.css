@@ -439,20 +439,54 @@
   color: var(--color-cta, #8E82FE);
 }
 
-/* The match header's versus line (matches/_versus): each avatar at its own
- * outer edge, long names wrap rather than push the page sideways. */
-.match-header-main {
-  flex: 1 1 32rem;
-  min-width: 0;
+/* The match page (matches/show): the versus row across the top, then the
+ * board (about two thirds) beside a panel holding the clock, the status, the
+ * notices and the controls. A phone stacks them. */
+@media (min-width: 1024px) {
+  .match-layout {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
 }
 
+.match-panel .live-clock {
+  max-width: none;
+}
+
+.match-panel-status > [hidden] {
+  display: none;
+}
+
+.match-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.match-actions .cyvasse-threat-toggle {
+  margin-left: 0;
+  font-size: 0.875rem;
+}
+
+/* One forfeit shows at a time, by the status the board keeps current. */
+.match-forfeit {
+  display: none;
+}
+
+[data-match-status="pending"] .match-forfeit[data-forfeit="pregame"],
+[data-match-status="new"] .match-forfeit[data-forfeit="pregame"],
+[data-match-status="in progress"] .match-forfeit[data-forfeit="play"] {
+  display: inline-flex;
+}
+
+/* The match header's versus line (matches/_versus): each avatar at its own
+ * outer edge, long names wrap rather than push the page sideways. */
 .match-versus {
   display: grid;
   grid-template-columns: minmax(0, auto) auto minmax(0, auto);
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  max-width: 52rem;
   margin: 0.25rem 0;
   font-size: 1.875rem;
   font-weight: 800;

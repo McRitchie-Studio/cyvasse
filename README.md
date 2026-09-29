@@ -291,8 +291,7 @@ holding a seat), or when a live match that ended in the last five minutes is
 opened (`just_ended` in the live state); an older finished match keeps its
 result on the board. A page out of sight (another tab, window or app) waits
 until the player is back before opening it, so the click that brings them
-back cannot close it unseen. Resign and Cancel match follow the phase and go
-when the match ends. Sign in opens the sign-in modal
+back cannot close it unseen. Sign in opens the sign-in modal
 (`modals/_auth`, the hub's card): Google, where the app has it, then the
 engine's magic link, both bringing the player back to the match. On sign-in,
 `GuestClaim` moves the guest's match seats, wins, searches and chat to the

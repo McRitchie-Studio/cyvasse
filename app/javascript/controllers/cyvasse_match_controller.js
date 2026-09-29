@@ -26,7 +26,7 @@ const REASON_TEXT = {
 }
 
 export default class extends GameController {
-  static targets = ["error", "deadline", "clock", "clockLabel", "clockSeconds", "clockBar", "notice", "resignControl", "cancelControl"]
+  static targets = ["error", "deadline", "clock", "clockLabel", "clockSeconds", "clockBar", "notice"]
   static values = {
     state: Object,
     stateUrl: String,
@@ -80,7 +80,6 @@ export default class extends GameController {
     this.element.dataset.yourTurn = state.your_turn ? "true" : "false"
     this.setupControlsTarget.hidden = !state.can_set_up
     this.opponentTarget.textContent = state.opponent.username
-    this.renderControls()
     this.renderDeadline()
     this.render()
     if (arriving) this.animateArrival()
@@ -253,13 +252,6 @@ export default class extends GameController {
       text = `Your army is in place. Waiting for ${them} to set up.`
     }
     this.statusTarget.textContent = text
-  }
-
-  // The page was drawn in one phase and the match moves on without it.
-  renderControls() {
-    const { phase, can_accept: canAccept } = this.state
-    if (this.hasResignControlTarget) this.resignControlTarget.hidden = phase !== "play"
-    if (this.hasCancelControlTarget) this.cancelControlTarget.hidden = phase !== "setup" || canAccept
   }
 
   renderDeadline() {
