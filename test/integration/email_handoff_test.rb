@@ -116,6 +116,16 @@ class EmailHandoffTest < ActionDispatch::IntegrationTest
     assert_equal "no_account", EmailHandoffAttempt.last.outcome
   end
 
+  test "an admin's address is refused: admins sign in with a magic link" do
+    admin = player("boss", piece_skin: "vector", email_updates: true)
+    admin.update_columns(role: "admin")
+    hand_off(hub_assertion(admin.email))
+    assert_redirected_to login_path
+    assert_not signed_in?
+    attempt = EmailHandoffAttempt.last
+    assert_equal %w[rejected admin_account], [ attempt.outcome, attempt.reason ]
+  end
+
   test "a guest's address never signs in to the guest" do
     guest = User.create_guest!
     guest.update_columns(email: "guest@example.com")

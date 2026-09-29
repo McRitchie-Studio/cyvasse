@@ -4,7 +4,7 @@
 #   signed_in   an account was found and signed in
 #   no_account  a good assertion for an address with no account
 #   rejected    refused; `reason` is an EmailHandoff::Verifier reason, or
-#               "rate_limited"
+#               "rate_limited" or "admin_account"
 class EmailHandoffAttempt < ApplicationRecord
   OUTCOMES = %w[signed_in no_account rejected].freeze
 

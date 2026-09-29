@@ -446,7 +446,9 @@ ref  the hub delivery token (kept for the email beacons)
 
 A good assertion for an account signs it in (Play Now guests are claimed, as on
 any sign-in) and marks the session `email_handoff`; an address with no account
-lands on Play Now signed out. Anything else lands on Play Now with no session.
+lands on Play Now signed out; an admin account is refused and sent to sign in
+with a magic link, since a reusable email CTA is too weak a proof for the admin
+pages. Anything else lands on Play Now with no session.
 The endpoint allows 10 requests a minute per IP, and `assertion` is a filtered
 parameter. Without `MS_HANDOFF_PUBLIC_KEY` it fails closed and writes a
 `EmailHandoff::NotConfigured` ErrorLog. A handoff session may play, chat and

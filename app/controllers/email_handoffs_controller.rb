@@ -6,6 +6,9 @@
 #                                  then onboarding if the account is
 #                                  incomplete, else return_to or Play Now
 #   a good assertion, no account   Play Now, signed out; no account is made
+#   a good assertion, an admin     refused: the sign-in page. A reusable email
+#                                  CTA is too weak a proof for the admin pages,
+#                                  so admins sign in with a magic link
 #   anything else                  Play Now, and the session is not touched
 #
 # Every answer is a redirect, which drops the assertion from the address bar;
@@ -30,6 +33,7 @@ class EmailHandoffsController < ApplicationController
     store_email_ref(result.ref)
     user = User.where(guest: false).find_by(email: result.email)
     return no_account unless user
+    return rejected(:admin_account, alert: "Admins sign in with a fresh magic link.", to: login_path) if user.admin?
 
     signed_in(user)
   end
@@ -59,9 +63,9 @@ class EmailHandoffsController < ApplicationController
     redirect_to root_path, notice: "Play now, or sign in with this email to save your games."
   end
 
-  def rejected(reason)
+  def rejected(reason, alert: "That sign-in link has expired. Sign in to keep playing.", to: root_path)
     log_rejection(reason)
-    redirect_to root_path, alert: "That sign-in link has expired. Sign in to keep playing."
+    redirect_to to, alert:
   end
 
   def too_many_attempts
