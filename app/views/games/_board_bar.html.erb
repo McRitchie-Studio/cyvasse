@@ -8,7 +8,8 @@
     <span class="cyvasse-hint-keys">Press <kbd>Esc</kbd> to start over</span>
     <span class="cyvasse-hint-touch">Start over</span>
   </button>
-  <label class="cyvasse-threat-toggle">
+  <%# Hidden until the board knows it is in play (renderThreats), so it never flashes during setup. %>
+  <label class="cyvasse-threat-toggle" hidden>
     <input type="checkbox" checked data-<%= board %>-target="threatToggle" data-action="<%= board %>#toggleThreats">
     Show threats
   </label>
