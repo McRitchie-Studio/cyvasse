@@ -4,6 +4,8 @@ require "application_system_test_case"
 # loads one of the twenty openings (app/javascript/cyvasse/openings.js) onto
 # the board, and each unit's hex is shaded by what the piece is worth.
 class OpeningsSystemTest < ApplicationSystemTestCase
+  CONTROLLER = "Stimulus.getControllerForElementAndIdentifier(document.querySelector('[data-controller=cyvasse-game]'), 'cyvasse-game')".freeze
+
   test "load an opening during setup against the computer; each hex is shaded by the worth of its piece" do
     visit play_path
     assert_selector "[data-controller=cyvasse-game][data-phase=setup]"
@@ -46,16 +48,19 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     # (rank 1, the faintest shade) on hex 79 gets a blue edge.
     assert_selector "g.hex[data-hex='79'][data-rank='1'][data-team='1']"
     mark(79, "is-last-move")
-    assert_edge 79, "rgb(59, 130, 246)"
+    assert_team_edge 79, "rgb(59, 130, 246)"
     screenshot("last-move-rabble")
     # The keyboard's focus edge still shows over the team mark.
     page.execute_script("arguments[0].focus()", find("g.hex[data-hex='80']"))
     find("g.hex[data-hex='80']").send_keys(:arrow_left)
     assert_equal "79", page.evaluate_script("document.activeElement.dataset.hex")
     assert_edge 79, "rgb(255, 255, 0)"
+    assert_equal [ "inline", find("g.hex[data-hex='79']")["transform"] ],
+      page.evaluate_script("(() => { const c = document.querySelector('.hex-cursor.is-focus'); return [getComputedStyle(c).display, c.getAttribute('transform')] })()")
     page.execute_script("document.activeElement.blur()")
     unmark(79)
     assert_edge 79, "rgb(255, 255, 255)"
+    assert_equal 0, page.evaluate_script("document.querySelectorAll(\"line.hex-edge[data-kind][data-between~='79']\").length")
 
     click_on "Ready"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
@@ -63,7 +68,7 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     assert_selector "g.hex[data-team='0'][data-rank='10'] .unit-shade[fill='url(#shade-0-10)']"
     enemy_rabble = find("g.hex.has-unit[data-team='0'][data-rank='1']", match: :first)["data-hex"].to_i
     mark(enemy_rabble, "is-last-move")
-    assert_edge enemy_rabble, "rgb(220, 38, 38)"
+    assert_team_edge enemy_rabble, "rgb(220, 38, 38)"
     screenshot("last-move-enemy-rabble")
     unmark(enemy_rabble)
     screenshot("play")
@@ -100,15 +105,24 @@ class OpeningsSystemTest < ApplicationSystemTestCase
   # stylesheet's, and a real last move or attack depends on the computer's
   # dice.
   def mark(hex, cue)
-    page.execute_script("const g = document.querySelector(\"g.hex[data-hex='#{hex}']\"); g.classList.remove('is-last-move', 'is-attack'); g.classList.add('#{cue}')")
+    page.execute_script("const g = document.querySelector(\"g.hex[data-hex='#{hex}']\"); g.classList.remove('is-last-move', 'is-attack'); g.classList.add('#{cue}'); #{CONTROLLER}.renderEdges()")
   end
 
   def unmark(hex)
-    page.execute_script("document.querySelector(\"g.hex[data-hex='#{hex}']\").classList.remove('is-last-move', 'is-attack')")
+    page.execute_script("document.querySelector(\"g.hex[data-hex='#{hex}']\").classList.remove('is-last-move', 'is-attack'); #{CONTROLLER}.renderEdges()")
   end
 
-  # The hex edge settles on `colour` (the edge fades over 0.25s), four wide
-  # for a team mark.
+  # The team mark is the hex's highlight edges (renderEdges), four wide.
+  def assert_team_edge(hex, colour)
+    edges = page.evaluate_script(<<~JS)
+      [...document.querySelectorAll("svg.cyvasse-board line.hex-edge[data-between~='#{hex}']")]
+        .filter((l) => l.dataset.kind).map((l) => [getComputedStyle(l).stroke, parseFloat(getComputedStyle(l).strokeWidth)])
+    JS
+    assert_not_empty edges, "hex #{hex} has a team edge"
+    assert_includes edges, [ colour, 4.0 ], "hex #{hex} team edge"
+  end
+
+  # The hex's own edge (it fades over 0.25s).
   def assert_edge(hex, colour)
     script = "getComputedStyle(document.querySelector(\"g.hex[data-hex='#{hex}'] .hex-poly\")).stroke"
     deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 2
@@ -118,8 +132,6 @@ class OpeningsSystemTest < ApplicationSystemTestCase
       seen = page.evaluate_script(script)
     end
     assert_equal colour, seen, "hex #{hex} edge"
-    width = page.evaluate_script(script.sub(".stroke", ".strokeWidth")).to_f
-    assert_equal(colour == "rgb(255, 255, 255)" ? 1.5 : 4.0, width, "hex #{hex} edge width")
   end
 
   def shade_opacity(hex)
