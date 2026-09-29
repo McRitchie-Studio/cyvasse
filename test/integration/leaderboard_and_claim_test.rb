@@ -26,8 +26,7 @@ class LeaderboardAndClaimTest < ActionDispatch::IntegrationTest
     get root_path
     assert_select "[data-leaderboard-card]" do
       assert_select "h2", "Live leaderboard"
-      assert_select "[data-leaderboard-empty]", /Be the first on the board/
-      assert_select "form[action='#{live_seeks_path}'] button", "Play Now"
+      assert_select "form[action='#{live_seeks_path}'] button[data-leaderboard-empty]", /Be the first on the board — Play Now/
     end
   end
 

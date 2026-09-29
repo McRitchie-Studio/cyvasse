@@ -22,10 +22,11 @@
 
   <div class="card p-4" data-board="<%= @board %>">
     <% if @rows.empty? %>
-      <p class="text-secondary" data-leaderboard-empty>
-        Be the first on the board —
-        <%= button_to "Play Now", live_seeks_path, class: "leaderboard-inline-cta", form: { class: "inline" } %>
-      </p>
+      <%# One button, the whole line: the page's main Play Now stays the only
+          control called exactly that. %>
+      <%= button_to live_seeks_path, class: "leaderboard-inline-cta", form: { class: "block" }, data: { leaderboard_empty: true } do %>
+        Be the first on the board — <strong>Play Now</strong>
+      <% end %>
     <% else %>
       <%= render "leaderboards/rows", rows: @rows, losses: true %>
     <% end %>

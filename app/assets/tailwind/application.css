@@ -226,11 +226,16 @@ html:not(.dark) .tutorial-card figcaption a {
 }
 
 .leaderboard-inline-cta {
-  font-weight: 700;
+  text-align: left;
+  font-size: 0.875rem;
+  color: var(--color-text-body);
+  cursor: pointer;
+}
+
+.leaderboard-inline-cta strong {
   color: rgb(var(--color-primary-rgb));
   text-decoration: underline;
   text-underline-offset: 2px;
-  cursor: pointer;
 }
 
 .leaderboard-tabs {
