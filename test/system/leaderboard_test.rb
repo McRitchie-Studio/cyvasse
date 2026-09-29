@@ -119,9 +119,13 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     assert_text "Check your inbox"
 
     visit link_path(token: Studio::Link.last.token)
-    assert_selector "h1", text: "Your username"
+    # A new account finishes itself first (the onboarding), username first.
+    assert_selector "[data-onboarding-step=username] h1", text: "Pick a username"
     fill_in "Username", with: "arya"
-    click_on "Save"
+    click_on "Save username"
+    # Wait for the profile step: the username page has its own "Skip for now".
+    assert_selector "[data-onboarding-step=profile]"
+    click_on "Skip for now"
 
     assert_current_path(%r{\A/matches/#{match.id}})
     visit leaderboard_path

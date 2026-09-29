@@ -19,10 +19,10 @@ class GamePageTest < ActionDispatch::IntegrationTest
     assert_select "button[disabled]", text: "Ready"
   end
 
-  test "the threat switch arrives hidden: setup comes first and the board shows it in play" do
+  test "the threat switches arrive hidden: setup comes first and the board shows them in play" do
     get play_path
 
-    assert_select "label.cyvasse-threat-toggle[hidden] input[type=checkbox][data-cyvasse-game-target=threatToggle]"
+    assert_select ".cyvasse-board-bar .cyvasse-threat-toggles[hidden] input[type=checkbox][data-cyvasse-game-target=threatToggle]", 2
   end
 
   test "offers the opening picker to every player, wired to the board" do

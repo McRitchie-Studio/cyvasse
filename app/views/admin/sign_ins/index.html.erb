@@ -1,0 +1,81 @@
+<% content_for(:title, "Sign-ins · Admin · Cyvasse") %>
+
+<section class="max-w-4xl mx-auto space-y-8">
+  <header class="space-y-1">
+    <p class="text-xs font-semibold uppercase tracking-widest text-muted">
+      Admin · <%= link_to "Conversations", admin_conversations_path, class: "underline underline-offset-2 normal-case tracking-normal" %>
+    </p>
+    <h1 class="text-3xl font-extrabold text-heading tracking-tight">Email sign-ins</h1>
+    <p class="text-secondary" data-handoff-totals>
+      <%= pluralize(@total, "handoff attempt") %>, <%= @signed_in %> signed in.
+      Last used: <%= @last_used ? l(@last_used, format: :long) : "never" %>.
+    </p>
+  </header>
+
+  <div class="card overflow-x-auto">
+    <table class="w-full text-sm" data-handoff-summary>
+      <thead class="text-left text-xs uppercase tracking-widest text-muted">
+        <tr><th class="p-3">Outcome</th><th class="p-3">Reason</th><th class="p-3 text-right">Count</th><th class="p-3">Last</th></tr>
+      </thead>
+      <tbody class="divide-y divide-[var(--color-border)]">
+        <% if @summary.empty? %>
+          <tr><td colspan="4" class="p-4 text-center text-secondary">No email sign-ins yet.</td></tr>
+        <% end %>
+        <% @summary.each do |row| %>
+          <tr data-outcome="<%= row[:outcome] %>" data-reason="<%= row[:reason] %>">
+            <td class="p-3 font-semibold text-heading"><%= row[:outcome].humanize %></td>
+            <td class="p-3 text-secondary"><%= row[:reason]&.humanize || "—" %></td>
+            <td class="p-3 text-right tabular-nums" data-count><%= number_with_delimiter(row[:count]) %></td>
+            <td class="p-3 text-secondary whitespace-nowrap"><%= l(row[:last_at], format: :short) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="space-y-3">
+    <h2 class="text-xl font-bold text-heading">Onboarding</h2>
+    <p class="text-sm text-secondary">Per step: players who reached it, finished it, skipped it, or stopped there.</p>
+    <div class="card overflow-x-auto">
+      <table class="w-full text-sm" data-onboarding-funnel>
+        <thead class="text-left text-xs uppercase tracking-widest text-muted">
+          <tr>
+            <th class="p-3">Step</th><th class="p-3 text-right">Reached</th><th class="p-3 text-right">Done</th>
+            <th class="p-3 text-right">Skipped</th><th class="p-3 text-right">Stopped here</th><th class="p-3 text-right">Completion</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--color-border)]">
+          <% @funnel.each do |step, row| %>
+            <tr data-step="<%= step %>">
+              <td class="p-3 font-semibold text-heading"><%= step.humanize %></td>
+              <td class="p-3 text-right tabular-nums" data-reached><%= row["reached"] %></td>
+              <td class="p-3 text-right tabular-nums" data-done><%= row["done"] %></td>
+              <td class="p-3 text-right tabular-nums" data-skipped><%= row["skipped"] %></td>
+              <td class="p-3 text-right tabular-nums" data-stopped><%= row["shown"] %></td>
+              <td class="p-3 text-right tabular-nums" data-rate>
+                <%= row["reached"].zero? ? "—" : number_to_percentage(100.0 * row["done"] / row["reached"], precision: 0) %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="space-y-3">
+    <h2 class="text-xl font-bold text-heading">Recent attempts</h2>
+    <ul class="card divide-y divide-[var(--color-border)] text-sm" data-handoff-recent>
+      <% if @recent.empty? %><li class="p-4 text-center text-secondary">None yet.</li><% end %>
+      <% @recent.each do |attempt| %>
+        <li class="p-3 flex flex-wrap items-baseline justify-between gap-2">
+          <span>
+            <span class="font-semibold text-heading"><%= attempt.outcome.humanize %></span>
+            <% if attempt.reason %><span class="text-secondary">· <%= attempt.reason.humanize %></span><% end %>
+            <% if attempt.user %><span class="text-secondary">· <%= attempt.user.player_name %></span><% end %>
+          </span>
+          <time class="text-xs text-muted" datetime="<%= attempt.created_at.iso8601 %>"><%= l(attempt.created_at, format: :short) %></time>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+</section>

@@ -164,6 +164,12 @@
   stroke-width: 2;
 }
 
+/* A hex the picked unit cannot stop on: sunken, a gray dish with a dim edge,
+ * no hatch and no hue, so it never reads as a move, a capture or a threat. */
+.cyvasse-board .hex.is-sunken:not(:focus-visible) .hex-poly {
+  stroke: hsl(220 4% 34%);
+}
+
 .cyvasse-board .hex.is-blocked:not(:focus-visible) .hex-poly {
   stroke: hsl(214 16% 58%);
   stroke-dasharray: 3 3;
@@ -191,7 +197,8 @@
 /* Highlight borders (renderEdges, cyvasse/edges): one line per edge on the
  * line two hexes share, wide enough to cover both hexes' own edges, in the
  * colour of the highest highlight on either side. Highest first:
- *   selection > move rings > last move > danger > threat perimeter > team
+ *   selection > move rings > last move > danger > threat perimeter
+ *   (solid over dashed) > team
  * A plain move ring ("ring") draws nothing: its hexes keep their thin edges
  * and nothing beneath crosses them. The last move is orange; a unit standing
  * on it gets its team's edge instead (both armies share the art). */
@@ -215,6 +222,7 @@
 .cyvasse-board .hex-edge[data-kind="ghost-8"] { stroke: hsl(285 75% 72%); }
 .cyvasse-board .hex-edge[data-kind="blocked"] { stroke: hsl(214 16% 58%); stroke-dasharray: 3 3; }
 .cyvasse-board .hex-edge[data-kind="perimeter"] { stroke: #ef4444; }
+.cyvasse-board .hex-edge[data-kind="perimeter-ranged"] { stroke: #ef4444; stroke-linecap: butt; stroke-dasharray: 5 4; }
 .cyvasse-board .hex-edge[data-kind="team-1"] { stroke: #3b82f6; stroke-width: 4; }
 .cyvasse-board .hex-edge[data-kind="team-0"] { stroke: #dc2626; stroke-width: 4; }
 
@@ -510,7 +518,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
   gap: 0.5rem 1rem;
 }
 
-.match-actions .cyvasse-threat-toggle {
+.match-actions .cyvasse-threat-toggles {
   margin-left: 0;
   font-size: 0.875rem;
 }
@@ -737,18 +745,24 @@ html.dark [data-skin="pencil"] .dock-unit img {
   }
 }
 
+.cyvasse-threat-toggles {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin-left: auto;
+}
+
+.cyvasse-threat-toggles[hidden] {
+  display: none;
+}
+
 .cyvasse-threat-toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  margin-left: auto;
   color: var(--color-text-secondary, inherit);
   cursor: pointer;
   user-select: none;
-}
-
-.cyvasse-threat-toggle[hidden] {
-  display: none;
 }
 
 .cyvasse-threat-toggle input {
@@ -756,8 +770,10 @@ html.dark [data-skin="pencil"] .dock-unit img {
 }
 
 /* The opponent's reach (.is-threatened, from renderThreats) is outlined only
- * round its rim: a red "perimeter" edge (above) where the area meets the rest
- * of the board or the board's edge; edges inside it stay plain. */
+ * round its rim: a solid red "perimeter" edge (above) where the area meets
+ * the rest of the board or the board's edge. In cyvasse/edges' "dual"
+ * PERIMETER_STYLE, melee's rim is solid and ranged's a dashed
+ * "perimeter-ranged" edge. */
 
 /* A unit of yours the opponent could kill next turn: an orange glow from its
  * hex's edges in, like the team shade, and an orange edge, both breathing

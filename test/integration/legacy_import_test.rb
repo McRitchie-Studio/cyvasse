@@ -56,6 +56,8 @@ class LegacyImportIntegrationTest < ActionDispatch::IntegrationTest
     log_in_as(rook)
 
     get matches_path
+    assert_redirected_to onboarding_path, "an imported account is incomplete: the first page is the onboarding"
+    get matches_path
     assert_response :success
     assert_includes response.body, "left unfinished"
     assert_includes response.body, "won (king captured)"
