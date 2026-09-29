@@ -9,6 +9,16 @@
 //
 // `rank` keeps the legacy spelling of the vanguard ("vangaurd") out of the
 // data: nothing ever branched on it, so it is written correctly here.
+//
+// Rule changes of September 29, 2026 (Alex), mirrored in
+// app/models/cyvasse_rules/units.rb and listed on /rules (Rulebook::CHANGES_2026):
+//   - the trebuchet reaches 4 hexes, not 3, and trumps the spearman and the
+//     light horse as well as the dragon. It still cannot take the king
+//     (strength 1 against 2, and no trump), and mountains still stop its
+//     shots (rules.js walkRangeRings);
+//   - the king trumps the dragon, so a dragon that comes within the king's
+//     move (two hexes, through an empty one) can be taken. The dragon can
+//     still take the king: its captures never read trumps (rules.js dragonCode).
 
 export const UNIT_TYPES = Object.freeze({
   rabble: unit("rabble", "Rabble", "vanguard", { attack: 1, defence: 1, moveRange: 3, attackRange: 0, flank: 2, trump: [] }),
@@ -17,10 +27,10 @@ export const UNIT_TYPES = Object.freeze({
   lighthorse: unit("lighthorse", "Light Horse", "cavalry", { attack: 2, defence: 2, moveRange: 3, attackRange: 0, flank: 1, trump: [] }),
   heavyhorse: unit("heavyhorse", "Heavy Horse", "cavalry", { attack: 3, defence: 3, moveRange: 2, attackRange: 0, flank: 1, trump: [] }),
   crossbowman: unit("crossbowman", "Crossbowman", "range", { attack: 2, defence: 1, moveRange: 1, attackRange: 2, flank: 0, trump: ["elephant"] }),
-  trebuchet: unit("trebuchet", "Trebuchet", "range", { attack: 1, defence: 1, moveRange: 0, attackRange: 3, flank: 0, trump: ["dragon"] }),
+  trebuchet: unit("trebuchet", "Trebuchet", "range", { attack: 1, defence: 1, moveRange: 0, attackRange: 4, flank: 0, trump: ["dragon", "spearman", "lighthorse"] }),
   catapult: unit("catapult", "Catapult", "range", { attack: 3, defence: 1, moveRange: 2, attackRange: 3, flank: 0, trump: ["dragon"] }),
   dragon: unit("dragon", "Dragon", "unique", { attack: 5, defence: 5, moveRange: 10, attackRange: 0, flank: 0, trump: [] }),
-  king: unit("king", "King", "unique", { attack: 2, defence: 2, moveRange: 2, attackRange: 0, flank: 0, trump: [] }),
+  king: unit("king", "King", "unique", { attack: 2, defence: 2, moveRange: 2, attackRange: 0, flank: 0, trump: ["dragon"] }),
   mountain: unit("mountain", "Mountain", "mountain", { attack: 9, defence: 9, moveRange: 0, attackRange: 0, flank: 0, trump: [] })
 });
 

@@ -16,7 +16,13 @@ class GamePageTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: "Play Cyvasse"
     assert_select "[data-controller=cyvasse-game] svg.cyvasse-board[data-cyvasse-game-target=board]"
     assert_select "button", text: "Random Setup"
-    assert_select "button[hidden]", text: "Start Game"
+    assert_select "button[disabled]", text: "Ready"
+  end
+
+  test "the threat switch arrives hidden: setup comes first and the board shows it in play" do
+    get play_path
+
+    assert_select "label.cyvasse-threat-toggle[hidden] input[type=checkbox][data-cyvasse-game-target=threatToggle]"
   end
 
   test "offers the opening picker to every player, wired to the board" do

@@ -1,0 +1,15 @@
+<%# The ranked rows of a leaderboard (Leaderboard::Row). Locals: rows, and
+    losses (true to show the losses column). Names truncate, so a long
+    username never pushes the page sideways on a phone. %>
+<ol class="leaderboard-rows" data-leaderboard-rows>
+  <% rows.each do |row| %>
+    <li class="leaderboard-row<%= ' is-you' if current_user && row.user.id == current_user.id %>" data-leaderboard-row="<%= row.user.username %>">
+      <span class="leaderboard-rank" aria-label="Rank <%= row.rank %>"><%= row.rank %></span>
+      <span class="leaderboard-name"><%= row.user.username %></span>
+      <span class="leaderboard-stat" title="Wins"><strong class="text-heading"><%= row.wins %></strong> <span class="text-muted">W</span></span>
+      <% if losses %>
+        <span class="leaderboard-stat" title="Losses"><%= row.losses %> <span class="text-muted">L</span></span>
+      <% end %>
+    </li>
+  <% end %>
+</ol>

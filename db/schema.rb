@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_26_000050) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -69,18 +69,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000050) do
     t.index ["slug"], name: "index_error_logs_on_slug", unique: true
   end
 
+  create_table "live_seeks", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "last_seen_at", null: false
+    t.bigint "match_id"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["match_id", "created_at"], name: "index_live_seeks_on_match_id_and_created_at"
+    t.index ["match_id"], name: "index_live_seeks_on_match_id"
+    t.index ["user_id"], name: "index_live_seeks_on_user_id"
+  end
+
   create_table "matches", force: :cascade do |t|
+    t.boolean "away_auto_set_up", default: false, null: false
+    t.boolean "away_bot", default: false, null: false
     t.boolean "away_ready", default: false
+    t.integer "away_strikes", default: 0, null: false
     t.string "away_units_position"
     t.bigint "away_user_id", null: false
+    t.datetime "bot_due_at"
+    t.datetime "clock_started_at"
     t.datetime "created_at", null: false
     t.boolean "fast_game", default: false
     t.string "finish_reason"
+    t.datetime "finished_at"
+    t.boolean "home_auto_set_up", default: false, null: false
+    t.boolean "home_bot", default: false, null: false
     t.boolean "home_ready", default: false
+    t.integer "home_strikes", default: 0, null: false
     t.string "home_units_position"
     t.bigint "home_user_id", null: false
     t.string "last_move"
     t.integer "legacy_id"
+    t.boolean "live", default: false, null: false
     t.string "match_against", default: "human"
     t.string "match_status", default: "pending"
     t.datetime "time_of_last_move"
@@ -93,6 +114,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000050) do
     t.index ["away_user_id"], name: "index_matches_on_away_user_id"
     t.index ["home_user_id"], name: "index_matches_on_home_user_id"
     t.index ["legacy_id"], name: "index_matches_on_legacy_id", unique: true
+    t.index ["live", "match_status"], name: "index_matches_on_live_and_match_status"
     t.index ["match_status", "time_of_last_move"], name: "index_matches_on_match_status_and_time_of_last_move"
     t.index ["winner_id"], name: "index_matches_on_winner_id"
   end
@@ -266,6 +288,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000050) do
     t.datetime "created_at", null: false
     t.string "email"
     t.string "first_name"
+    t.boolean "guest", default: false, null: false
     t.jsonb "ip_locations", default: [], null: false
     t.integer "legacy_id"
     t.integer "losses", default: 0, null: false
@@ -289,6 +312,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000050) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "board_posts", "users"
+  add_foreign_key "live_seeks", "matches"
+  add_foreign_key "live_seeks", "users"
   add_foreign_key "matches", "users", column: "away_user_id"
   add_foreign_key "matches", "users", column: "home_user_id"
   add_foreign_key "matches", "users", column: "winner_id"

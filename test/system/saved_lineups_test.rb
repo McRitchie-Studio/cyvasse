@@ -25,7 +25,7 @@ class SavedLineupsSystemTest < ApplicationSystemTestCase
       assert_selector "svg.cyvasse-board g.hex[data-hex='#{hex}'][data-unit-id='1-#{i + 1}']"
     end
     assert_text "Loaded Back Wall."
-    assert_button "Start Game"
+    assert_button "Ready"
     screenshot("loaded")
 
     fill_in "Name to save as", with: "Copy"
@@ -34,7 +34,7 @@ class SavedLineupsSystemTest < ApplicationSystemTestCase
     within("[data-slot='2']") { assert_button "Copy" }
     assert_equal WALL, @arya.setups.find_by!(button_position: 2).units_position
 
-    click_on "Start Game"
+    click_on "Ready"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
   end
 
@@ -46,7 +46,7 @@ class SavedLineupsSystemTest < ApplicationSystemTestCase
 
     click_on "Back Wall"
     assert_no_selector ".cyvasse-dock .dock-unit"
-    click_on "Submit army"
+    click_on "Ready"
     assert_selector "[role=status]", text: "Waiting for brienne to accept"
     assert_equal WALL, match.reload.home_units_position
   end

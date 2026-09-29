@@ -24,6 +24,7 @@ class User < ApplicationRecord
   has_many :board_posts, dependent: :restrict_with_error
   # Saved army lineups (piece 10b), three slots; they go with the player.
   has_many :setups, dependent: :delete_all
+  has_many :live_seeks, dependent: :delete_all
 
   # The piece art this player chose (PieceSkinPreference); nil until they do.
   validates :piece_skin, inclusion: { in: Piece::SKINS.keys.map(&:to_s) }, allow_nil: true
@@ -80,8 +81,34 @@ class User < ApplicationRecord
     legacy_id.present? && COMPUTER_LEGACY_IDS.cover?(legacy_id)
   end
 
+  # People with a name on the board (Leaderboard): never a computer player,
+  # never a Play Now guest, and never an account with no public username (the
+  # board shows usernames only, so it cannot leak a name or an email).
+  scope :ranked_players, lambda {
+    where(guest: false).where.not(username: [ nil, "" ])
+      .where("users.legacy_id IS NULL OR users.legacy_id NOT BETWEEN ? AND ?",
+             COMPUTER_LEGACY_IDS.first, COMPUTER_LEGACY_IDS.last)
+  }
+
   def admin?
     role == "admin"
+  end
+
+  # Play Now without an account (task play-now-matchmaking): a guest player
+  # with a temporary name like Guest_4821, signed in by the session alone.
+  # Signing in later starts a separate account: nothing moves a guest's
+  # games to it yet.
+  def self.create_guest!(rng: Random.new)
+    5.times do
+      number = rng.rand(1000..9999)
+      username = "Guest_#{number}"
+      next if find_by_username(username)
+
+      return create!(guest: true, username:, name: "Guest #{number}")
+    rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
+      next
+    end
+    raise "no free guest name"
   end
 
   # The name shown beside a message: the public username, or for an account

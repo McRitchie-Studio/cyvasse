@@ -23,7 +23,7 @@ class PlayAgainstComputerTest < ApplicationSystemTestCase
     click_on "Random Setup"
     assert_no_selector ".cyvasse-dock .dock-unit"
     screenshot("setup")
-    click_on "Start Game"
+    click_on "Ready"
 
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
     assert_selector "svg.cyvasse-board g.hex.has-unit[data-team='0']", count: 19

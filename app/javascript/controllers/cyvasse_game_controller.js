@@ -4,6 +4,7 @@ import { chooseAction, KILL_PRIORITY } from "cyvasse/ai"
 import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
 import { UNIT_TYPES } from "cyvasse/units"
 import { Banner, passNotice } from "cyvasse/banner"
+import { threats } from "cyvasse/threats"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -11,7 +12,8 @@ import { Banner, passNotice } from "cyvasse/banner"
 // this controller only draws a Game and turns clicks into Game calls. The
 // look follows the legacy match screen: black hexes with white edges, orange
 // for the last move, and the ring ripple (animation.js) washing out from a
-// selected unit in the legacy colours, one ring every 120 ms.
+// selected unit in the legacy colours, one ring every 120 ms. Each lit hex is
+// a gradient in its ring's colour under a faint hatch (ringStops, below).
 //
 // Values
 //   skin    which piece art the board draws ("vector" by default); the server
@@ -32,10 +34,124 @@ const RIPPLE_MS = 120
 // outward. The dragon's longer reach uses the ten-step table.
 const HSL_SHORT = ["40%,30%", "42%,39%", "44%,47%", "46%,50%", "48%,55%", "50%,60%"]
 const HSL_LONG = ["40%,30%", "41%,34%", "42%,38%", "43%,42%", "44%,45%", "45%,48%", "46%,51%", "47%,54%", "48%,57%", "50%,60%"]
+const HSL_TABLES = { short: HSL_SHORT, long: HSL_LONG }
 // Move ring code -> hue (animation.js updateRing).
 const MOVE_HUE = { 1: 240, 2: 290, 3: 10, 4: 10, 5: 280 }
-const PREVIEW_STROKE = { 6: "blue", 7: "red", 8: "purple" }
-const RANGE_STROKE = { 1: "red", 2: "red", 3: "blue", 4: "blue" }
+
+// Each lit hex is filled with a radial gradient rather than the flat legacy
+// colour: the ring's own hsl() sits at the middle stop, the centre is lighter
+// and the edge deeper, so the hex has depth. The hue drifts a little across
+// the hex for colour (blue towards cyan at the centre and indigo at the edge);
+// the capture red drifts towards crimson, never towards the selection orange.
+// One gradient per hue, table and ripple step, so the outward brightening of
+// the ripple still reads. [centre, edge] hue offsets:
+const RING_DRIFT = { 240: [-16, 14], 290: [-14, 12], 10: [-4, -18], 280: [-10, 8] }
+
+function ringStops(hue, entry) {
+  const [s, l] = entry.split(",").map((part) => parseFloat(part))
+  const [inner, outer] = RING_DRIFT[hue]
+  const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n))
+  return [
+    ["0%", `hsl(${hue + inner}, ${clamp(s + 14, 0, 100)}%, ${clamp(l + 20, 0, 80)}%)`],
+    ["55%", `hsl(${hue}, ${s}%, ${l}%)`],
+    ["100%", `hsl(${hue + outer}, ${clamp(s + 10, 0, 100)}%, ${clamp(l - 14, 12, 100)}%)`]
+  ]
+}
+
+function ringFill(hue, table, step) {
+  return `url(#ring-${hue}-${table}-${step})`
+}
+
+// A cavalry unit's second-jump preview (move codes 6x/7x/8x) is a "ghost" of
+// the live ring it previews: move blue, capture red, blocked purple. Its
+// gradient is faint and weighted to the rim, the centre nearly clear, and the
+// hex takes a dashed edge (game.css .is-ghost) and no hatch, so "possible on
+// the second jump" never reads as "move here now".
+const PREVIEW_HUE = { 6: 240, 7: 10, 8: 280 }
+
+function ghostStops(hue, entry) {
+  const [s, l] = entry.split(",").map((part) => parseFloat(part))
+  const [inner, outer] = RING_DRIFT[hue]
+  return [
+    ["0%", `hsl(${hue + inner}, ${s}%, ${l}%)`, 0.08],
+    ["55%", `hsl(${hue}, ${s}%, ${l}%)`, 0.22],
+    ["100%", `hsl(${hue + outer}, ${Math.min(100, s + 12)}%, ${l + 4}%)`, 0.6]
+  ]
+}
+
+// A shooter's range (rangeRings) reads as a zone. Each kind has its own
+// gradient, one per ripple step, brightening outward like the move rings:
+//   field    1x  the line of fire: a soft red wash, hatched (.is-field)
+//   target   2x  an enemy it can hit: a strong crimson, heavy red edge
+//   blocked  3x 4x  a mountain in the line and its shadow: dim slate, dashed
+// The reds lean to crimson, away from the selection and last-move orange.
+const RANGE_KIND = { 1: "field", 2: "target", 3: "blocked", 4: "blocked" }
+const RANGE_STOPS = {
+  field: (s, l) => [
+    ["0%", `hsl(12, ${s + 8}%, ${l * 0.9}%)`, 0.2],
+    ["60%", `hsl(4, ${s + 10}%, ${l * 0.85}%)`, 0.3],
+    ["100%", `hsl(356, ${s + 14}%, ${l * 0.8}%)`, 0.52]
+  ],
+  target: (s, l) => [
+    ["0%", `hsl(6, 95%, ${Math.min(80, l + 22)}%)`, 1],
+    ["45%", `hsl(356, 90%, ${l + 4}%)`, 1],
+    ["100%", `hsl(342, 85%, ${Math.max(18, l - 10)}%)`, 1]
+  ],
+  blocked: (s, l) => [
+    ["0%", `hsl(212, 12%, ${l * 0.55}%)`, 0.9],
+    ["100%", `hsl(222, 18%, ${l * 0.32}%)`, 0.95]
+  ]
+}
+
+// The ground under every hex, before any ring lights it: the plain board is a
+// cool slate, your setup rows near-black with a faint indigo cast (and the
+// hatch, game.css), and once a unit is picked in setup the empty hexes it may
+// go to light up. Centre, middle and edge stops; paintGround() applies them.
+const GROUND = {
+  "hex-base": [["0%", "hsl(218, 10%, 25%)"], ["60%", "hsl(220, 11%, 17%)"], ["100%", "hsl(222, 13%, 10%)"]],
+  "hex-deploy": [["0%", "hsl(232, 20%, 12%)"], ["65%", "hsl(236, 24%, 7%)"], ["100%", "hsl(240, 28%, 4%)"]],
+  "hex-drop": [["0%", "hsl(226, 72%, 50%)"], ["55%", "hsl(233, 64%, 34%)"], ["100%", "hsl(240, 58%, 20%)"]]
+}
+
+// A faint stop is not left see-through, or the page behind the board would
+// show through it (white, in the light theme): it is mixed over the slate
+// board instead, so the hex stays opaque and reads the same in both themes.
+const BOARD_UNDER = [220, 11, 15]
+
+function hslToRgb(h, s, l) {
+  s /= 100
+  l /= 100
+  const k = (n) => (n + h / 30) % 12
+  const a = s * Math.min(l, 1 - l)
+  return [0, 8, 4].map((n) => 255 * (l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1))))
+}
+
+function overBoard(color, alpha) {
+  const [h, s, l] = color.match(/-?[\d.]+/g).map(Number)
+  const top = hslToRgb(((h % 360) + 360) % 360, s, l)
+  const under = hslToRgb(...BOARD_UNDER)
+  const [r, g, b] = top.map((c, i) => Math.round(c * alpha + under[i] * (1 - alpha)))
+  return `rgb(${r}, ${g}, ${b})`
+}
+
+// Every class a ripple may leave on a hex; render() and each repaint clear
+// the lot, so a hex never carries two looks.
+const RING_CLASSES = ["is-lit", "is-ghost", "is-field", "is-target", "is-blocked"]
+
+// The threat outline (renderThreats) is on unless the player turned it off.
+const THREATS_KEY = "cyvasse.showThreats"
+
+function threatsWanted() {
+  try {
+    return window.localStorage.getItem(THREATS_KEY) !== "off"
+  } catch {
+    return true
+  }
+}
+
+// The six corners of a hex at full size, shared exactly with its neighbours,
+// so an edge two threatened hexes share can be found and left undrawn.
+const FULL_CORNERS = [[0, -H / 2], [W / 2, -H / 4], [W / 2, H / 4], [0, H / 2], [-W / 2, H / 4], [-W / 2, -H / 4]]
 
 const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", unique: "Unique", mountain: "Mountain" }
 
@@ -56,7 +172,7 @@ function shadeStops(rank) {
 }
 
 export default class extends Controller {
-  static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent"]
+  static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent", "hint", "threatToggle"]
   static values = { skin: { type: String, default: "vector" }, images: Object, skins: Object, pace: { type: Number, default: 1 } }
 
   connect() {
@@ -75,6 +191,7 @@ export default class extends Controller {
   newGame() {
     this.clearTimers()
     this.game = new Game()
+    this.pendingJump = null
     this.holding = false
     this.selectedUnitId = null
     this.selectedHex = null
@@ -246,7 +363,9 @@ export default class extends Controller {
 
   playClick(hex) {
     if (this.actions && (this.actions.moves.includes(hex) || this.actions.attacks.includes(hex))) {
+      const before = this.game.jump === 1 ? this.game.snapshot() : null
       const result = this.game.act(this.selectedHex, hex)
+      this.pendingJump = result.secondJump ? before : null
       if (result.secondJump) {
         this.render()
         this.select(this.game.activeHex)
@@ -256,6 +375,41 @@ export default class extends Controller {
       return
     }
     if (this.game.selectableHexes().includes(hex)) this.select(hex)
+  }
+
+  // "Start over" (Esc, or the hint's button on touch): let go of the picked
+  // piece. Midway through a cavalry double jump, before the turn is played,
+  // it takes the first jump back, so the horse can move again from where it
+  // stood. In setup it puts a picked unit back down.
+  startOver(event) {
+    if (event?.type === "keydown" && event.target.closest?.("input, textarea, select, [contenteditable]")) return
+    if (this.holding || !this.game) return
+    const game = this.game
+    if (game.phase === "setup") {
+      if (!this.selectedUnitId) return
+      this.selectedUnitId = null
+      return this.render()
+    }
+    if (game.phase !== "play") return
+    if (this.pendingJump && game.jump === 2) {
+      game.restoreSnapshot(this.pendingJump)
+      this.pendingJump = null
+      this.steps = []
+    } else if (this.selectedHex == null) {
+      return
+    }
+    this.clearSelection()
+    this.render()
+  }
+
+  toggleThreats(event) {
+    this.showThreats = event.target.checked
+    try {
+      window.localStorage.setItem(THREATS_KEY, this.showThreats ? "on" : "off")
+    } catch {
+      // Storage refused (a private window): the switch still works this visit.
+    }
+    this.renderThreats()
   }
 
   // ---- Drawing -------------------------------------------------------------
@@ -276,6 +430,35 @@ export default class extends Controller {
         defs.append(gradient)
       })
     }
+    for (const hue of new Set(Object.values(MOVE_HUE))) {
+      for (const [table, entries] of Object.entries(HSL_TABLES)) {
+        entries.forEach((entry, step) => {
+          const gradient = el("radialGradient", { id: `ring-${hue}-${table}-${step}`, cx: "50%", cy: "46%", r: "62%", fx: "42%", fy: "34%" })
+          for (const [offset, color] of ringStops(hue, entry)) gradient.append(el("stop", { offset, "stop-color": color }))
+          defs.append(gradient)
+        })
+      }
+    }
+    const gradientOf = (id, stops) => {
+      const gradient = el("radialGradient", { id, cx: "50%", cy: "46%", r: "62%", fx: "42%", fy: "34%" })
+      for (const [offset, color, opacity = 1] of stops) {
+        gradient.append(el("stop", { offset, "stop-color": opacity < 1 ? overBoard(color, opacity) : color }))
+      }
+      defs.append(gradient)
+    }
+    for (const [id, stops] of Object.entries(GROUND)) gradientOf(id, stops)
+    for (const [table, entries] of Object.entries(HSL_TABLES)) {
+      entries.forEach((entry, step) => {
+        for (const hue of Object.values(PREVIEW_HUE)) gradientOf(`ghost-${hue}-${table}-${step}`, ghostStops(hue, entry))
+        const [s, l] = entry.split(",").map((part) => parseFloat(part))
+        for (const [kind, stops] of Object.entries(RANGE_STOPS)) gradientOf(`${kind}-${table}-${step}`, stops(s, l))
+      })
+    }
+    // The texture over a lit hex: a fine diagonal hatch, light and faint.
+    const texture = el("pattern", { id: "ring-texture", patternUnits: "userSpaceOnUse", width: 5, height: 5, patternTransform: "rotate(40)" })
+    texture.append(el("line", { x1: 0, y1: 0, x2: 0, y2: 5, stroke: "white", "stroke-opacity": 0.14, "stroke-width": 1.2 }))
+    texture.append(el("line", { x1: 2.5, y1: 0, x2: 2.5, y2: 5, stroke: "black", "stroke-opacity": 0.1, "stroke-width": 0.8 }))
+    defs.append(texture)
     svg.append(defs)
     this.hexNodes = new Map()
     this.hexCentres = new Map()
@@ -291,14 +474,19 @@ export default class extends Controller {
         transform: `translate(${cx.toFixed(2)} ${cy.toFixed(2)})`
       })
       const polygon = el("polygon", { class: "hex-poly", points: corners })
+      const texture = el("polygon", { class: "ring-texture", points: corners, fill: "url(#ring-texture)" })
       const shade = el("polygon", { class: "unit-shade", points: corners })
-      const disc = el("circle", { class: "unit-disc", r: 24 })
-      const image = el("image", { class: "unit-image", x: -22, y: -24, width: 44, height: 48 })
-      group.append(polygon, shade, disc, image)
+      const danger = el("circle", { class: "danger-ring", r: 28.5 })
+      const disc = el("circle", { class: "unit-disc", r: 27 })
+      const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
+      group.append(polygon, texture, shade, danger, disc, image)
       svg.append(group)
       this.hexNodes.set(hex.index, { group, polygon, shade, disc, image })
-      this.hexCentres.set(hex.index, { x: cx, row: hex.y })
+      this.hexCentres.set(hex.index, { x: cx, y: cy, row: hex.y })
     }
+    // The opponent's reach, drawn as one outline over the board (renderThreats).
+    this.threatPath = el("path", { class: "threat-outline" })
+    svg.append(this.threatPath)
   }
 
   // ---- Piece skin ------------------------------------------------------------
@@ -369,7 +557,8 @@ export default class extends Controller {
     for (const [index, node] of this.hexNodes) {
       const unit = game.pieceAt(index)
       node.group.classList.toggle("has-unit", !!unit)
-      node.group.classList.remove("is-move", "is-attack", "is-selected", "is-deploy", "is-last-move")
+      node.group.classList.remove("is-move", "is-attack", "is-selected", "is-deploy", "is-drop", "is-last-move", ...RING_CLASSES)
+      delete node.group.dataset.ghost
       node.group.dataset.unitId = unit?.id ?? ""
       node.group.dataset.team = unit ? unit.team : ""
       if (unit) {
@@ -387,7 +576,6 @@ export default class extends Controller {
         node.image.removeAttribute("href")
       }
       node.polygon.style.fill = ""
-      node.polygon.style.stroke = ""
     }
 
     if (game.phase === "setup") {
@@ -396,16 +584,87 @@ export default class extends Controller {
       }
       const selected = this.selectedUnitId && game.unit(this.selectedUnitId)
       if (selected?.hex) this.hexNodes.get(selected.hex).group.classList.add("is-selected")
+      // A picked unit lights the empty hexes of your rows it may go to.
+      if (selected) {
+        for (const [index, node] of this.hexNodes) {
+          if (inPlayerZone(index) && !game.pieceAt(index)) node.group.classList.add("is-drop")
+        }
+      }
     } else {
       for (const hex of [...game.lastMove, game.utilMove]) {
         if (hex) this.hexNodes.get(hex).group.classList.add("is-last-move")
       }
     }
 
+    this.paintGround()
+    this.renderThreats()
+    this.renderHint()
     this.renderDock()
     this.renderStatus()
     this.renderGraveyards()
     this.renderInfo(this.selectedUnitId ? game.unit(this.selectedUnitId) : null)
+  }
+
+  // Each hex's resting fill, from the classes render() just set. It is the
+  // polygon's fill attribute, so the stylesheet's orange (the selection and
+  // the last move) and a ring's inline gradient both draw over it.
+  paintGround() {
+    for (const { group, polygon } of this.hexNodes.values()) {
+      const ground = group.classList.contains("is-drop") ? "hex-drop" : group.classList.contains("is-deploy") ? "hex-deploy" : "hex-base"
+      polygon.setAttribute("fill", `url(#${ground})`)
+    }
+  }
+
+  // Where the opponent could strike next turn (cyvasse/threats, from the
+  // rules' own legal actions): the outer edge of that region is outlined, the
+  // opponent's own units counted in so the outline is one shape rather than
+  // a ring round each of them, and every unit of yours they could actually
+  // kill wears the danger ring. Play only; the switch turns it off.
+  renderThreats() {
+    const game = this.game
+    // Read once per page, by /play and the match board alike.
+    this.showThreats ??= threatsWanted()
+    const live = game.phase === "play" && this.showThreats
+    if (this.hasThreatToggleTarget) {
+      this.threatToggleTarget.checked = this.showThreats
+      this.threatToggleTarget.closest("label").hidden = game.phase !== "play"
+    }
+    const { reach, kills } = live ? threats(game, 1 - PLAYER) : { reach: new Set(), kills: new Set() }
+    for (const [index, node] of this.hexNodes) {
+      const unit = game.pieceAt(index)
+      const danger = kills.has(index) && unit?.team === PLAYER
+      node.group.classList.toggle("is-danger", danger)
+      node.group.classList.toggle("is-threatened", reach.has(index))
+      // Said after the unit's name, which stays as it is.
+      if (danger) node.group.setAttribute("aria-description", "In danger: the opponent can take it next turn")
+      else node.group.removeAttribute("aria-description")
+    }
+    if (!live) return this.threatPath.setAttribute("d", "")
+
+    const region = new Set(reach)
+    for (const unit of game.teamUnits(1 - PLAYER, "alive")) region.add(unit.hex)
+    const edges = new Map()
+    for (const index of region) {
+      const { x, y } = this.hexCentres.get(index)
+      const points = FULL_CORNERS.map(([dx, dy]) => [x + dx, y + dy])
+      points.forEach((a, i) => {
+        const b = points[(i + 1) % 6]
+        const key = [a, b].map(([px, py]) => `${px.toFixed(1)},${py.toFixed(1)}`).sort().join(" ")
+        edges.set(key, edges.has(key) ? null : [a, b])
+      })
+    }
+    const d = [...edges.values()].filter(Boolean)
+      .map(([[ax, ay], [bx, by]]) => `M${ax.toFixed(1)} ${ay.toFixed(1)}L${bx.toFixed(1)} ${by.toFixed(1)}`).join("")
+    this.threatPath.setAttribute("d", d)
+  }
+
+  // The "start over" hint shows while there is something to start over from.
+  renderHint() {
+    if (!this.hasHintTarget) return
+    const game = this.game
+    const picked = game.phase === "setup" ? !!this.selectedUnitId
+      : game.phase === "play" && (this.selectedHex != null || (!!this.pendingJump && game.jump === 2))
+    this.hintTarget.hidden = !picked || this.holding
   }
 
   renderDock() {
@@ -421,7 +680,7 @@ export default class extends Controller {
       button.append(img(this.imagesValue[unit.type.codename], unit.type.name))
       return button
     }))
-    this.startButtonTarget.hidden = !this.game.readyToStart
+    this.startButtonTarget.disabled = !this.game.readyToStart
   }
 
   renderStatus() {
@@ -429,7 +688,7 @@ export default class extends Controller {
     let text
     if (game.phase === "setup") {
       const left = game.teamUnits(PLAYER, "unplaced").length
-      text = left > 0 ? `Place your army: ${left} unit${left === 1 ? "" : "s"} left.` : "Your army is ready. Start the game."
+      text = left > 0 ? `Place your army: ${left} unit${left === 1 ? "" : "s"} left.` : "Your army is in place. Press Ready."
     } else if (game.phase === "over") {
       text = game.winner === PLAYER ? "You win." : game.winner === COMPUTER ? "You were defeated." : "A draw."
     } else if (game.offense === PLAYER) {
@@ -500,6 +759,7 @@ export default class extends Controller {
     for (const i of this.actions.moves) this.hexNodes.get(i).group.classList.add("is-move")
     for (const i of this.actions.attacks) this.hexNodes.get(i).group.classList.add("is-attack")
     this.ripple(unit)
+    this.renderHint()
   }
 
   clearSelection() {
@@ -512,33 +772,48 @@ export default class extends Controller {
 
   ripple(unit) {
     const type = unit.type
-    const hsl = type.moveRange > 5 ? HSL_LONG : HSL_SHORT
-    const { rings, rangeRings } = this.actions
-    const reach = type.rank === "range" ? type.attackRange : type.rank === "cavalry" ? type.moveRange * 2 : type.moveRange
+    const table = type.moveRange > 5 ? "long" : "short"
+    const { rings, rangeRings, moves } = this.actions
+    const shooter = type.rank === "range"
+    const reach = shooter ? type.attackRange : type.rank === "cavalry" ? type.moveRange * 2 : type.moveRange
     let distance = 1
+
+    const light = (index, fill, ...classes) => {
+      const { group, polygon } = this.hexNodes.get(index)
+      polygon.style.fill = fill
+      group.classList.remove(...RING_CLASSES)
+      group.classList.add(...classes)
+      return group
+    }
 
     const paint = () => {
       const step = distance - 1
       for (const [index, ring] of rings) {
         if (ring % 10 !== step || ring < 10) continue
+        // A shooter's range owns every hex it cannot move to.
+        if (shooter && !moves.includes(index)) continue
         const code = Math.floor(ring / 10)
-        const polygon = this.hexNodes.get(index).polygon
-        if (MOVE_HUE[code] !== undefined) polygon.style.fill = `hsl(${MOVE_HUE[code]}, ${hsl[step]})`
-        if (PREVIEW_STROKE[code]) polygon.style.stroke = PREVIEW_STROKE[code]
+        if (MOVE_HUE[code] !== undefined) {
+          light(index, ringFill(MOVE_HUE[code], table, step), "is-lit")
+        } else if (PREVIEW_HUE[code] !== undefined) {
+          light(index, `url(#ghost-${PREVIEW_HUE[code]}-${table}-${step})`, "is-ghost").dataset.ghost = code
+        }
       }
-      if (type.rank === "range") {
+      if (shooter) {
         for (const [index, ring] of rangeRings) {
-          if (ring % 10 !== step || ring < 10) continue
-          const code = Math.floor(ring / 10)
-          const polygon = this.hexNodes.get(index).polygon
-          if (code === 2) polygon.style.fill = `hsl(10, ${hsl[step]})`
-          if (RANGE_STROKE[code]) polygon.style.stroke = RANGE_STROKE[code]
+          if (ring % 10 !== step || ring < 10 || moves.includes(index)) continue
+          const kind = RANGE_KIND[Math.floor(ring / 10)]
+          if (!kind) continue
+          const classes = kind === "field" ? ["is-field", "is-lit"] : [`is-${kind}`]
+          light(index, `url(#${kind}-${table}-${step})`, ...classes)
         }
       }
       distance += 1
     }
 
-    if (this.paceValue === 0) {
+    // No ripple for a player who asked for less motion: the rings land at once.
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    if (this.paceValue === 0 || still) {
       while (distance <= reach) paint()
       return
     }

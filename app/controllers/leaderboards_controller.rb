@@ -1,0 +1,33 @@
+# The leaderboards (task live-leaderboard-and-guest-claim; the rule is in
+# Leaderboard). Public, like the landing page that carries the top ten.
+#
+#   GET /leaderboard        the live board, or the all-time one (?board=all-time)
+#   GET /leaderboard/join   a guest's sign-in, after a live game: the email
+#                           link comes back with a claim token (GuestClaim)
+class LeaderboardsController < ApplicationController
+  include RequiresUsername
+
+  skip_before_action :require_authentication
+
+  BOARDS = %w[live all-time].freeze
+
+  def show
+    # Back from signing in with a claimed win: the board shows usernames only,
+    # so an account without one chooses it first.
+    if params[:claim].present? && current_user && !current_user.guest? && current_user.username.blank?
+      return redirect_to(username_path(return_to: leaderboard_path), notice: "Choose a username for the leaderboard.")
+    end
+
+    @board = BOARDS.include?(params[:board]) ? params[:board] : "live"
+    @rows = @board == "live" ? Leaderboard.live(limit: Leaderboard::PAGE_SIZE) : Leaderboard.all_time
+  end
+
+  def join
+    return redirect_to(leaderboard_path) if current_user && !current_user.guest?
+
+    @won = params[:result] == "win"
+    guest = current_user&.guest? ? current_user : nil
+    token = guest && GuestClaim.token_for(guest)
+    @return_to = @won ? leaderboard_path(claim: token) : matches_path(claim: token)
+  end
+end

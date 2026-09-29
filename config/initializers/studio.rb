@@ -2,6 +2,9 @@
 Studio.configure do |config|
   config.app_name = "Cyvasse"
   config.session_key = :cyvasse_user_id
+  # Page changes present with the McRitchie Studio view transition
+  # (layouts/studio/_smooth_load); Play Now's searching page and splash lean on it.
+  config.smooth_load = true
   config.welcome_message = ->(user) { "Welcome to Cyvasse, #{user.display_name}!" }
   # Passwordless magic link only, and the line stays EXPLICIT: the engine's
   # default auth_methods includes :google, which would draw OAuth routes this
@@ -28,6 +31,7 @@ Studio.configure do |config|
       { label: "Home", href: "/", emoji: "♟️", desc: "The front door" },
       { label: "Play", href: "/play", emoji: "🐲", desc: "A game against the computer" },
       { label: "My games", href: "/matches", emoji: "⚔️", desc: "Online matches against players" },
+      { label: "Leaderboard", href: "/leaderboard", emoji: "🏆", desc: "Who is winning live games" },
       { label: "Inbox", href: "/inbox", emoji: "✉️", desc: "Messages from other players" },
       { label: "Pieces", href: "/pieces", emoji: "🐘", desc: "Both piece skins" },
       { label: "Rules", href: "/rules", emoji: "📜", desc: "How to play" },

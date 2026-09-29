@@ -88,6 +88,7 @@ module CyvasseRules
       3
     end
 
+    # No shooter fires over a mountain of either side: see walkRangeRings in rules.js.
     def self.walk_range_rings(position, piece, origin, rings, candidates)
       locked = Set.new
       type = piece.type

@@ -13,6 +13,9 @@
 # move the rules allow. The seven-day clock runs from time_of_last_move; the
 # player who lets it run out forfeits (Match.expire_stale!).
 class Match < ApplicationRecord
+  # Short clocks, strikes and computer seats for games played in one sitting.
+  include LiveMatch
+
   PENDING = "pending"
   ACCEPTED = "new"
   IN_PROGRESS = "in progress"
@@ -48,6 +51,9 @@ class Match < ApplicationRecord
   scope :involving, ->(user) { where(home_user_id: user.id).or(where(away_user_id: user.id)) }
   scope :active, -> { where(match_status: [ *PREGAME, IN_PROGRESS ]) }
   scope :finished, -> { where(match_status: FINISHED) }
+  # Played in one sitting on short clocks (LiveMatch): every match from the
+  # relaunch's Play Now on. The live leaderboard (Leaderboard) counts these.
+  scope :live, -> { where(live: true) }
   scope :stale, ->(now = Time.current) { active.where(time_of_last_move: ...(now - MOVE_CLOCK)) }
 
   # ---- Starting and leaving a match ------------------------------------------
@@ -137,6 +143,7 @@ class Match < ApplicationRecord
 
     change_on_clock(user) do
       raise Refused, "This match is not in play." unless in_progress?
+      raise Refused, "A computer player has taken your seat for this match." if live? && bot_seat?(seat(user))
       raise Refused, "It is #{user_to_move.username}'s turn." unless your_turn?(user)
 
       apply_turn(steps)
@@ -203,8 +210,10 @@ class Match < ApplicationRecord
     whos_turn == HOME ? home_user : away_user
   end
 
+  # Never true for a live seat a computer has taken over: its moves are the
+  # computer's now.
   def your_turn?(user)
-    in_progress? && whos_turn == team(user)
+    in_progress? && whos_turn == team(user) && !(live? && bot_seat?(seat(user)))
   end
 
   def ready?(user)
@@ -242,8 +251,8 @@ class Match < ApplicationRecord
       status: match_status,
       phase: if in_progress? then "play" elsif finished? then "over" else "setup" end,
       version: updated_at.to_f.to_s,
-      you: { username: user.username, ready: ready?(user) },
-      opponent: { username: opponent_of(user).username, ready: ready?(opponent_of(user)) },
+      you: { username: user.username, ready: ready?(user), guest: user.guest? },
+      opponent: { username: display_name_of(opponent_of(user)), ready: ready?(opponent_of(user)) },
       seat: seat(user),
       can_accept: pending? && seat(user) == :away,
       can_set_up: pregame? && !ready?(user) && !(pending? && seat(user) == :away),
@@ -255,7 +264,8 @@ class Match < ApplicationRecord
       util_move: hexes(utility_saved_hex).map(&view).first,
       deadline: deadline&.iso8601,
       winner: winner_id.nil? ? nil : (winner_id == user.id ? 1 : 0),
-      finish_reason: finish_reason
+      finish_reason: finish_reason,
+      live: live? ? live_state_for(user) : nil
     }
   end
 
@@ -268,6 +278,8 @@ class Match < ApplicationRecord
   # the engine's outbox after the write commits; a player without an email
   # address is skipped.
   def notify(action, user)
+    # A live match is played in one sitting, with the board open: no mail.
+    return if live?
     return if user&.email.blank?
 
     Studio::Email.deliver(MatchMailer, action, self, user, to: user.email, user: user)
@@ -312,6 +324,7 @@ class Match < ApplicationRecord
     self.turn = game.turn
     self.match_status = IN_PROGRESS
     finish!(winner: nil, reason: "draw", save: false) if result.over
+    live_turn_started
   end
 
   def apply_turn(steps)
@@ -328,6 +341,7 @@ class Match < ApplicationRecord
       winner = { HOME => home_user, AWAY => away_user }[result.winner]
       finish!(winner: winner, reason: winner ? "king" : "draw", save: false)
     end
+    live_turn_started
     save!
   end
 
@@ -343,14 +357,29 @@ class Match < ApplicationRecord
 
   def finish!(winner:, reason:, save: true)
     self.match_status = FINISHED
+    self.finished_at = Time.current
     self.winner = winner
     self.finish_reason = reason
     save! if save
     return unless winner
 
     loser = winner.id == home_user_id ? away_user : home_user
-    User.update_counters(winner.id, wins: 1)
-    User.update_counters(loser.id, losses: 1)
+    User.update_counters(winner.id, wins: 1) if on_record?(winner)
+    User.update_counters(loser.id, losses: 1) if on_record?(loser)
+  end
+
+  # Whether a result goes on this player's won/lost record: only when a person
+  # played the seat. Never a computer player's, and never a live seat a
+  # computer took over after missed clocks (its moves were the computer's, so
+  # the result is nobody's). The live leaderboard follows the same rule.
+  def on_record?(user)
+    !user.computer? && !(live? && bot_seat?(seat(user)))
+  end
+
+  # A finished live match won from `user`'s own seat: a win for the live
+  # leaderboard (Leaderboard), once the player has an account.
+  def leaderboard_win?(user)
+    live? && finished? && winner_id.present? && winner_id == user&.id && on_record?(user)
   end
 
   def normalize_steps(steps)

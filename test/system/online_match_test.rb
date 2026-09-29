@@ -21,8 +21,17 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
     assert_selector BOARD
     assert_selector "svg.cyvasse-board g.hex", count: 91
     assert_selector ".cyvasse-dock .dock-unit", count: 19
+    # Ready waits for a full army; Random Setup is the hollow secondary.
+    assert_button "Ready", disabled: true
+    assert_selector "button.btn-outline", text: "Random Setup"
+    assert_selector ".cyvasse-setup-actions button.cyvasse-ready:first-child + button.btn-outline", text: "Random Setup"
     click_on "Random Setup"
-    click_on "Submit army"
+    assert_button "Ready", disabled: false
+    if ENV["SCREENSHOTS"]
+      sleep 0.4
+      page.save_screenshot(Rails.root.join("tmp/screenshots/setup-match-ready.png"))
+    end
+    click_on "Ready"
     assert_selector "[role=status]", text: "Waiting for brienne to accept"
     match = Match.last
 
@@ -36,7 +45,7 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
       assert_text "Challenge accepted"
       assert_no_selector "svg.cyvasse-board g.hex.has-unit[data-team='0']", wait: 0.5
       click_on "Random Setup"
-      click_on "Submit army"
+      click_on "Ready"
       assert_selector "#{BOARD}[data-phase=play]"
       assert_selector "svg.cyvasse-board g.hex.has-unit[data-team='1']", count: 19
       assert_selector "svg.cyvasse-board g.hex.has-unit[data-team='0']", count: 19
@@ -57,6 +66,14 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
       visit match_path(match)
       assert_selector "#{BOARD}[data-your-turn=true]"
       set_instant_pace
+      # The opponent's reach is outlined on the match board too, and Esc lets
+      # go of a picked piece.
+      assert_selector "svg.cyvasse-board path.threat-outline[d^='M']", visible: :all
+      find("svg.cyvasse-board g.hex.has-unit[data-team='1']", match: :first).click
+      assert_selector "svg.cyvasse-board g.hex.is-selected"
+      assert_selector ".cyvasse-hint", text: "Press Esc to start over"
+      find("body").send_keys(:escape)
+      assert_no_selector "svg.cyvasse-board g.hex.is-selected"
       take_a_turn
       assert_selector "#{BOARD}[data-your-turn=false]", wait: 10
       assert_no_selector "[role=alert]:not([hidden])", wait: 0
@@ -71,6 +88,7 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
       assert_selector "#{BOARD}[data-your-turn=true]", wait: 10
       assert_selector "[role=status]", text: "Turn 2: your move."
       assert_selector "svg.cyvasse-board g.hex.is-last-move", minimum: 2
+      assert_selector "svg.cyvasse-board path.threat-outline[d^='M']", visible: :all
     end
   end
 

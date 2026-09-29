@@ -147,7 +147,7 @@ export class Game {
     return this.phase === "setup" && this.teamUnits(PLAYER, "unplaced").length === 0;
   }
 
-  // "Start Game": the computer's lineup takes the board and the side whose
+  // "Ready": the computer's lineup takes the board and the side whose
   // king stands nearer the middle row moves first (Game.whoGoesFirst).
   start() {
     if (!this.readyToStart) throw new Error("place every unit before starting");
@@ -226,6 +226,26 @@ export class Game {
 
     this.lastMove = [fromHex, toHex];
     return { captured, secondJump: false, ...this.#finishTurn() };
+  }
+
+  // Everything a move can change, so the board can take back a cavalry
+  // unit's first jump before the turn is played (Esc, "start over"):
+  // restore(snapshot()) puts every unit, the turn and the jump back.
+  snapshot() {
+    return {
+      units: this.units.map((u) => [u.status, u.hex]),
+      phase: this.phase, turn: this.turn, offense: this.offense, jump: this.jump,
+      activeHex: this.activeHex, lastMove: [...this.lastMove], utilMove: this.utilMove, winner: this.winner
+    };
+  }
+
+  restoreSnapshot(snapshot) {
+    snapshot.units.forEach(([status, hex], i) => {
+      this.units[i].status = status;
+      this.units[i].hex = hex;
+    });
+    for (const key of ["phase", "turn", "offense", "jump", "activeHex", "utilMove", "winner"]) this[key] = snapshot[key];
+    this.lastMove = [...snapshot.lastMove];
   }
 
   #finishTurn() {
