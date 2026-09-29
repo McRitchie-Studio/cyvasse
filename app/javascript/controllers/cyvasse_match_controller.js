@@ -209,7 +209,7 @@ export default class extends GameController {
       text = `${them} challenged you. Accept to set up your army.`
     } else if (state.can_set_up) {
       const left = this.game.teamUnits(PLAYER, "unplaced").length
-      text = left > 0 ? `Place your army: ${left} unit${left === 1 ? "" : "s"} left.` : "Your army is ready. Submit it."
+      text = left > 0 ? `Place your army: ${left} unit${left === 1 ? "" : "s"} left.` : "Your army is in place. Press Ready to lock it in."
     } else if (state.status === "pending") {
       text = `Your army is in place. Waiting for ${them} to accept.`
     } else {

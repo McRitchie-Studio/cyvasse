@@ -555,7 +555,7 @@ export default class extends Controller {
     let text
     if (game.phase === "setup") {
       const left = game.teamUnits(PLAYER, "unplaced").length
-      text = left > 0 ? `Place your army: ${left} unit${left === 1 ? "" : "s"} left.` : "Your army is ready. Start the game."
+      text = left > 0 ? `Place your army: ${left} unit${left === 1 ? "" : "s"} left.` : "Your army is in place. Press Ready."
     } else if (game.phase === "over") {
       text = game.winner === PLAYER ? "You win." : game.winner === COMPUTER ? "You were defeated." : "A draw."
     } else if (game.offense === PLAYER) {

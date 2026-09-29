@@ -49,6 +49,7 @@ class SetupLookTest < ApplicationSystemTestCase
     # A full army enables Ready: a solid violet fill at full strength.
     click_on "Random Setup"
     ready = find_button("Ready")
+    sleep 0.4 # the button eases out of its muted state
     assert_equal "1", ready.style("opacity")["opacity"]
     r, g, b = ready.style("background-color")["background-color"].scan(/\d+/).map(&:to_i)
     assert_operator b, :>, g + 60, "violet: blue well above green"
