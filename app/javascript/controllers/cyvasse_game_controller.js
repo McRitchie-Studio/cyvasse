@@ -820,8 +820,12 @@ export default class extends Controller {
     if (!this.hasArmyTarget) return
     const mode = smartSetupMode(placed, army.length)
     this.armyTarget.dataset.armyMode = mode
-    this.smartButtonTarget.textContent = SMART_LABELS[mode]
-    this.armyCountTarget.textContent = placed < army.length ? `${placed} of ${army.length} placed` : `All ${army.length} placed`
+    // Only on a change: the count is a polite live region, and a rewrite of
+    // the same words on every render would have a screen reader repeat it.
+    const label = this.smartButtonTarget.querySelector("[data-smart-label]") ?? this.smartButtonTarget
+    const count = placed < army.length ? `${placed} of ${army.length} placed` : `All ${army.length} placed`
+    if (label.textContent !== SMART_LABELS[mode]) label.textContent = SMART_LABELS[mode]
+    if (this.armyCountTarget.textContent !== count) this.armyCountTarget.textContent = count
   }
 
   renderStatus() {

@@ -40,6 +40,31 @@ class ArmyTilesDarkTest < ApplicationSystemTestCase
     end
   end
 
+  # A phone has no hover, and a tap leaves :hover stuck on what it touched;
+  # the army card's hover tints live only under @media (hover: hover).
+  test "the army card's hover tints apply only where there is a hover" do
+    visit play_path
+    assert_selector TILE, count: 19
+    loose = page.evaluate_script(<<~JS)
+      (() => {
+        const loose = []
+        const walk = (rules, hover) => {
+          for (const rule of rules) {
+            if (rule.media) walk(rule.cssRules, hover || /\\(hover:\\s*hover\\)/.test(rule.media.mediaText))
+            else if (rule.cssRules) walk(rule.cssRules, hover)
+            else if (/(dock-unit|cyvasse-smart|cyvasse-ready)[^,]*:hover/.test(rule.selectorText || "") && !hover) loose.push(rule.selectorText)
+          }
+        }
+        for (const sheet of document.styleSheets) {
+          try { walk(sheet.cssRules, false) } catch (e) { /* a cross-origin sheet */ }
+        }
+        return loose
+      })()
+    JS
+    assert_empty loose, "hover rules outside @media (hover: hover)"
+    assert_operator page.evaluate_script("[...document.styleSheets].flatMap((s) => { try { return [...s.cssRules] } catch (e) { return [] } }).filter((r) => r.media && /hover: hover/.test(r.media.mediaText) && /dock-unit:hover/.test(r.cssText)).length"), :>=, 1, "the tile's hover tint is still there for a mouse"
+  end
+
   private
 
   def tile_look
