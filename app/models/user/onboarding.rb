@@ -95,7 +95,7 @@ module User::Onboarding
   def legacy_stats
     played, wins, first = Match.involving(self).where.not(legacy_id: nil)
       .where("matches.finish_reason IS DISTINCT FROM 'expired'")
-      .pick(Arel.sql("COUNT(*)"), Arel.sql("COUNT(*) FILTER (WHERE winner_id = #{Integer(id)})"), Arel.sql("MIN(created_at)"))
+      .pick(Arel.sql("COUNT(*)"), Arel.sql(Match.sanitize_sql_array([ "COUNT(*) FILTER (WHERE winner_id = ?)", id ])), Arel.sql("MIN(created_at)"))
     { played: played.to_i, wins: wins.to_i, first_game_on: first&.to_date, lineups: setups.count }
   end
 

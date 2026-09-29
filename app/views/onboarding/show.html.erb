@@ -12,5 +12,13 @@
     <% end %>
   </div>
 
-  <%= render @step %>
+  <% if @step == "welcome" %>
+    <%= render "welcome" %>
+  <% elsif @step == "username" %>
+    <%= render "username" %>
+  <% elsif @step == "profile" %>
+    <%= render "profile" %>
+  <% else %>
+    <%= render "contact" %>
+  <% end %>
 </section>
