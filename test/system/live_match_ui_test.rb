@@ -40,6 +40,14 @@ class LiveMatchUiTest < ApplicationSystemTestCase
 
   def hex(index) = "svg.cyvasse-board g.hex[data-hex='#{index}']"
 
+  # Hold the computer's next turn past the end of the test. At pace 0 it
+  # lands inside the very tick that settles the clock under test, before the
+  # page draws that tick: from these armies it can take the player's units on
+  # its first turn, or their king in reply to a move made for them.
+  def hold_computer
+    LiveMatch.bot_pace = 10_000
+  end
+
   setup do
     @arya = User.create!(email: "arya@example.com", name: "Arya", username: "arya")
     @match = Match.start_live!(@arya, computer: true, rng: Random.new(4))
@@ -94,6 +102,7 @@ class LiveMatchUiTest < ApplicationSystemTestCase
   end
 
   test "an army placed by the clock arrives on the board, and the player is told" do
+    hold_computer
     rewind_clock(58)
     visit match_path(@match)
     assert_selector ".cyvasse-dock .dock-unit", count: 19
@@ -106,22 +115,23 @@ class LiveMatchUiTest < ApplicationSystemTestCase
   test "a missed move clock plays a move for you and says so" do
     @match.set_up!(@arya, CyvasseRules::Bot.random_lineup(rng: Random.new(2)))
     @match.reload
-    unless @match.seat_to_move == :home
-      # Real time, not travel_to: a write stamped in the future makes the
-      # page read the next poll as stale. bot_pace 0 makes the turn due now.
-      @match.tick!
-      @match.reload
-    end
-    skip "the computer won on its first move" if @match.finished?
+    assert_equal :home, @match.seat_to_move, "both armies are seeded: the player moves first"
+    # Without the hold, the computer's reply to the move made for the player
+    # takes their king in the same tick, and the game-over modal hides the notice.
+    hold_computer
     rewind_clock(29)
     visit match_path(@match)
     assert_selector "[data-cyvasse-match-target=clockLabel]", text: /Your move|Hurry/
     assert_text "You missed a clock", wait: 10
-    assert_equal 1, @match.reload.home_strikes
+    @match.reload
+    assert_equal 1, @match.home_strikes
+    assert_equal :away, @match.seat_to_move, "a move was made for the player"
+    assert_not @match.finished?
   end
 
   test "the live poll mid-setup keeps the army the player has placed" do
     visit match_path(@match)
+    assert_controllers_connected "cyvasse-match"
     click_on "Random Setup"
     assert_no_selector ".cyvasse-dock .dock-unit"
     # The opponent readying writes the match: a new version reaches the poll.
@@ -133,6 +143,7 @@ class LiveMatchUiTest < ApplicationSystemTestCase
 
   test "a poll answered after the army is submitted never puts the old state back" do
     visit match_path(@match)
+    assert_controllers_connected "cyvasse-match"
     click_on "Random Setup"
     # Hold each poll's answer so one is still in flight when the army goes in.
     page.execute_script(<<~JS)
