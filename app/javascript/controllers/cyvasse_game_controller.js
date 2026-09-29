@@ -415,17 +415,17 @@ export default class extends Controller {
   // (overflow-x: clip), and Chrome then scrolls it into view not at all.
   showBoardAboveDock() {
     if (!this.docked) return
-    const wrap = this.boardTarget.closest(".cyvasse-board-wrap") ?? this.boardTarget
-    const box = wrap.getBoundingClientRect()
+    const board = this.boardTarget.getBoundingClientRect()
     const pinned = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0
     const top = pinned + 4
     const bottom = this.armyTarget.getBoundingClientRect().top - 4
-    // The sheet's edge first: the navbar collapses as the page scrolls, so
-    // the room under it is only known afterwards. The board is capped to fit
-    // the collapsed room (game.css).
+    // The sheet's edge first: the navbar collapses as the page scrolls, which
+    // lifts the board further, so the room under it is only known afterwards.
+    // The board is capped to fit the collapsed room (game.css). The strip
+    // over the board may tuck under the navbar; the board itself may not.
     let by = 0
-    if (box.bottom > bottom) by = box.bottom - bottom
-    else if (box.top < top) by = Math.max(box.top - top, box.bottom - bottom)
+    if (board.bottom > bottom) by = board.bottom - bottom
+    else if (board.top < top) by = Math.max(board.top - top, board.bottom - bottom)
     if (Math.abs(by) < 1) return
     const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
     window.scrollBy({ top: by, behavior: still ? "auto" : "smooth" })
