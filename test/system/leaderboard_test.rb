@@ -12,6 +12,22 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     @qavo = computer
   end
 
+  teardown do
+    page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
+  end
+
+  # A true 375px viewport: a desktop Chrome window will not shrink that far.
+  def phone!
+    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
+                                    width: 375, height: 812, deviceScaleFactor: 1, mobile: true)
+  end
+
+  def assert_no_sideways_scroll
+    scroll, client = page_widths
+    assert_equal 375, client, "the viewport is a phone's"
+    assert_operator scroll, :<=, client, "no sideways scroll at phone width"
+  end
+
   test "the landing page's card invites the first player when the board is empty" do
     visit root_path
     within("[data-leaderboard-card]") do
@@ -31,18 +47,17 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     assert_equal %w[a_very_long_username arya], all("[data-leaderboard-card] [data-leaderboard-row]").map { _1["data-leaderboard-row"] }
     screenshot("landing-desktop")
 
-    page.driver.browser.manage.window.resize_to(375, 900)
+    phone!
     visit root_path
     assert_selector "[data-leaderboard-card] [data-leaderboard-row]", count: 2
-    widths = page_widths
-    assert_operator widths.first, :<=, widths.last, "no sideways scroll at phone width"
+    assert_no_sideways_scroll
+    find("[data-leaderboard-card]").scroll_to(:center)
     screenshot("landing-phone")
 
     click_on "See all"
     assert_selector "h1", text: "Leaderboard"
     assert_selector "[data-board=live] [data-leaderboard-row=a_very_long_username]", text: /3\s*W/
-    widths = page_widths
-    assert_operator widths.first, :<=, widths.last, "no sideways scroll at phone width"
+    assert_no_sideways_scroll
     screenshot("leaderboard-phone")
   end
 
@@ -58,6 +73,10 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     assert_selector "[data-cyvasse-match-target=claimWin]", text: "You won!"
     assert_no_selector "[data-cyvasse-match-target=claimLoss]", visible: true
     screenshot("guest-win-cta")
+    phone!
+    assert_no_sideways_scroll
+    screenshot("guest-win-cta-phone")
+    page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
 
     click_on "Sign in to put this win on the leaderboard"
     assert_selector "h1", text: "Put your win on the leaderboard"
