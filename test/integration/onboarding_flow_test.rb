@@ -24,7 +24,7 @@ class OnboardingFlowTest < ActionDispatch::IntegrationTest
     assert_select "[data-onboarding-progress]", "Step 1 of 4"
     assert_select "[data-stat=played]", "1"
     assert_select "[data-stat=wins]", "1"
-    assert_select "[data-stat=first-game]", /March 04, 2016/
+    assert_select "[data-stat=first-game]", "March 4, 2016"
     patch onboarding_step_path("welcome")
     assert_redirected_to onboarding_path(step: "username")
 

@@ -22,7 +22,7 @@ class OnboardingStepsTest < ActionView::TestCase
     assert_select "h1", "Welcome back, the rook!"
     assert_select "[data-stat=played]", "1,234"
     assert_select "[data-stat=wins]", "700"
-    assert_select "[data-stat=first-game]", "February 01, 2015"
+    assert_select "[data-stat=first-game]", "February 1, 2015"
     assert_select "[data-stat=lineups]", "3"
     assert_select "form[action='/onboarding/welcome'] input[name=_method][value=patch]"
   end

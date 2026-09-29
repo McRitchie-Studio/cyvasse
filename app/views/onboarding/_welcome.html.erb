@@ -7,7 +7,7 @@
 <dl class="grid grid-cols-2 gap-3" data-legacy-stats>
   <% [ [ "Games played", number_with_delimiter(@stats[:played]), "played" ],
        [ "Wins", number_with_delimiter(@stats[:wins]), "wins" ],
-       [ "First game", @stats[:first_game_on] ? l(@stats[:first_game_on], format: :long) : "None yet", "first-game" ],
+       [ "First game", @stats[:first_game_on]&.strftime("%B %-d, %Y") || "None yet", "first-game" ],
        [ "Saved lineups", @stats[:lineups], "lineups" ] ].each do |label, value, key| %>
     <div class="rounded-lg border border-subtle bg-surface-alt p-3">
       <dt class="text-xs font-semibold uppercase tracking-widest text-muted"><%= label %></dt>

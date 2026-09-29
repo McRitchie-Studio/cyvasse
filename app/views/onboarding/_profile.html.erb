@@ -31,11 +31,11 @@
     <legend class="block text-sm font-semibold text-heading mb-1">Birthday <span class="font-normal text-muted">(optional)</span></legend>
     <div class="grid grid-cols-3 gap-2">
       <%= select_tag :birth_month, options_for_select((1..12).map { |m| [ Date::ABBR_MONTHNAMES[m], m ] }, params[:birth_month] || current_user.birth_month),
-            include_blank: "Month", class: "input-field w-full", aria: { label: "Birth month" } %>
+            include_blank: "Month", class: "input-field w-full px-2 text-sm", aria: { label: "Birth month" } %>
       <%= select_tag :birth_day, options_for_select(1..31, params[:birth_day] || current_user.birth_day),
-            include_blank: "Day", class: "input-field w-full", aria: { label: "Birth day" } %>
+            include_blank: "Day", class: "input-field w-full px-2 text-sm", aria: { label: "Birth day" } %>
       <%= select_tag :birth_year, options_for_select(OnboardingController::BIRTH_YEARS.to_a.reverse, params[:birth_year] || current_user.birth_year),
-            include_blank: "Year", class: "input-field w-full", aria: { label: "Birth year" } %>
+            include_blank: "Year", class: "input-field w-full px-2 text-sm", aria: { label: "Birth year" } %>
     </div>
     <% if current_user.errors[:birth_date].any? %>
       <p class="text-sm text-danger-ink mt-1" role="alert">Birthday <%= current_user.errors[:birth_date].to_sentence %>.</p>
