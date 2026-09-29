@@ -456,3 +456,119 @@
   background-color: rgb(139 92 246 / 0.15);
   color: inherit;
 }
+
+/* The strip above the board: the start-over hint while a piece is picked,
+ * and the threat switch. A fixed height, so the board never jumps when the
+ * hint comes and goes. */
+.cyvasse-board-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.125rem; /* the touch hint: 19.5px line + 0.35rem padding + border = 32.7px */
+  margin-bottom: 0.375rem;
+  font-size: 0.8125rem;
+}
+
+.cyvasse-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary, inherit);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cyvasse-hint[hidden] {
+  display: none;
+}
+
+.cyvasse-hint kbd {
+  padding: 0 0.3rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+/* A touch screen has no Esc key: the hint becomes a tap target. */
+.cyvasse-hint-touch {
+  display: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .cyvasse-hint-keys {
+    display: none;
+  }
+
+  .cyvasse-hint-touch {
+    display: inline;
+  }
+
+  .cyvasse-hint {
+    padding: 0.35rem 0.9rem;
+  }
+}
+
+.cyvasse-threat-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-left: auto;
+  color: var(--color-text-secondary, inherit);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cyvasse-threat-toggle[hidden] {
+  display: none;
+}
+
+.cyvasse-threat-toggle input {
+  accent-color: #e25c3c;
+}
+
+/* The opponent's reach: one thin, soft warm line round the region they could
+ * strike next turn. Context, not a cue: it sits over the board and under
+ * nothing a player has to read. */
+.cyvasse-board .threat-outline {
+  fill: none;
+  stroke: hsl(14 95% 62%);
+  stroke-opacity: 0.75;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+/* A unit of yours the opponent could kill next turn: a red ring that breathes
+ * behind the art (steady for a player who asked for less motion). */
+.cyvasse-board .danger-ring {
+  display: none;
+  fill: none;
+  stroke: hsl(0 95% 60%);
+  stroke-width: 3;
+  pointer-events: none;
+}
+
+.cyvasse-board .is-danger .danger-ring {
+  display: inline;
+  animation: cyvasse-danger 1.6s ease-in-out infinite;
+}
+
+@keyframes cyvasse-danger {
+  0%, 100% { stroke-opacity: 0.95; stroke-width: 3; }
+  50% { stroke-opacity: 0.35; stroke-width: 5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cyvasse-board .is-danger .danger-ring {
+    animation: none;
+    stroke-opacity: 0.9;
+  }
+}

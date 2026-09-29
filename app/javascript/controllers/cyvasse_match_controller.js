@@ -58,6 +58,7 @@ export default class extends GameController {
     const arriving = this.state?.can_set_up && !state.can_set_up && state.live?.auto_set_up?.you
     this.state = state
     this.steps = []
+    this.pendingJump = null
     this.holding = false
     this.clearSelection()
     this.game = Game.restore({
@@ -193,8 +194,12 @@ export default class extends GameController {
     if (!this.state.your_turn || this.holding) return
     if (this.actions && (this.actions.moves.includes(hex) || this.actions.attacks.includes(hex))) {
       const from = this.selectedHex
+      const before = this.game.jump === 1 ? this.game.snapshot() : null
       const result = this.game.act(from, hex)
       this.steps.push([from, hex])
+      // Both steps of a double jump go to the server together, so until the
+      // second is made the first can still be taken back (startOver).
+      this.pendingJump = result.secondJump ? before : null
       if (result.secondJump) {
         this.render()
         this.select(this.game.activeHex)

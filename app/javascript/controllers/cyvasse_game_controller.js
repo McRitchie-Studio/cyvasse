@@ -4,6 +4,7 @@ import { chooseAction, KILL_PRIORITY } from "cyvasse/ai"
 import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
 import { UNIT_TYPES } from "cyvasse/units"
 import { Banner, passNotice } from "cyvasse/banner"
+import { threats } from "cyvasse/threats"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -137,6 +138,21 @@ function overBoard(color, alpha) {
 // the lot, so a hex never carries two looks.
 const RING_CLASSES = ["is-lit", "is-ghost", "is-field", "is-target", "is-blocked"]
 
+// The threat outline (renderThreats) is on unless the player turned it off.
+const THREATS_KEY = "cyvasse.showThreats"
+
+function threatsWanted() {
+  try {
+    return window.localStorage.getItem(THREATS_KEY) !== "off"
+  } catch {
+    return true
+  }
+}
+
+// The six corners of a hex at full size, shared exactly with its neighbours,
+// so an edge two threatened hexes share can be found and left undrawn.
+const FULL_CORNERS = [[0, -H / 2], [W / 2, -H / 4], [W / 2, H / 4], [0, H / 2], [-W / 2, H / 4], [-W / 2, -H / 4]]
+
 const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", unique: "Unique", mountain: "Mountain" }
 
 // Every unit's hex is shaded in its team's colour from the edge in towards
@@ -156,7 +172,7 @@ function shadeStops(rank) {
 }
 
 export default class extends Controller {
-  static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent"]
+  static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent", "hint", "threatToggle"]
   static values = { skin: { type: String, default: "vector" }, images: Object, skins: Object, pace: { type: Number, default: 1 } }
 
   connect() {
@@ -175,6 +191,7 @@ export default class extends Controller {
   newGame() {
     this.clearTimers()
     this.game = new Game()
+    this.pendingJump = null
     this.holding = false
     this.selectedUnitId = null
     this.selectedHex = null
@@ -346,7 +363,9 @@ export default class extends Controller {
 
   playClick(hex) {
     if (this.actions && (this.actions.moves.includes(hex) || this.actions.attacks.includes(hex))) {
+      const before = this.game.jump === 1 ? this.game.snapshot() : null
       const result = this.game.act(this.selectedHex, hex)
+      this.pendingJump = result.secondJump ? before : null
       if (result.secondJump) {
         this.render()
         this.select(this.game.activeHex)
@@ -356,6 +375,41 @@ export default class extends Controller {
       return
     }
     if (this.game.selectableHexes().includes(hex)) this.select(hex)
+  }
+
+  // "Start over" (Esc, or the hint's button on touch): let go of the picked
+  // piece. Midway through a cavalry double jump, before the turn is played,
+  // it takes the first jump back, so the horse can move again from where it
+  // stood. In setup it puts a picked unit back down.
+  startOver(event) {
+    if (event?.type === "keydown" && event.target.closest?.("input, textarea, select, [contenteditable]")) return
+    if (this.holding || !this.game) return
+    const game = this.game
+    if (game.phase === "setup") {
+      if (!this.selectedUnitId) return
+      this.selectedUnitId = null
+      return this.render()
+    }
+    if (game.phase !== "play") return
+    if (this.pendingJump && game.jump === 2) {
+      game.restoreSnapshot(this.pendingJump)
+      this.pendingJump = null
+      this.steps = []
+    } else if (this.selectedHex == null) {
+      return
+    }
+    this.clearSelection()
+    this.render()
+  }
+
+  toggleThreats(event) {
+    this.showThreats = event.target.checked
+    try {
+      window.localStorage.setItem(THREATS_KEY, this.showThreats ? "on" : "off")
+    } catch {
+      // Storage refused (a private window): the switch still works this visit.
+    }
+    this.renderThreats()
   }
 
   // ---- Drawing -------------------------------------------------------------
@@ -422,13 +476,17 @@ export default class extends Controller {
       const polygon = el("polygon", { class: "hex-poly", points: corners })
       const texture = el("polygon", { class: "ring-texture", points: corners, fill: "url(#ring-texture)" })
       const shade = el("polygon", { class: "unit-shade", points: corners })
+      const danger = el("circle", { class: "danger-ring", r: 28.5 })
       const disc = el("circle", { class: "unit-disc", r: 27 })
       const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
-      group.append(polygon, texture, shade, disc, image)
+      group.append(polygon, texture, shade, danger, disc, image)
       svg.append(group)
       this.hexNodes.set(hex.index, { group, polygon, shade, disc, image })
-      this.hexCentres.set(hex.index, { x: cx, row: hex.y })
+      this.hexCentres.set(hex.index, { x: cx, y: cy, row: hex.y })
     }
+    // The opponent's reach, drawn as one outline over the board (renderThreats).
+    this.threatPath = el("path", { class: "threat-outline" })
+    svg.append(this.threatPath)
   }
 
   // ---- Piece skin ------------------------------------------------------------
@@ -539,6 +597,8 @@ export default class extends Controller {
     }
 
     this.paintGround()
+    this.renderThreats()
+    this.renderHint()
     this.renderDock()
     this.renderStatus()
     this.renderGraveyards()
@@ -553,6 +613,58 @@ export default class extends Controller {
       const ground = group.classList.contains("is-drop") ? "hex-drop" : group.classList.contains("is-deploy") ? "hex-deploy" : "hex-base"
       polygon.setAttribute("fill", `url(#${ground})`)
     }
+  }
+
+  // Where the opponent could strike next turn (cyvasse/threats, from the
+  // rules' own legal actions): the outer edge of that region is outlined, the
+  // opponent's own units counted in so the outline is one shape rather than
+  // a ring round each of them, and every unit of yours they could actually
+  // kill wears the danger ring. Play only; the switch turns it off.
+  renderThreats() {
+    const game = this.game
+    // Read once per page, by /play and the match board alike.
+    this.showThreats ??= threatsWanted()
+    const live = game.phase === "play" && this.showThreats
+    if (this.hasThreatToggleTarget) {
+      this.threatToggleTarget.checked = this.showThreats
+      this.threatToggleTarget.closest("label").hidden = game.phase !== "play"
+    }
+    const { reach, kills } = live ? threats(game, 1 - PLAYER) : { reach: new Set(), kills: new Set() }
+    for (const [index, node] of this.hexNodes) {
+      const unit = game.pieceAt(index)
+      const danger = kills.has(index) && unit?.team === PLAYER
+      node.group.classList.toggle("is-danger", danger)
+      node.group.classList.toggle("is-threatened", reach.has(index))
+      // Said after the unit's name, which stays as it is.
+      if (danger) node.group.setAttribute("aria-description", "In danger: the opponent can take it next turn")
+      else node.group.removeAttribute("aria-description")
+    }
+    if (!live) return this.threatPath.setAttribute("d", "")
+
+    const region = new Set(reach)
+    for (const unit of game.teamUnits(1 - PLAYER, "alive")) region.add(unit.hex)
+    const edges = new Map()
+    for (const index of region) {
+      const { x, y } = this.hexCentres.get(index)
+      const points = FULL_CORNERS.map(([dx, dy]) => [x + dx, y + dy])
+      points.forEach((a, i) => {
+        const b = points[(i + 1) % 6]
+        const key = [a, b].map(([px, py]) => `${px.toFixed(1)},${py.toFixed(1)}`).sort().join(" ")
+        edges.set(key, edges.has(key) ? null : [a, b])
+      })
+    }
+    const d = [...edges.values()].filter(Boolean)
+      .map(([[ax, ay], [bx, by]]) => `M${ax.toFixed(1)} ${ay.toFixed(1)}L${bx.toFixed(1)} ${by.toFixed(1)}`).join("")
+    this.threatPath.setAttribute("d", d)
+  }
+
+  // The "start over" hint shows while there is something to start over from.
+  renderHint() {
+    if (!this.hasHintTarget) return
+    const game = this.game
+    const picked = game.phase === "setup" ? !!this.selectedUnitId
+      : game.phase === "play" && (this.selectedHex != null || (!!this.pendingJump && game.jump === 2))
+    this.hintTarget.hidden = !picked || this.holding
   }
 
   renderDock() {
@@ -647,6 +759,7 @@ export default class extends Controller {
     for (const i of this.actions.moves) this.hexNodes.get(i).group.classList.add("is-move")
     for (const i of this.actions.attacks) this.hexNodes.get(i).group.classList.add("is-attack")
     this.ripple(unit)
+    this.renderHint()
   }
 
   clearSelection() {
