@@ -10,8 +10,9 @@
 #     forfeit on the move clock, or a draw. A match that expired before play
 #     is not a game.
 #   * Games against a computer player count, won or lost.
-#   * A seat a computer held counts for nobody: a computer player's, and a
-#     human seat a computer took over after missed clocks (Match#on_record?).
+#   * A seat a computer held at the end counts for nobody: a computer
+#     player's, and a human seat a computer took over after missed clocks
+#     (Match#on_record?). A seat its player took back counts for them again.
 #   * Guests appear under their guest name. Signing in moves their matches to
 #     the account (GuestClaim), so the points follow; a guest already merged
 #     never appears.

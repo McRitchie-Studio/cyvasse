@@ -12,7 +12,8 @@
 #           player who lets the clock run out has a computer move made for
 #           them and takes a strike.
 #   strikes STRIKES_TO_REPLACE missed clocks and a computer player takes that
-#           seat for the rest of the match.
+#           seat, until its player takes it back (#take_back_seat!). The
+#           strikes stay counted, so one more missed clock hands it over again.
 #
 # There is no background worker: #tick! settles whatever is due whenever
 # either player's board asks for the state (MatchesController), under the row
@@ -87,6 +88,31 @@ module LiveMatch
     bot_seat?(seat) && strikes(seat) >= STRIKES_TO_REPLACE
   end
 
+  # A player took this seat back from the computer (#take_back_seat!): the
+  # strikes that handed it over, and no computer in it.
+  def took_back?(seat)
+    !bot_seat?(seat) && strikes(seat) >= STRIKES_TO_REPLACE
+  end
+
+  # `user` takes back the seat a computer took over, and plays on. Never
+  # across a computer move: when it is the seat's turn, the computer's move
+  # lands first, under the same lock, and the seat is handed back after it.
+  def take_back_seat!(user, rng: Random.new)
+    change(user) do
+      raise Match::Refused, "This match is not in play." unless live? && in_progress?
+
+      seat = seat(user)
+      raise Match::Refused, "Your seat is already yours." unless taken_over?(seat)
+
+      land_bot_turn!(rng) if seat_to_move == seat
+      next unless in_progress?
+
+      self["#{seat}_bot"] = false
+      save!
+    end
+    self
+  end
+
   def auto_set_up?(seat)
     seat == :home ? home_auto_set_up? : away_auto_set_up?
   end
@@ -128,6 +154,7 @@ module LiveMatch
       strikes: { you: strikes(mine), opponent: strikes(theirs) },
       computer: opponent_of(user).computer?,
       taken_over: { you: taken_over?(mine), opponent: taken_over?(theirs) },
+      took_back: { you: took_back?(mine), opponent: took_back?(theirs) },
       auto_set_up: { you: auto_set_up?(mine), opponent: auto_set_up?(theirs) },
       # The game-over modal's line to a guest (modals/_game_over): signing in
       # puts this win on the leaderboard.
@@ -264,6 +291,12 @@ module LiveMatch
     else
       play_bot_plan!(rng)
     end
+  end
+
+  # The computer's turn, whole and at once: the one it chose and may be
+  # showing (bot_plan), else a fresh one.
+  def land_bot_turn!(rng)
+    bot_plan&.dig("steps").present? ? play_bot_plan!(rng) : bot_turn!(rng)
   end
 
   def bot_step!(stage, delay)
