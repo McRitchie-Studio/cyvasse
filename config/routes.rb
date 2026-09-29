@@ -13,6 +13,17 @@ Rails.application.routes.draw do
   # local email inbox and local review on developer desks.
   Studio.routes(self)
 
+  # The hub's email CTA signs a player in with a signed assertion (EmailHandoff);
+  # a session it starts confirms itself by a fresh magic link before a
+  # sensitive change (ConfirmedSession).
+  get "auth/email_handoff", to: "email_handoffs#show", as: :email_handoff
+  post "account/confirmation", to: "session_confirmations#create", as: :session_confirmation
+  get "account/confirm", to: "session_confirmations#show", as: :confirm_session
+  # Finishing an incomplete account after a sign-in (User::Onboarding).
+  get "onboarding", to: "onboarding#show", as: :onboarding
+  patch "onboarding/:step", to: "onboarding#update", as: :onboarding_step
+  post "onboarding/:step/skip", to: "onboarding#skip", as: :skip_onboarding_step
+
   # Both piece skins side by side (epic cyvasse-revival piece 3). Public, like
   # the landing page: it is art, not a game surface.
   get "pieces", to: "pages#pieces", as: :pieces
@@ -60,6 +71,8 @@ Rails.application.routes.draw do
     resources :conversations, only: %i[index show]
     resources :matches, only: :show
     get "message_board", to: "message_board#index", as: :message_board
+    # Email handoff sign-ins and where the onboarding loses people.
+    get "sign_ins", to: "sign_ins#index", as: :sign_ins
   end
   # Saved army lineups (piece 10b): save the army on the board to one of three
   # slots; the setup panel loads them in the browser.

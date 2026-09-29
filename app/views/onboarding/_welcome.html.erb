@@ -1,0 +1,19 @@
+<%# Welcome back: what came across from the old game (User#legacy_stats). %>
+<div class="space-y-2">
+  <h1 class="text-2xl font-extrabold text-heading tracking-tight">Welcome back, <%= current_user.player_name %></h1>
+  <p class="text-secondary text-sm">Cyvasse is back, and your history came with you.</p>
+</div>
+
+<dl class="grid grid-cols-2 gap-3" data-legacy-stats>
+  <% [ [ "Games played", number_with_delimiter(@stats[:played]), "played" ],
+       [ "Wins", number_with_delimiter(@stats[:wins]), "wins" ],
+       [ "First game", @stats[:first_game_on] ? l(@stats[:first_game_on], format: :long) : "None yet", "first-game" ],
+       [ "Saved lineups", @stats[:lineups], "lineups" ] ].each do |label, value, key| %>
+    <div class="rounded-lg border border-subtle bg-surface-alt p-3">
+      <dt class="text-xs font-semibold uppercase tracking-widest text-muted"><%= label %></dt>
+      <dd class="mt-1 text-lg font-bold text-heading" data-stat="<%= key %>"><%= value %></dd>
+    </div>
+  <% end %>
+</dl>
+
+<%= button_to "Continue", onboarding_step_path("welcome"), method: :patch, class: "btn btn-primary btn-lg w-full", form: { data: { turbo: false } } %>
