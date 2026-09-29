@@ -44,6 +44,22 @@ class NavbarLinksTest < ActiveSupport::TestCase
     assert_nil leaderboard(player("arya"))[:badge]
   end
 
+  test "a failed rank query degrades to no badge and is logged, not raised" do
+    arya = player("arya")
+    original = Leaderboard.method(:rank_for)
+    Leaderboard.define_singleton_method(:rank_for) do |_user|
+      raise ActiveRecord::StatementInvalid, "PG::QueryCanceled: statement timeout"
+    end
+
+    resolved = assert_difference(-> { ErrorLog.count }, 1) { links(arya) }
+
+    assert_equal [ "My games", "Leaderboard" ], resolved.map { _1[:label] }
+    assert_nil resolved.last[:badge]
+    assert_match "statement timeout", ErrorLog.last.message
+  ensure
+    Leaderboard.define_singleton_method(:rank_for, original)
+  end
+
   test "active patterns cover the index and the pages under it, not lookalikes" do
     my_games, board = NavbarLinks.call(View.new(player("arya"))).map { _1[:active] }
 

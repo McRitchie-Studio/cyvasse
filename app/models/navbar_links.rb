@@ -25,8 +25,21 @@ module NavbarLinks
   end
 
   # "#12" for a player on the live board; nil (no badge) for anyone else.
+  # The engine resolves the links inside the layout with no rescue, so a
+  # failed rank query would 500 every page, the error pages included: it
+  # degrades to no badge and lands in ErrorLog instead.
   def rank_badge(player)
     row = Leaderboard.rank_for(player)
     "##{row.rank}" if row
+  rescue StandardError => e
+    log_failure(e)
+    nil
+  end
+
+  def log_failure(error)
+    ErrorLog.capture!(error)
+  rescue StandardError => e
+    Rails.logger.error("[NavbarLinks] rank badge failed (#{error.class}: #{error.message}); " \
+                       "ErrorLog.capture! failed too (#{e.class}: #{e.message})")
   end
 end
