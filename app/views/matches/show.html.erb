@@ -7,6 +7,7 @@
 
 <section class="cyvasse-game max-w-6xl mx-auto"
          data-controller="cyvasse-match"
+         data-action="keydown.esc@window->cyvasse-match#startOver"
          data-cyvasse-match-images-value="<%= @piece_images.to_json %>"
          data-cyvasse-match-state-value="<%= @state.to_json %>"
          data-cyvasse-match-state-url-value="<%= match_path(@match, format: :json) %>"
@@ -28,6 +29,7 @@
 
   <div class="cyvasse-layout">
     <div class="cyvasse-board-wrap">
+      <%= render "games/board_bar", board: "cyvasse-match" %>
       <svg class="cyvasse-board" role="group" aria-label="The Cyvasse board. Arrow keys move between hexes; Enter selects."
            data-cyvasse-match-target="board" data-action="click->cyvasse-match#clickHex keydown->cyvasse-match#keyHex"></svg>
       <div class="cyvasse-banner" hidden data-cyvasse-match-target="banner"></div>
