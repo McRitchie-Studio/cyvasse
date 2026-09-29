@@ -78,6 +78,11 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     press_escape
     assert_equal 0, page.evaluate_script("document.querySelectorAll('#cyvasse-game-threat-mask g polygon').length")
 
+    # The last move's orange is read too: the outline is cut away over it.
+    page.execute_script("const ctrl = #{CONTROLLER}; ctrl.game.lastMove = [43, 44]; ctrl.render()")
+    assert_selector "svg.cyvasse-board g.hex.is-last-move", count: 2
+    assert_equal 2, page.evaluate_script("document.querySelectorAll('#cyvasse-game-threat-mask g polygon').length")
+
     # Move the rabble out of range: the danger follows the position.
     stage("0-15" => 46, "0-17" => 1, "1-17" => 91, "1-6" => 48, "1-1" => 90)
     assert_equal [], danger_hexes

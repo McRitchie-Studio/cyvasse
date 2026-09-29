@@ -137,8 +137,9 @@ function overBoard(color, alpha) {
 // Every class a ripple may leave on a hex; render() and each repaint clear
 // the lot, so a hex never carries two looks.
 const RING_CLASSES = ["is-lit", "is-ghost", "is-field", "is-target", "is-blocked"]
-// The selection and the rings it lights: the threat outline paints beneath these.
-const HIGHLIGHTS = ["is-selected", "is-move", "is-attack", ...RING_CLASSES]
+// The selection, the rings it lights and the last move's orange: the threat
+// outline paints beneath these (maskThreats), as it hides nothing a player reads.
+const HIGHLIGHTS = ["is-selected", "is-move", "is-attack", "is-last-move", ...RING_CLASSES]
 
 // The threat outline (renderThreats) is on unless the player turned it off.
 const THREATS_KEY = "cyvasse.showThreats"
