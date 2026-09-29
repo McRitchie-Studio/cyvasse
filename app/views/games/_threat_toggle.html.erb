@@ -1,0 +1,6 @@
+<%# The threat-outline switch. Locals: board, the board's Stimulus identifier.
+    Hidden until the board knows it is in play (renderThreats), so it never flashes during setup. %>
+<label class="cyvasse-threat-toggle" hidden>
+  <input type="checkbox" checked data-<%= board %>-target="threatToggle" data-action="<%= board %>#toggleThreats">
+  Show threats
+</label>
