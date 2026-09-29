@@ -92,7 +92,22 @@ export const OPENINGS = Object.freeze([
     ["LSHE.TEHSL", "..XCX.D..", "M..K...M", ".R.R.R.", "......"]),
   opening("the-split", "The Split",
     "Both mountains stand in the centre of the front row and split their advance in two. Each half meets its own elephant and horse, while the dragon and catapult shield the king.",
-    ["LE..MM..EL", ".HS.T.SH.", "X..CD..X", "R..K..R", "..R..."])
+    ["LE..MM..EL", ".HS.T.SH.", "X..CD..X", "R..K..R", "..R..."]),
+  opening("tusk-line", "Tusk Line",
+    "Both elephants stand on the front row with a spearman and a light horse beside each. The king waits in the back row with the catapult and trebuchet directly above it.",
+    ["LE.S..SE.L", ".H..D..H.", "M.X..X.M", "..RCTR.", "R..K.."]),
+  opening("wall-of-tusks", "Wall of Tusks",
+    "The elephants stand shoulder to shoulder in the centre of the front row, spearmen and mountains beside them. Your dragon and the catapult sit on the king's diagonals.",
+    ["M.S.EE.S.M", "L.H.T.H.L", "..XDCX..", "R..K..R", "..R..."]),
+  opening("rams-head", "Ram's Head",
+    "Each elephant leads from the front row with a heavy horse on its outside and the light horse between them. The king stands under a crossbow and the catapult.",
+    ["HE..LL..EH", ".S..T..S.", "M.XC.X.M", "R.K.D.R", "..R..."]),
+  opening("front-guard", "Front Guard",
+    "Spearmen, elephants and both crossbows hold the front row together, so anything that steps up to them meets a shooter. The trebuchet and catapult cover the king.",
+    ["S.EX..XE.S", "L..H.H..L", "M..TC..M", "R..K..R", "..RD.."]),
+  opening("wide-tusks", "Wide Tusks",
+    "The elephants hold the two ends of the front row, facing down each flank, with the spearmen in the centre. The catapult and trebuchet stand above the king.",
+    ["E.L.SS.L.E", ".H.X.X.H.", "M..CT..M", ".R.K.R.", "..D.R."])
 ]);
 
 // The opening's legacy setup string ("unitIndex:hex|", from the player's
