@@ -51,6 +51,23 @@
   object-fit: contain;
 }
 
+/* The front door's hero: a game in play under a black scrim. */
+.home-hero-scrim {
+  background: rgb(0 0 0 / 0.7);
+}
+
+/* Secondary to the gold Play Now: an outline in the secondary green. */
+.home-secondary-btn {
+  --home-accent: var(--btn-secondary-bg, var(--color-success));
+  background: transparent;
+  border: 2px solid var(--home-accent);
+  color: var(--home-accent);
+}
+
+.home-secondary-btn:hover {
+  background: color-mix(in srgb, var(--home-accent) 20%, transparent);
+}
+
 /* Rules and about pages (/rules, /about). */
 .page-banner-scrim {
   background: rgb(0 0 0 / 0.6);
