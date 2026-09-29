@@ -70,7 +70,11 @@ piece of the epic. The rules are the legacy engine's, ported line for line from
 clicks into `Game` calls; it holds no rules. Highlight borders are drawn once
 per edge, full width, by whichever highlight owns it (`cyvasse/edges.js`:
 selection > move rings > last move > danger > threat perimeter > team edge);
-"Show threats" outlines only the rim of the opponent's reach. The board plays from the keyboard
+the threat outline draws only the rim of the opponent's reach (one solid red
+rim; `PERIMETER_STYLE = "dual"` in `cyvasse/edges.js` draws melee's solid and
+ranged's dashed instead), and its two switches, "Ranged threats" (crossbowman, trebuchet, catapult: `RANGED_UNITS` in
+`cyvasse/units.js`) and "Melee threats" (every other unit), each show or hide
+their own units' share. The board plays from the keyboard
 too (it is one tab stop: arrows move between hexes, Enter or Space selects),
 and when a side has no legal move its turn passes and the page says who passed
 (`cyvasse/banner.js`); if neither side can move the game is a draw. `/rules`

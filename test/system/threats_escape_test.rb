@@ -4,7 +4,7 @@ require "application_system_test_case"
 #
 # - In play, every hex the opponent could strike next turn is outlined, and
 #   a unit of yours they could actually kill is marked in danger; one that
-#   is merely within reach is not. (The look: board_highlights_test.rb.) A switch turns it off and is remembered.
+#   is merely within reach is not. (The look: board_highlights_test.rb.) Its switches turn it off and are remembered.
 # - While a piece is picked, "Press Esc to start over" shows. Esc lets go of
 #   the piece, puts back a picked dock unit in setup, and takes back a
 #   cavalry unit's first jump (capture and all) before the turn is played.
@@ -17,7 +17,7 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
   end
 
   test "setup: no threats, and Esc puts a picked dock unit back" do
-    assert_no_selector ".cyvasse-threat-toggle", visible: true
+    assert_no_selector ".cyvasse-threat-toggles", visible: true
     assert_equal 0, outline
     first(".cyvasse-dock .dock-unit").click
     assert_selector "svg.cyvasse-board g.hex.is-drop", count: 40
@@ -53,16 +53,23 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     stage("0-15" => 46, "0-17" => 1, "1-17" => 91, "1-6" => 48, "1-1" => 90)
     assert_equal [], danger_hexes
 
-    # The switch hides it all, and the choice survives a reload.
-    uncheck "Show threats"
-    assert_equal 0, outline
+    # The Ranged switch hides the catapult's threats (the per-group
+    # behaviour: threat_toggles_test.rb), and the choice survives a reload.
+    both = outline
+    uncheck "Ranged threats"
+    assert_no_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='48']"
     assert_no_selector "svg.cyvasse-board g.hex.is-danger"
+    assert_operator outline, :<, both, "only their king's reach stays"
     visit play_path
     start_game
-    assert_no_checked_field "Show threats"
-    assert_equal 0, outline
-    check "Show threats"
-    assert_operator outline, :>, 0
+    stage("0-15" => 46, "0-17" => 1, "1-17" => 91, "1-6" => 48, "1-1" => 90)
+    assert_no_checked_field "Ranged threats"
+    assert_checked_field "Melee threats"
+    assert_no_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='48']"
+    check "Ranged threats"
+    assert_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='48']"
+  ensure
+    page.execute_script("try { localStorage.clear() } catch {}")
   end
 
   test "Esc lets go of a piece and takes back a cavalry unit's first jump" do
