@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_26_000050) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -70,17 +70,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_000050) do
   end
 
   create_table "matches", force: :cascade do |t|
+    t.boolean "away_auto_set_up", default: false, null: false
+    t.boolean "away_bot", default: false, null: false
     t.boolean "away_ready", default: false
+    t.integer "away_strikes", default: 0, null: false
     t.string "away_units_position"
     t.bigint "away_user_id", null: false
+    t.datetime "bot_due_at"
+    t.datetime "clock_started_at"
     t.datetime "created_at", null: false
     t.boolean "fast_game", default: false
     t.string "finish_reason"
+    t.boolean "home_auto_set_up", default: false, null: false
+    t.boolean "home_bot", default: false, null: false
     t.boolean "home_ready", default: false
+    t.integer "home_strikes", default: 0, null: false
     t.string "home_units_position"
     t.bigint "home_user_id", null: false
     t.string "last_move"
     t.integer "legacy_id"
+    t.boolean "live", default: false, null: false
     t.string "match_against", default: "human"
     t.string "match_status", default: "pending"
     t.datetime "time_of_last_move"
