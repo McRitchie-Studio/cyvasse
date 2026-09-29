@@ -94,6 +94,9 @@ class LiveMatchUiTest < ApplicationSystemTestCase
   end
 
   test "an army placed by the clock arrives on the board, and the player is told" do
+    # The computer's reply stays on its real pacing, so it cannot land (and,
+    # with an unlucky opening, end the game) before the notice is read.
+    LiveMatch.bot_pace = 1
     rewind_clock(58)
     visit match_path(@match)
     assert_selector ".cyvasse-dock .dock-unit", count: 19
@@ -113,6 +116,10 @@ class LiveMatchUiTest < ApplicationSystemTestCase
       @match.reload
     end
     skip "the computer won on its first move" if @match.finished?
+    # From here the computer keeps its real pacing: with bot_pace 0 one poll
+    # settled the missed clock AND the computer's whole reply, which could take
+    # the king and put the game-over modal over the notice (CI seed 11698).
+    LiveMatch.bot_pace = 1
     rewind_clock(29)
     visit match_path(@match)
     assert_selector "[data-cyvasse-match-target=clockLabel]", text: /Your move|Hurry/

@@ -18,7 +18,7 @@ class PhoneWidthTest < ApplicationSystemTestCase
       assert_selector "svg.cyvasse-board g.hex", count: 91
       assert_fits width
 
-      random_setup!
+      smart_setup!
       watch_widest_page
       click_on "Ready"
 
@@ -48,7 +48,7 @@ class PhoneWidthTest < ApplicationSystemTestCase
     assert_selector ".cyvasse-dock .dock-unit", count: 19
     assert_fits 390
 
-    random_setup!
+    smart_setup!
     watch_widest_page
     click_on "Ready"
 
@@ -75,29 +75,6 @@ class PhoneWidthTest < ApplicationSystemTestCase
 
   private
 
-  # Place the army. On a phone, Smart Setup sits below the fold, so the click
-  # first scrolls it into view, and that scroll collapses the engine's sticky,
-  # in-flow navbar (navCollapse: 32px here, 4px a frame). The page slides up
-  # under a click already aimed, and on a loaded CI runner it lands below the
-  # button: a silent no-op, 19 units still in the dock. CI runs 36556041722
-  # and 36555774130 both show it, one warm and one cold. The load wait
-  # below only rules out a page still painting; it cannot see a collapse that
-  # the click's own scroll starts. The confirm-and-retry is the fix: by the
-  # second click the page is scrolled and the navbar settled. A second click
-  # is harmless: Smart Setup only ever places or replaces your own army.
-  def random_setup!
-    assert page.evaluate_async_script(<<~JS), "the page finished loading"
-      const done = arguments[arguments.length - 1]
-      const loaded = document.readyState === "complete" ? Promise.resolve() :
-        new Promise((resolve) => window.addEventListener("load", resolve, { once: true }))
-      loaded.then(() => document.fonts.ready).then(() => requestAnimationFrame(() => done(true)))
-    JS
-    2.times do
-      find("button.cyvasse-smart").click
-      break if has_no_selector?(".cyvasse-dock .dock-unit", wait: 3)
-    end
-    assert_no_selector ".cyvasse-dock .dock-unit"
-  end
 
   # A true phone viewport.
   def phone!(width)
