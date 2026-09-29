@@ -71,6 +71,22 @@ class JumpRangeRingsTest < ApplicationSystemTestCase
     assert_match(/\Aurl\("#ghost-/, fill_of(ghosts.first["hex"]))
     assert_equal ORANGE, fill_of(61)
     screenshot("cavalry-pencil-light")
+    page.execute_script("document.documentElement.classList.add('dark')")
+
+    # A player who asks for less motion gets the rings at once, no ripple:
+    # at the real pace every ring is painted before the first tick.
+    page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-reduced-motion", value: "reduce" } ])
+    page.execute_script("document.querySelector('[data-controller=cyvasse-game]').dataset.cyvasseGamePaceValue = '1'")
+    painted = page.evaluate_script(<<~JS)
+      (() => {
+        const ctrl = #{CONTROLLER}
+        ctrl.clickHex({ target: document.querySelector("g.hex[data-hex='52']") })
+        const ghosts = [...ctrl.actions.rings].filter(([, ring]) => ring >= 60 && ring < 90).map(([hex]) => hex)
+        return [ghosts.length, ghosts.filter((hex) => document.querySelector(`g.hex[data-hex='${hex}']`).classList.contains("is-ghost")).length]
+      })()
+    JS
+    assert_operator painted[0], :>, 0
+    assert_equal painted[0], painted[1], "every ghost is painted at once"
   end
 
   test "a shooter's range is a field wash with strong targets and dim blocked hexes" do
