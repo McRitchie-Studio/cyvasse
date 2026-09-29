@@ -43,7 +43,11 @@ class LiveGameOverTest < ApplicationSystemTestCase
       travel_to(due + 1.second) { @match.tick!(rng:) }
     end
 
-    within(MODAL, wait: 10) { assert_selector "h3", text: /king|draw/i }
+    within(MODAL, wait: 10) do
+      assert_selector "h3", text: /king|draw/i
+      assert_text "The computer finished this game in your seat, so it scores no points."
+      assert_no_selector "[data-test=game-over-points]"
+    end
     assert_no_button "Forfeit match"
   end
 
@@ -79,7 +83,11 @@ class LiveGameOverTest < ApplicationSystemTestCase
       delete document.hasFocus
       document.dispatchEvent(new Event("visibilitychange"))
     JS
-    within(MODAL, wait: 5) { assert_selector "h3", text: "Your opponent ran out of time. You win." }
+    within(MODAL, wait: 5) do
+      assert_selector "h3", text: "Your opponent ran out of time. You win."
+      assert_selector "[data-test=game-over-points]", text: /\A\+3 points on the leaderboard\. You\u2019re now #\d+\.\z/
+      assert_no_text "scores no points"
+    end
   end
 
   test "a finished match opened from My games shows its result without the modal" do
