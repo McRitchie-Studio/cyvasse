@@ -2,10 +2,43 @@ require "application_system_test_case"
 
 # [component] The live match board (LiveMatch + cyvasse_match_controller): the
 # clock both players see, the ten-second nudge, an army placed by the clock
-# arriving piece by piece, the computer opponent's tag and "thinking", and
-# the strike notice. Clocks are moved by rewinding clock_started_at.
+# arriving piece by piece, the computer opponent's tag and "thinking",
+# the strike notice, and the computer's paced turn (its selection, its move,
+# a cavalry unit's second jump). Clocks are moved by rewinding
+# clock_started_at.
 class LiveMatchUiTest < ApplicationSystemTestCase
+  include MatchPlay
+  include LiveBot
+
   BOARD = "[data-controller=cyvasse-match]".freeze
+
+  teardown { LiveMatch.bot_pace = 0 }
+
+  # A paced computer match (the computer away) with a cavalry double jump
+  # planned for its turn.
+  def computer_double_jump
+    LiveMatch.bot_pace = 1
+    match = Match.start_live!(@arya, computer: true, rng: Random.new(7))
+    match.set_up!(@arya, home_lineup)
+    match.reload
+    if match.seat_to_move == :home
+      game = match.to_game
+      from = CyvasseRules::Bot.movers(game).find { |hex| !game.piece_at(hex).type.cavalry? && game.legal_actions(hex).moves.any? }
+      match.play!(@arya, [ [ from, game.legal_actions(from).moves.first ] ])
+      match.reload
+    end
+    plan_double_jump(match)
+  end
+
+  # Settle the computer's next step now, then hold the one after it until
+  # the test asks: the page's own polls then only ever redraw.
+  def next_bot_step(match)
+    match.reload.update_columns(bot_due_at: 1.second.ago)
+    match.tick!
+    match.reload.update_columns(bot_due_at: 1.hour.from_now) if match.bot_plan
+  end
+
+  def hex(index) = "svg.cyvasse-board g.hex[data-hex='#{index}']"
 
   setup do
     @arya = User.create!(email: "arya@example.com", name: "Arya", username: "arya")
@@ -74,7 +107,9 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     @match.set_up!(@arya, CyvasseRules::Bot.random_lineup(rng: Random.new(2)))
     @match.reload
     unless @match.seat_to_move == :home
-      travel_to(@match.bot_due_at + 1) { @match.tick! }
+      # Real time, not travel_to: a write stamped in the future makes the
+      # page read the next poll as stale. bot_pace 0 makes the turn due now.
+      @match.tick!
       @match.reload
     end
     skip "the computer won on its first move" if @match.finished?
@@ -123,5 +158,47 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     visit match_path(@match)
     assert_selector ".live-clock.is-thinking [data-cyvasse-match-target=clockLabel]",
                     text: "#{@match.display_name_of(@match.away_user)} is thinking…"
+  end
+
+  test "[e2e] the player sees the computer select its unit before it moves, and a cavalry's second jump follow" do
+    match = computer_double_jump
+    first, second = match.bot_plan["steps"]
+    match.update_columns(bot_due_at: 1.hour.from_now)
+    visit match_path(match)
+    assert_selector "[data-cyvasse-match-target=clockLabel]", text: /is thinking/
+    assert_no_selector "svg.cyvasse-board g.hex.is-selected"
+
+    next_bot_step(match)
+    assert_selector "#{hex(first.first)}.is-selected.has-unit[data-team='0']", wait: 5
+    assert_no_selector "#{hex(first.last)}.has-unit"
+
+    next_bot_step(match)
+    assert_selector "#{hex(first.last)}.is-selected.has-unit[data-team='0']", wait: 5
+    assert_no_selector "#{hex(first.first)}.has-unit"
+    assert_selector "[data-cyvasse-match-target=clockLabel]", text: /is thinking/
+
+    next_bot_step(match)
+    assert_selector "#{hex(second.last)}.has-unit[data-team='0']", wait: 5
+    assert_no_selector "svg.cyvasse-board g.hex.is-selected"
+    assert_selector "[data-cyvasse-match-target=clockLabel]", text: /Your move/
+  end
+
+  test "[component] under reduced motion the computer's selection lands at once, with no ripple" do
+    page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-reduced-motion", value: "reduce" } ])
+    begin
+      match = computer_double_jump
+      first = match.bot_plan["steps"].first
+      match.update_columns(bot_due_at: 1.hour.from_now)
+      visit match_path(match)
+      next_bot_step(match)
+      assert_selector "#{hex(first.first)}.is-selected", wait: 5
+      ripple = page.evaluate_script(<<~JS)
+        Stimulus.getControllerForElementAndIdentifier(document.querySelector("#{BOARD}"), "cyvasse-match").rippleTimer
+      JS
+      assert_nil ripple, "no ripple timer runs"
+      assert_selector "svg.cyvasse-board g.hex.is-lit"
+    ensure
+      page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [])
+    end
   end
 end

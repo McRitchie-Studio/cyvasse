@@ -46,6 +46,7 @@ export default class extends GameController {
     super.disconnect()
     clearTimeout(this.pollTimer)
     clearInterval(this.clockTimer)
+    this.stopAwaitingView()
   }
 
   // /play's "New game" and the computer's turn have no place here.
@@ -58,8 +59,9 @@ export default class extends GameController {
     // A live setup that ran out: the army the server placed arrives piece by
     // piece rather than all at once.
     const arriving = this.state?.can_set_up && !state.can_set_up && state.live?.auto_set_up?.you
-    // The game ended while this page watched, or a live game is opened over.
-    const ended = state.phase === "over" && (this.state ? this.state.phase !== "over" : state.live)
+    // The game ended while this page watched, or a live game that just ended
+    // is opened (not an old one, from My games).
+    const ended = state.phase === "over" && (this.state ? this.state.phase !== "over" : Boolean(state.live?.just_ended))
     this.state = state
     this.steps = []
     this.pendingJump = null
@@ -80,6 +82,7 @@ export default class extends GameController {
     this.opponentTarget.textContent = state.opponent.username
     this.renderDeadline()
     this.render()
+    this.showComputerStep()
     if (arriving) this.animateArrival()
     this.startLiveClock()
 
@@ -197,7 +200,9 @@ export default class extends GameController {
 
   playClick(hex) {
     if (!this.state.your_turn || this.holding) return
-    if (this.actions && (this.actions.moves.includes(hex) || this.actions.attacks.includes(hex))) {
+    const intent = this.intentFor(hex)
+    if (intent === "deselect") return this.deselect()
+    if (intent === "act") {
       const from = this.selectedHex
       const before = this.game.jump === 1 ? this.game.snapshot() : null
       const result = this.game.act(from, hex)
@@ -215,7 +220,7 @@ export default class extends GameController {
       this.send(this.moveUrlValue, { steps: this.steps })
       return
     }
-    if (this.game.selectableHexes().includes(hex)) this.select(hex)
+    if (intent === "select") this.select(hex)
   }
 
   // ---- Drawing ---------------------------------------------------------------
@@ -228,6 +233,18 @@ export default class extends GameController {
     }
     // "Ready" waits for a full army, and for a setup the server still takes.
     this.startButtonTarget.disabled = !this.state.can_set_up || !this.game.readyToStart
+  }
+
+  // A live computer plays in steps (LiveMatch#bot_plan): the unit it chose is
+  // shown selected, and again before a cavalry unit's second jump.
+  showComputerStep() {
+    const hex = this.state.live?.bot_selected
+    if (hex == null || this.state.phase !== "play" || !this.game.pieceAt(hex)) return
+    if (this.state.live.bot_jump === 2) {
+      this.game.jump = 2
+      this.game.activeHex = hex
+    }
+    this.select(hex)
   }
 
   renderStatus() {
@@ -353,6 +370,14 @@ export default class extends GameController {
   // guest) or play again. Closed, it leaves the final board to look over.
   // Until Alpine has the modal store, the result stays on the board.
   openGameOver() {
+    // Out of sight (another tab, window or app), it waits for the player:
+    // opened behind their back, the click that brings them back lands on
+    // the backdrop and closes it unseen.
+    if (!inView()) {
+      this.banner(this.outcomeText(), null, { stay: true })
+      this.awaitView()
+      return
+    }
     const store = window.Alpine?.store?.("modals")
     if (!store) {
       this.banner(this.outcomeText(), null, { stay: true })
@@ -367,6 +392,24 @@ export default class extends GameController {
       boardWin: Boolean(this.state.live?.board_win),
       returnTo: this.returnToValue || null
     })
+  }
+
+  awaitView() {
+    if (this.onView) return
+    this.onView = () => {
+      if (!inView()) return
+      this.stopAwaitingView()
+      if (this.state.phase === "over") this.openGameOver()
+    }
+    document.addEventListener("visibilitychange", this.onView)
+    window.addEventListener("focus", this.onView)
+  }
+
+  stopAwaitingView() {
+    if (!this.onView) return
+    document.removeEventListener("visibilitychange", this.onView)
+    window.removeEventListener("focus", this.onView)
+    this.onView = null
   }
 
   outcomeText() {
@@ -384,6 +427,10 @@ export default class extends GameController {
     this.errorTarget.textContent = message || ""
     this.errorTarget.hidden = !message
   }
+}
+
+function inView() {
+  return document.visibilityState === "visible" && document.hasFocus()
 }
 
 function csrfToken() {
