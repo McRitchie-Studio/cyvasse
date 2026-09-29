@@ -5,9 +5,12 @@
 #   setup   SETUP_CLOCK from the start for both armies. A computer seat sets
 #           up at once. A player still not ready when it runs out gets a
 #           random army (the board shows it filling in) and a strike.
-#   play    MOVE_CLOCK per turn. A computer seat thinks for BOT_THINK seconds,
-#           then plays. A player who lets the clock run out has a computer
-#           move made for them and takes a strike.
+#   play    MOVE_CLOCK per turn. A computer seat plays in visible steps
+#           (BOT_PACING, bot_plan): it selects a unit, moves it, and makes a
+#           cavalry unit's second jump, each after a random pause. Its turn
+#           runs no clock; the next player's starts when its move lands. A
+#           player who lets the clock run out has a computer move made for
+#           them and takes a strike.
 #   strikes STRIKES_TO_REPLACE missed clocks and a computer player takes that
 #           seat for the rest of the match.
 #
@@ -20,8 +23,12 @@ module LiveMatch
   SETUP_CLOCK = 60.seconds
   MOVE_CLOCK_LIVE = 30.seconds
   WARNING = 10.seconds
-  BOT_THINK = (3..14)
+  # Seconds, drawn at random (app/javascript/cyvasse/pacing.js is /play's copy).
+  BOT_PACING = { select: 2.0..5.0, move: 3.0..5.0, second: 2.0..3.0 }.freeze
   STRIKES_TO_REPLACE = 2
+
+  # Scales BOT_PACING; the test suite sets 0 so a computer turn is instant.
+  mattr_accessor :bot_pace, default: 1
 
   # The old site's computer players (User#computer?), by their username, with
   # the names the /play screen gives them (app/javascript/cyvasse/setups.js).
@@ -111,6 +118,10 @@ module LiveMatch
         warning: WARNING.to_i
       },
       thinking: in_progress? && bot_seat?(seat_to_move) && seat_to_move == theirs,
+      # The computer's unit on show, from this seat, and whether it is about
+      # to make a cavalry unit's second jump.
+      bot_selected: bot_selected_hex && (mine == :away ? CyvasseRules::Board.mirror(bot_selected_hex) : bot_selected_hex),
+      bot_jump: bot_stage == "moved" ? 2 : 1,
       strikes: { you: strikes(mine), opponent: strikes(theirs) },
       computer: opponent_of(user).computer?,
       taken_over: { you: taken_over?(mine), opponent: taken_over?(theirs) },
@@ -119,6 +130,23 @@ module LiveMatch
       # puts this win on the leaderboard.
       board_win: leaderboard_win?(user)
     }
+  end
+
+  # How far the computer's turn has been shown: "thinking", "selected", or
+  # "moved" (a cavalry unit's first jump made, its second to come).
+  def bot_stage
+    bot_plan&.dig("stage") if live? && in_progress? && bot_seat?(seat_to_move)
+  end
+
+  # The board the players see: mid double jump, the first jump already made.
+  # The turn itself is played (apply_turn) only when its last step lands.
+  def shown_game
+    game = to_game
+    bot_stage == "moved" ? CyvasseRules::Bot.after_step(game, *bot_plan["steps"].first) : game
+  end
+
+  def shown_last_move
+    bot_stage == "moved" ? bot_plan["steps"].first.join(",") : last_move
   end
 
   # The name a player sees for `user`: a computer player's full name.
@@ -144,9 +172,10 @@ module LiveMatch
   end
 
   def settle_play(rng)
-    # A human timeout makes the next turn a computer's or another human's, so
-    # each pass settles at most one overdue turn; two is plenty per poll.
-    2.times do
+    # Each pass settles one overdue step: a computer's selection, jump or
+    # turn, or a human timeout. Six covers a late poll catching up a whole
+    # computer turn and the timeout after it.
+    6.times do
       break unless in_progress?
 
       seat = seat_to_move
@@ -158,7 +187,7 @@ module LiveMatch
         end
         break if Time.current < bot_due_at
 
-        bot_turn!(rng)
+        advance_bot!(rng)
       elsif Time.current >= clock_started_at + MOVE_CLOCK_LIVE
         strike!(seat)
         bot_turn!(rng)
@@ -205,10 +234,50 @@ module LiveMatch
 
     self.clock_started_at = Time.current
     self.bot_due_at = nil
+    self.bot_plan = nil
     schedule_bot(rng) if in_progress? && bot_seat?(seat_to_move)
   end
 
+  # Choose the computer's whole turn now, so the unit it shows is the one it
+  # moves, and time its steps. Each step is due from the last one's due time,
+  # not from the poll, so a late poll catches up rather than stretching it.
   def schedule_bot(rng)
-    self.bot_due_at = Time.current + rng.rand(BOT_THINK).seconds
+    delays = BOT_PACING.transform_values { |range| rng.rand(range) * bot_pace }
+    self.bot_plan = { "steps" => CyvasseRules::Bot.choose_turn(to_game, rng:), "stage" => "thinking",
+                      "move" => delays[:move], "second" => delays[:second] }
+    self.bot_due_at = Time.current + delays[:select]
+  end
+
+  def advance_bot!(rng)
+    plan = bot_plan
+    return bot_turn!(rng) if plan.nil? || plan["steps"].blank?
+
+    case plan["stage"]
+    when "thinking"
+      bot_step!("selected", plan["move"])
+    when "selected"
+      plan["steps"].size == 2 ? bot_step!("moved", plan["second"]) : play_bot_plan!(rng)
+    else
+      play_bot_plan!(rng)
+    end
+  end
+
+  def bot_step!(stage, delay)
+    self.bot_plan = bot_plan.merge("stage" => stage)
+    self.bot_due_at = bot_due_at + delay.to_f.seconds
+    save!
+  end
+
+  def play_bot_plan!(rng)
+    apply_turn(bot_plan["steps"])
+  rescue CyvasseRules::Game::IllegalMove
+    bot_turn!(rng)
+  end
+
+  def bot_selected_hex
+    case bot_stage
+    when "selected" then bot_plan["steps"].first.first
+    when "moved" then bot_plan["steps"].first.last
+    end
   end
 end

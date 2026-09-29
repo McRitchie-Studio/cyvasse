@@ -3,6 +3,9 @@ require_relative "../config/environment"
 require "rails/test_help"
 Dir[File.expand_path("support/**/*.rb", __dir__)].each { |file| require file }
 
+# A live computer turn is instant in tests; the pacing tests turn it back on.
+LiveMatch.bot_pace = 0
+
 module ActiveSupport
   class TestCase
     # Single-process on purpose — the house convention for local suites.

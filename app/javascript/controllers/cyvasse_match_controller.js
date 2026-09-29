@@ -80,6 +80,7 @@ export default class extends GameController {
     this.opponentTarget.textContent = state.opponent.username
     this.renderDeadline()
     this.render()
+    this.showComputerStep()
     if (arriving) this.animateArrival()
     this.startLiveClock()
 
@@ -228,6 +229,18 @@ export default class extends GameController {
     }
     // "Ready" waits for a full army, and for a setup the server still takes.
     this.startButtonTarget.disabled = !this.state.can_set_up || !this.game.readyToStart
+  }
+
+  // A live computer plays in steps (LiveMatch#bot_plan): the unit it chose is
+  // shown selected, and again before a cavalry unit's second jump.
+  showComputerStep() {
+    const hex = this.state.live?.bot_selected
+    if (hex == null || this.state.phase !== "play" || !this.game.pieceAt(hex)) return
+    if (this.state.live.bot_jump === 2) {
+      this.game.jump = 2
+      this.game.activeHex = hex
+    }
+    this.select(hex)
   }
 
   renderStatus() {
