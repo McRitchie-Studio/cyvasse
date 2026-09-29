@@ -45,4 +45,18 @@ class PlayNowTest < ActionDispatch::IntegrationTest
     get live_seek_path(LiveSeek.order(:id).first, format: :json)
     assert_response :not_found
   end
+
+  test "a search that fails to settle is logged, not lost" do
+    post live_seeks_path
+    seek = LiveSeek.last
+    locked = LiveSeek.method(:locked)
+    LiveSeek.define_singleton_method(:locked) { |*| raise "boom" }
+    assert_difference -> { ErrorLog.where(target: seek).count }, 1 do
+      get live_seek_path(seek, format: :json)
+    rescue RuntimeError
+      nil
+    end
+  ensure
+    LiveSeek.define_singleton_method(:locked, locked)
+  end
 end

@@ -78,13 +78,13 @@
         <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">Your army</h2>
         <p class="text-sm text-secondary">
           Pick a unit, then a lit hex in your five rows. Click a placed unit to move it again.
-          Once submitted, your army is locked in; <%= them %> will not see it until the game starts.
+          Once you press Ready, your army is locked in; <%= them %> will not see it until the game starts.
           <% if @match.live? %>Watch the clock: when it runs out, your army is placed for you.<% end %>
         </p>
         <div class="cyvasse-dock" data-cyvasse-match-target="dock"></div>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" class="btn btn-secondary" data-action="cyvasse-match#randomSetup">Random Setup</button>
-          <button type="button" class="btn btn-primary" hidden data-cyvasse-match-target="startButton" data-action="cyvasse-match#start">Submit army</button>
+        <div class="cyvasse-setup-actions">
+          <button type="button" class="btn cyvasse-ready" disabled data-cyvasse-match-target="startButton" data-action="cyvasse-match#start">Ready</button>
+          <button type="button" class="btn btn-outline btn-sm cyvasse-outline" data-action="cyvasse-match#randomSetup">Random Setup</button>
         </div>
         <%= render "setups/openings", board: "cyvasse-match" %>
         <%= render "setups/panel", board: "cyvasse-match", slots: @setup_slots %>

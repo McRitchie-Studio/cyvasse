@@ -9,14 +9,14 @@ class LiveSeeksController < ApplicationController
   SPLASH = 5.seconds
 
   def create
-    user = current_user || start_guest
+    user = current_user || rescue_and_log { start_guest }
     return redirect_to(username_path, notice: "Choose a player name to play live.") if user.username.blank?
 
-    redirect_to live_seek_path(LiveSeek.join!(user))
+    redirect_to live_seek_path(rescue_and_log(target: user) { LiveSeek.join!(user) })
   end
 
   def show
-    @seek.settle!
+    rescue_and_log(target: @seek, parent: current_user) { @seek.settle! }
     respond_to do |format|
       format.html
       format.json { render json: status_json }

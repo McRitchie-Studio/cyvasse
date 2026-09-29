@@ -96,7 +96,8 @@ class User < ApplicationRecord
 
   # Play Now without an account (task play-now-matchmaking): a guest player
   # with a temporary name like Guest_4821, signed in by the session alone.
-  # Signing in later claims it (its games move to the real account).
+  # Signing in later starts a separate account: nothing moves a guest's
+  # games to it yet.
   def self.create_guest!(rng: Random.new)
     5.times do
       number = rng.rand(1000..9999)

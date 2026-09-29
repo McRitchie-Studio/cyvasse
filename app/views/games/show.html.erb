@@ -34,9 +34,9 @@
           Pick a unit, then a lit hex in your five rows. Click a placed unit to move it again.
         </p>
         <div class="cyvasse-dock" data-cyvasse-game-target="dock"></div>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" class="btn btn-secondary" data-action="cyvasse-game#randomSetup">Random Setup</button>
-          <button type="button" class="btn btn-primary" hidden data-cyvasse-game-target="startButton" data-action="cyvasse-game#start">Start Game</button>
+        <div class="cyvasse-setup-actions">
+          <button type="button" class="btn cyvasse-ready" disabled data-cyvasse-game-target="startButton" data-action="cyvasse-game#start">Ready</button>
+          <button type="button" class="btn btn-outline btn-sm cyvasse-outline" data-action="cyvasse-game#randomSetup">Random Setup</button>
         </div>
         <%= render "setups/openings", board: "cyvasse-game" %>
         <%= render "setups/panel", board: "cyvasse-game", slots: @setup_slots %>

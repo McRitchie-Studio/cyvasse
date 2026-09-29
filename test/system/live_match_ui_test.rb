@@ -71,6 +71,26 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     assert_selector "svg.cyvasse-board g.hex.has-unit[data-team='1']", count: 19
   end
 
+  test "a poll answered after the army is submitted never puts the old state back" do
+    visit match_path(@match)
+    click_on "Random Setup"
+    # Hold each poll's answer so one is still in flight when the army goes in.
+    page.execute_script(<<~JS)
+      window.__loaded = []
+      const board = Stimulus.getControllerForElementAndIdentifier(document.querySelector("#{BOARD}"), "cyvasse-match")
+      const load = board.load.bind(board)
+      board.load = (state, options) => { window.__loaded.push(Number(state.version)); return load(state, options) }
+      const real = window.fetch
+      window.fetch = (url, init) => init?.method === "POST" ? real(url, init) : real(url, init).then((answer) => new Promise((ok) => setTimeout(() => ok(answer), 1500)))
+    JS
+    sleep 1.2
+    click_on "Ready"
+    sleep 3
+    loaded = page.evaluate_script("window.__loaded")
+    assert_operator loaded.size, :>=, 1
+    assert_equal loaded.sort, loaded, "the board only ever moves forward"
+  end
+
   test "while the computer is to move, the player sees it thinking" do
     @match.set_up!(@arya, CyvasseRules::Bot.random_lineup(rng: Random.new(2)))
     @match.reload
