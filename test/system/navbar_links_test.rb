@@ -29,6 +29,8 @@ class NavbarLinksTest < ApplicationSystemTestCase
     end
     assert_current_path leaderboard_path
     assert_selector "nav[aria-label=Main] a[href='/leaderboard'][aria-current=page]", visible: true
+    assert_selector "h1", text: "Leaderboard"
+    page_widths # waits out the smooth-load view transition before the screenshot
     screenshot("desktop")
   end
 
