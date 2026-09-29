@@ -306,3 +306,22 @@ test("a restored setup is placed by hand and submits the legacy lineup string", 
   assert.equal(new Set(pairs.map(([, hex]) => hex)).size, ARMY_SIZE);
   assert.equal(game.teamUnits(COMPUTER, "alive").length, 0, "the opponent's army is not invented");
 });
+
+test("a snapshot takes back a cavalry unit's first jump, capture and all", () => {
+  const game = readyGame();
+  game.start();
+  arrange(game, { "1-8": 46, "1-17": 91, "0-17": 1, "0-1": 47, "0-2": 5 });
+  game.offense = PLAYER;
+  const before = game.snapshot();
+  const first = game.act(46, 47);
+  assert.equal(first.secondJump, true);
+  assert.equal(game.unit("0-1").status, "dead");
+  game.restoreSnapshot(before);
+  assert.equal(game.unit("1-8").hex, 46, "the horse is back where it started");
+  assert.equal(game.unit("0-1").status, "alive", "the captured rabble stands again");
+  assert.equal(game.unit("0-1").hex, 47);
+  assert.equal(game.jump, 1);
+  assert.equal(game.activeHex, null);
+  assert.equal(game.utilMove, before.utilMove);
+  assert.ok(game.selectableHexes().includes(91), "any unit may move again");
+});
