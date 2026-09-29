@@ -78,7 +78,10 @@ states that rule. The modules import each other as
 
 The match header reads `[avatar] you vs them [avatar]` (`matches/_versus`).
 `players/_avatar` draws one avatar anywhere, in Tailwind utilities alone: a
-person's uploaded picture, else their initials on `User#avatar_color`. A
+person's uploaded picture, else their own piece of the vector art on a
+parchment disc ringed in `User#avatar_color` (`AvatarsHelper#user_piece`: a
+stable hash of the user id over every piece but the mountain, so a player keeps
+one piece on every page and in every game). A
 computer player shows `app/assets/images/bots/<username>.webp` (or `.png`,
 `.jpg`, `.svg`; `qavo`, `tyrion`, `haldon`, `doran`, `ben`, `aegon`) the moment
 that file exists; until then it shows its own piece of the vector art on a
