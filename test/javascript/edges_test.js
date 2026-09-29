@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { HEXES, hexAt, neighbors, distance } from "cyvasse/board";
-import { sideNeighbors, edgeKey, EDGES, perimeter, EDGE_PRIORITY, hexClaim, resolveEdges, threatRims, PERIMETER_STYLE } from "cyvasse/edges";
+import { sideNeighbors, edgeKey, EDGES, perimeter, EDGE_PRIORITY, hexClaim, resolveEdges, threatRims, outerRim, PERIMETER_STYLE } from "cyvasse/edges";
 
 const disc = (origin, r) => new Set(HEXES.filter((h) => distance(hexAt(origin), h) <= r).map((h) => h.index));
 const sidesOf = (index) => [0, 1, 2, 3, 4, 5].map((side) => edgeKey(index, side));
@@ -160,4 +160,19 @@ test("dual style: melee-only edges solid, ranged-only dashed, shared edges solid
   assert.ok([...resolveEdges(new Map(), new Set(), ranged).values()].every((k) => k === "perimeter-ranged"), "ranged alone is all dashed");
   const edge = [...disc(47, 1)].flatMap((hex) => sidesOf(hex).filter((k) => ranged.has(k)).map((key) => ({ hex, key })))[0];
   assert.equal(resolveEdges(new Map([[edge.hex, "danger"]]), new Set(), ranged).get(edge.key), "danger", "danger still outranks a ranged edge");
+});
+
+test("the threat outline traces only the outer rim, never a hole inside it", () => {
+  // A ring of hexes round 46: 46 itself is a hole (a unit nobody can take).
+  const ring = new Set([...disc(46, 1)].filter((h) => h !== 46));
+  assert.ok(sidesOf(46).every((k) => perimeter(ring).has(k)), "perimeter() alone traces the hole");
+  const outer = outerRim(ring);
+  assert.deepEqual([...outer].sort(), [...perimeter(disc(46, 1))].sort());
+  for (const style of ["single", "dual"]) {
+    const { solid, dashed } = threatRims({ melee: ring, ranged: ring }, style);
+    for (const key of sidesOf(46)) assert.ok(!solid.has(key) && !dashed.has(key), `${style}: no edge round the hole`);
+  }
+  // A gap that reaches the board's rim is outside, not a hole.
+  const corner = new Set([...disc(1, 2)].filter((h) => h !== 1));
+  assert.deepEqual([...outerRim(corner)].sort(), [...perimeter(corner)].sort());
 });

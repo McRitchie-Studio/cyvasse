@@ -6,6 +6,7 @@
 //
 //   perimeter(region)          the edges round a set of hexes: in the set on
 //                              one side, off it (or off the board) on the other
+//   outerRim(region)           perimeter() with the region's holes filled
 //   threatRims(regions)        the threat outline's edges, by PERIMETER_STYLE
 //   resolveEdges(claims, rim, dashedRim)
 //                              one owner per edge, by EDGE_PRIORITY
@@ -59,6 +60,28 @@ export function perimeter(region) {
   return keys;
 }
 
+// The edges round `region` with no hole traced: a hex off the region that no
+// path of off-region hexes joins to the board's rim is counted in.
+export function outerRim(region) {
+  const outside = new Set();
+  const queue = [];
+  for (const [index, neighbors] of SIDE_NEIGHBORS) {
+    if (!region.has(index) && neighbors.includes(null)) {
+      outside.add(index);
+      queue.push(index);
+    }
+  }
+  while (queue.length) {
+    for (const other of SIDE_NEIGHBORS.get(queue.pop())) {
+      if (other !== null && !region.has(other) && !outside.has(other)) {
+        outside.add(other);
+        queue.push(other);
+      }
+    }
+  }
+  return perimeter(new Set([...SIDE_NEIGHBORS.keys()].filter((index) => !outside.has(index))));
+}
+
 // How the threat outline is drawn: "single", one solid rim round every
 // switched-on group's area together; "dual", a solid rim round melee's area
 // and a dashed one round ranged's, solid where they share an edge.
@@ -67,8 +90,8 @@ export const PERIMETER_STYLE = "single";
 // `regions` maps a threat group (cyvasse/units THREAT_GROUPS) to its area, a
 // Set of hexes. Returns the solid and the dashed rim, for resolveEdges.
 export function threatRims(regions, style = PERIMETER_STYLE) {
-  if (style === "dual") return { solid: perimeter(regions.melee), dashed: perimeter(regions.ranged) };
-  return { solid: perimeter(new Set([...regions.melee, ...regions.ranged])), dashed: new Set() };
+  if (style === "dual") return { solid: outerRim(regions.melee), dashed: outerRim(regions.ranged) };
+  return { solid: outerRim(new Set([...regions.melee, ...regions.ranged])), dashed: new Set() };
 }
 
 // Who owns a shared edge, highest first. "ring" (a plain move ring) draws
