@@ -1,0 +1,26 @@
+<%# Confirm or pick the public username. A legacy name that fails today's
+    rules, or is taken, arrives with a suggestion filled in. %>
+<% playable = current_user.username_playable? %>
+<div class="space-y-2">
+  <h1 class="text-2xl font-extrabold text-heading tracking-tight"><%= playable ? "Keep your username?" : "Pick a username" %></h1>
+  <p class="text-secondary text-sm">
+    Other players see this name and challenge you by it. 3 to 20 letters, digits or underscores.
+  </p>
+  <% if !playable && current_user.username.present? %>
+    <p class="text-sm text-secondary" data-legacy-username>
+      Your old name, <strong class="text-heading"><%= current_user.username %></strong>, doesn't fit today's rules, so here is a suggestion.
+    </p>
+  <% end %>
+</div>
+
+<%= form_with url: onboarding_step_path("username"), method: :patch, class: "space-y-3", data: { turbo: false } do |form| %>
+  <div>
+    <%= form.label :username, "Username", class: "block text-sm font-semibold text-heading mb-1" %>
+    <%= form.text_field :username, value: params[:username] || @suggestion, required: true, autofocus: true,
+          autocomplete: "username", autocapitalize: "none", spellcheck: false, maxlength: 20, class: "input-field w-full" %>
+  </div>
+  <% if current_user.errors[:username].any? %>
+    <p class="text-sm text-danger-ink" role="alert">Username <%= current_user.errors[:username].to_sentence %>.</p>
+  <% end %>
+  <%= form.submit playable ? "Keep it" : "Save username", class: "btn btn-primary btn-lg w-full" %>
+<% end %>

@@ -129,7 +129,7 @@ class ClickToDeselectTest < ApplicationSystemTestCase
     assert_selector "#{SELECTED}[data-hex='#{second_pick}']"
     assert_no_selector "#{SELECTED}[data-hex='#{first_pick}']"
 
-    find(".cyvasse-threat-toggle input").click
+    find_field("Ranged threats").click
     assert_selector "#{SELECTED}[data-hex='#{second_pick}']"
 
     first(TARGETS).click

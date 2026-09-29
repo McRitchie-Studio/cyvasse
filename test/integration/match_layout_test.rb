@@ -63,7 +63,7 @@ class MatchLayoutTest < ActionDispatch::IntegrationTest
       assert_select "[data-match-slot=take-back-seat]"
       assert_select "a[href=?]", matches_path, text: "← My games"
       assert_select "a[href=?]", rules_path, text: "How to play"
-      assert_select ".cyvasse-threat-toggle input[data-cyvasse-match-target=threatToggle]"
+      assert_select ".cyvasse-threat-toggle input[data-cyvasse-match-target=threatToggle]", 2
       assert_select "form[action=?] button", match_path(match), text: "Forfeit match"
       assert_select "[data-cyvasse-match-target=graveyard]", 2
     end

@@ -72,3 +72,20 @@ test("a horse that takes the king does not jump on", () => {
   assert.ok(kills.has(47), "the king can be taken");
   assert.ok(!kills.has(49), "nothing is taken after the king falls");
 });
+
+test("groups limits the map to those units; a hex either group reaches shows under both", () => {
+  // A catapult and a rabble of theirs side by side, a rabble of mine in reach of both.
+  const position = board({ 46: [THEM, "catapult"], 47: [THEM, "rabble"], 49: [ME, "rabble"] });
+  const ranged = threats(position, THEM, { groups: ["ranged"] });
+  const melee = threats(position, THEM, { groups: ["melee"] });
+  const both = threats(position, THEM);
+
+  assert.deepEqual(sorted(ranged.units), [46]);
+  assert.deepEqual(sorted(melee.units), [47]);
+  assert.deepEqual(sorted(both.units), [46, 47]);
+  assert.ok([...ranged.reach].some((h) => !melee.reach.has(h)), "the catapult reaches where the rabble cannot");
+  assert.ok(ranged.kills.has(49) && melee.kills.has(49), "each group can take the rabble on its own");
+  assert.deepEqual(sorted(both.reach), sorted(new Set([...ranged.reach, ...melee.reach])));
+  assert.deepEqual(sorted(both.kills), sorted(new Set([...ranged.kills, ...melee.kills])));
+  assert.deepEqual(sorted(threats(position, THEM, { groups: [] }).reach), []);
+});

@@ -1,0 +1,40 @@
+<%# How to sign in next time, and "Keep me posted about Cyvasse" (on by
+    default; saving records the answer and when). Skippable. Adding Google from
+    an email handoff session asks for a fresh magic link first (ConfirmedSession). %>
+<div class="space-y-2">
+  <h1 class="text-2xl font-extrabold text-heading tracking-tight">Next time you sign in</h1>
+  <p class="text-secondary text-sm">
+    We email you a sign-in link to <strong class="text-heading wrap-anywhere"><%= current_user.email %></strong>. Nothing to remember.
+  </p>
+</div>
+
+<% if Studio.auth_method?(:google) %>
+  <div class="rounded-lg border border-subtle p-3 space-y-2" data-sign-in-google>
+    <% if current_user.provider == "google_oauth2" %>
+      <p class="text-sm text-secondary">Google sign-in is on for this account too.</p>
+    <% elsif email_handoff_session? %>
+      <p class="text-sm text-secondary">Want Google too? Confirm it's you by email first, then add it.</p>
+      <%= button_to "Email me a confirmation link", session_confirmation_path, params: { return_to: onboarding_path(step: "contact") },
+            class: "btn btn-neutral w-full", form: { data: { turbo: false } } %>
+    <% else %>
+      <p class="text-sm text-secondary">Or sign in with Google, if you'd rather.</p>
+      <form method="post" action="/auth/google_oauth2?return_to=<%= CGI.escape(onboarding_path(step: "contact")) %>" data-turbo="false">
+        <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>" autocomplete="off">
+        <button type="submit" class="btn btn-neutral w-full gap-3"><%= render "components/google_logo" %> Add Google sign-in</button>
+      </form>
+    <% end %>
+  </div>
+<% end %>
+
+<%= form_with url: onboarding_step_path("contact"), method: :patch, class: "space-y-4", data: { turbo: false } do |form| %>
+  <label class="flex items-start gap-3 rounded-lg border border-subtle p-3 cursor-pointer">
+    <%= hidden_field_tag :email_updates, "0", id: nil %>
+    <%= check_box_tag :email_updates, "1", current_user.email_updates.nil? || current_user.email_updates, class: "mt-1" %>
+    <span>
+      <span class="block text-sm font-semibold text-heading">Keep me posted about Cyvasse</span>
+      <span class="block text-xs text-secondary">Now and then: new features and tournaments. Unsubscribe any time.</span>
+    </span>
+  </label>
+  <%= form.submit "Done", class: "btn btn-primary btn-lg w-full" %>
+<% end %>
+<%= button_to "Skip this step", skip_onboarding_step_path("contact"), class: "btn btn-neutral w-full", form: { data: { turbo: false } } %>

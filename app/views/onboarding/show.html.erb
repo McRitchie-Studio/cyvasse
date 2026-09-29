@@ -1,0 +1,24 @@
+<% content_for(:title, "Finish your account · Cyvasse") %>
+
+<section class="max-w-md mx-auto card p-5 sm:p-6 space-y-5" data-onboarding-step="<%= @step %>">
+  <header class="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-widest text-muted">
+    <span data-onboarding-progress>Step <%= @position %> of <%= @total %></span>
+    <%= link_to "Skip for now", @return_to, class: "normal-case tracking-normal text-sm font-medium text-secondary underline underline-offset-2 hover:text-heading",
+          data: { test: "onboarding-leave", turbo: false } %>
+  </header>
+  <div class="flex gap-1" aria-hidden="true">
+    <% @total.times do |i| %>
+      <span class="h-1 flex-1 rounded-full <%= i < @position ? "bg-primary-700" : "bg-surface-alt border border-subtle" %>"></span>
+    <% end %>
+  </div>
+
+  <% if @step == "welcome" %>
+    <%= render "welcome" %>
+  <% elsif @step == "username" %>
+    <%= render "username" %>
+  <% elsif @step == "profile" %>
+    <%= render "profile" %>
+  <% else %>
+    <%= render "contact" %>
+  <% end %>
+</section>

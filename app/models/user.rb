@@ -1,5 +1,7 @@
 class User < ApplicationRecord
   include Sluggable
+  # onboarding_missing and onboarding_due?: what an incomplete account lacks.
+  include User::Onboarding
 
   # The engine's signed-in user nav renders components/avatar, which needs the
   # avatar attachment plus avatar_initials and avatar_color (the house pattern

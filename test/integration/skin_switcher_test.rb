@@ -26,7 +26,7 @@ class SkinSwitcherTest < ActionDispatch::IntegrationTest
   end
 
   def member
-    @member ||= User.create!(email: "player@example.com", name: "Skin Player")
+    @member ||= User.create!(email: "player@example.com", name: "Skin Player", username: "skin_player")
   end
 
   def choose(skin, return_to: "/play", **options)

@@ -81,7 +81,8 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     assert_not_empty perimeter
     assert perimeter.all? { |e| inside.(e) == 1 }, "a perimeter edge has the area on one side only"
     assert_equal rim.reject { |e| e["kind"] }.size, 0, "no edge round the area is left undrawn"
-    assert_equal [ [ "inline", RED ] ], perimeter.map { |e| e.values_at("display", "stroke") }.uniq
+    assert_equal [ [ "inline", RED, "none" ] ], perimeter.map { |e| e.values_at("display", "stroke", "dash") }.uniq
+    assert_empty edges.select { |e| e["kind"] == "perimeter-ranged" }, "one solid outline by default (PERIMETER_STYLE single)"
     assert rim.any? { |e| e["between"].include?("rim") }, "the board's edge counts as outside"
     # Inside the area, edges between two plain hexes stay undrawn.
     plain = interior.select { |e| e["kind"].nil? }
@@ -150,11 +151,87 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     JS
     assert_equal [ "inline", "rgb(255, 255, 0)", find("g.hex[data-hex='44']")["transform"], true ], cursor
 
-    # Show threats off: no perimeter at all.
-    uncheck "Show threats"
-    assert_empty edge_table.select { |e| e["kind"] == "perimeter" }
+    # Both threat switches off: no perimeter at all.
+    uncheck "Ranged threats"
+    uncheck "Melee threats"
+    assert_empty edge_table.select { |e| e["kind"].to_s.start_with?("perimeter") }
   ensure
-    page.execute_script("try { localStorage.removeItem('cyvasse.showThreats') } catch {}")
+    page.execute_script("try { localStorage.clear() } catch {}")
+  end
+
+  test "a unit nobody can take inside the zone is not outlined: only the zone's outer rim is" do
+    start_game
+    # Their catapult, king, rabble and heavy horse; your elephant on 23 is out
+    # of their reach but every hex round it is in it.
+    stage("0-15" => 46, "0-17" => 1, "0-1" => 10, "0-10" => 25, "1-17" => 91, "1-6" => 23)
+    mouse_away
+    assert_no_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='23']"
+    assert_empty edge_table.select { |e| e["between"].include?(23) && e["kind"].to_s.start_with?("perimeter") }, "no outline round the hole"
+    assert edge_table.any? { |e| e["kind"] == "perimeter" }
+  ensure
+    page.execute_script("try { localStorage.clear() } catch {}")
+  end
+
+  test "a hex the picked unit cannot stop on is sunken gray: no hue, no hatch" do
+    start_game
+    # Your dragon on 80 between two rabbles of yours: it flies over them but
+    # cannot land there.
+    stage("1-16" => 80, "1-1" => 79, "1-2" => 81, "1-17" => 91, "0-17" => 1)
+    find("svg.cyvasse-board g.hex[data-hex='80']").click
+    assert_selector "svg.cyvasse-board g.hex.is-sunken[data-hex='79']"
+    assert_selector "svg.cyvasse-board g.hex.is-sunken[data-hex='81']"
+    assert_selector "svg.cyvasse-board g.hex.is-lit", minimum: 3
+    cells = page.evaluate_script(<<~JS)
+      [79, 81].map((hex) => {
+        const g = document.querySelector(`g.hex[data-hex='${hex}']`)
+        const fill = getComputedStyle(g.querySelector(".hex-poly")).fill
+        const stops = [...document.querySelector(fill.match(/#[^"]+/)[0]).querySelectorAll("stop")].map((s) => s.getAttribute("stop-color"))
+        return { fill, lit: g.classList.contains("is-lit"), hatch: getComputedStyle(g.querySelector(".ring-texture")).display, stops }
+      })
+    JS
+    cells.each do |c|
+      assert_match(/\Aurl\("#sunken-(short|long)-\d+"\)\z/, c["fill"])
+      assert_not c["lit"], "not a move"
+      assert_equal "none", c["hatch"]
+      sats = c["stops"].map { |color| color[/hsl\(\d+, (\d+)%/, 1].to_i }
+      lights = c["stops"].map { |color| color[/(\d+(?:\.\d+)?)%\)\z/, 1].to_f }
+      assert sats.all? { |sat| sat <= 6 }, "gray: #{c['stops']}"
+      assert_operator lights.first, :<, lights.last, "darker at the centre: sunken"
+    end
+  ensure
+    page.execute_script("try { localStorage.clear() } catch {}")
+  end
+
+  test "the dual style outlines melee solid and ranged dashed, solid where they share an edge" do
+    start_game
+    # Their king (1, melee) and catapult (46, ranged).
+    stage("0-15" => 46, "0-17" => 1, "1-17" => 91, "1-6" => 48, "1-1" => 44)
+    page.execute_script("const ctrl = #{CONTROLLER}; ctrl.perimeterStyle = 'dual'; ctrl.render()")
+    mouse_away
+    screenshot("perimeter-dual")
+
+    edges = edge_table
+    regions = page.evaluate_script("Object.fromEntries(Object.entries(#{CONTROLLER}.threatRegions).map(([g, r]) => [g, [...r]]))").transform_values(&:to_set)
+    assert_operator regions["melee"].size, :>, 3
+    assert_operator regions["ranged"].size, :>, 10
+    on_rim = ->(edge, group) { edge["between"].count { |hex| regions[group].include?(hex) } == 1 }
+    solid = edges.select { |e| e["kind"] == "perimeter" }
+    dashed = edges.select { |e| e["kind"] == "perimeter-ranged" }
+    assert_not_empty solid
+    assert_not_empty dashed
+    assert solid.all? { |e| on_rim.(e, "melee") }, "a solid edge is on melee's rim"
+    assert dashed.all? { |e| on_rim.(e, "ranged") && !on_rim.(e, "melee") }, "a dashed edge is on ranged's rim alone"
+    assert_equal 0, edges.count { |e| (on_rim.(e, "melee") || on_rim.(e, "ranged")) && e["kind"].nil? }, "no edge round either area is left undrawn"
+    assert_equal [ [ "inline", RED, "none" ] ], solid.map { |e| e.values_at("display", "stroke", "dash") }.uniq
+    assert_equal [ [ "inline", RED, solid.first["width"] ] ], dashed.map { |e| e.values_at("display", "stroke", "width") }.uniq, "the same red at the same weight"
+    assert dashed.none? { |e| e["dash"] == "none" }, "ranged is broken"
+
+    # Ranged off: its dashed outline goes with it.
+    uncheck "Ranged threats"
+    assert_empty edge_table.select { |e| e["kind"] == "perimeter-ranged" }
+    assert edge_table.any? { |e| e["kind"] == "perimeter" }
+  ensure
+    page.execute_script("try { localStorage.clear() } catch {}")
   end
 
   private
@@ -201,7 +278,7 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     page.evaluate_script(<<~JS)
       [...document.querySelectorAll("svg.cyvasse-board line.hex-edge")].map((l) => {
         const s = getComputedStyle(l)
-        return { between: l.dataset.between.split(" ").map((h) => h === "rim" ? "rim" : Number(h)), kind: l.dataset.kind ?? null, display: s.display, stroke: s.stroke }
+        return { between: l.dataset.between.split(" ").map((h) => h === "rim" ? "rim" : Number(h)), kind: l.dataset.kind ?? null, display: s.display, stroke: s.stroke, dash: s.strokeDasharray, width: s.strokeWidth }
       })
     JS
   end
