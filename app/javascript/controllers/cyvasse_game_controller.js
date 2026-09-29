@@ -8,6 +8,7 @@ import { Banner, passNotice } from "cyvasse/banner"
 import { threats } from "cyvasse/threats"
 import { EDGES, perimeter, hexClaim, resolveEdges } from "cyvasse/edges"
 import { playIntent, setupIntent } from "cyvasse/selection"
+import { smartLineup, smartSetupMode, SMART_LABELS, recentPicks, rememberPick } from "cyvasse/smart_setup"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -172,7 +173,8 @@ function shadeStops(rank) {
 const CONTROLS = "button, a, input, label, select, textarea, summary, [role=button]"
 
 export default class extends Controller {
-  static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent", "hint", "threatToggle"]
+  static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent", "hint", "threatToggle",
+    "army", "smartButton", "armyCount", "fallen"]
   static values = { skin: { type: String, default: "vector" }, images: Object, skins: Object, pace: { type: Number, default: 1 } }
 
   connect() {
@@ -204,10 +206,16 @@ export default class extends Controller {
     this.render()
   }
 
-  randomSetup() {
+  // "✨ Smart Setup", "✨ Place All", "✨ New Setup" (cyvasse/smart_setup):
+  // one of the strategic openings, not one of this browser's last ten picks,
+  // around whatever the player has already placed.
+  smartSetup() {
     if (this.game.phase !== "setup") return
-    this.game.randomSetup()
-    this.selectedUnitId = null
+    this.recentSetups ??= recentPicks()
+    const { opening, lineup } = smartLineup(this.game.teamUnits(PLAYER), { recent: this.recentSetups })
+    this.game.loadLineup(lineup)
+    this.recentSetups = rememberPick(this.recentSetups, opening.slug)
+    this.clearSelection()
     this.render()
   }
 
@@ -755,9 +763,18 @@ export default class extends Controller {
     this.hintTarget.hidden = !picked || this.holding
   }
 
+  // Every unit keeps its slot: a placed one leaves an empty .dock-slot, so
+  // the dock, and Ready under it, never change size or move.
   renderDock() {
-    const unplaced = this.game.teamUnits(PLAYER, "unplaced")
-    this.dockTarget.replaceChildren(...unplaced.map((unit) => {
+    const army = this.game.teamUnits(PLAYER)
+    const placed = army.filter((unit) => unit.status !== "unplaced").length
+    this.dockTarget.replaceChildren(...army.map((unit) => {
+      if (unit.status !== "unplaced") {
+        const slot = document.createElement("span")
+        slot.className = "dock-slot"
+        slot.setAttribute("aria-hidden", "true")
+        return slot
+      }
       const button = document.createElement("button")
       button.type = "button"
       button.className = "dock-unit"
@@ -769,6 +786,11 @@ export default class extends Controller {
       return button
     }))
     this.startButtonTarget.disabled = !this.game.readyToStart
+    if (!this.hasArmyTarget) return
+    const mode = smartSetupMode(placed, army.length)
+    this.armyTarget.dataset.armyMode = mode
+    this.smartButtonTarget.textContent = SMART_LABELS[mode]
+    this.armyCountTarget.textContent = placed < army.length ? `${placed} of ${army.length} placed` : `All ${army.length} placed`
   }
 
   renderStatus() {
@@ -787,11 +809,15 @@ export default class extends Controller {
     this.statusTarget.textContent = this.notice && game.phase === "play" ? `${this.notice} ${text}` : text
   }
 
+  // The fallen card stays hidden until a unit of either side falls.
   renderGraveyards() {
+    let fallen = 0
     for (const target of this.graveyardTargets) {
-      const team = Number(target.dataset.team)
-      target.replaceChildren(...this.game.graveyard(team).map((u) => img(this.imagesValue[u.type.codename], u.type.name)))
+      const dead = this.game.graveyard(Number(target.dataset.team))
+      fallen += dead.length
+      target.replaceChildren(...dead.map((u) => img(this.imagesValue[u.type.codename], u.type.name)))
     }
+    if (this.hasFallenTarget) this.fallenTarget.hidden = fallen === 0
   }
 
   // The selected-unit box (infoBoxes.js InfoBox.update).

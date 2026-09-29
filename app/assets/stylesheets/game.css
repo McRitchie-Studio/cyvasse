@@ -275,30 +275,50 @@
   }
 }
 
+/* The units still to place, on see-through tiles; a placed unit leaves a
+ * faint dashed slot (.dock-slot) so the grid never changes size. */
 .cyvasse-dock {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr));
-  gap: 0.375rem;
+  grid-template-columns: repeat(auto-fill, minmax(3.5rem, 1fr));
+  gap: 0.25rem;
 }
 
-.cyvasse-dock:empty {
-  display: none;
+.dock-unit,
+.dock-slot {
+  aspect-ratio: 1;
+  border-radius: 0.5rem;
 }
 
 .dock-unit {
-  aspect-ratio: 1;
   display: grid;
   grid-template: minmax(0, 1fr) / minmax(0, 1fr);
-  padding: 0.25rem;
-  border-radius: 0.5rem;
-  border: 2px solid var(--color-border);
-  background: #f7f4ec;
+  padding: 0.125rem;
+  border: 1px solid transparent;
+  background: transparent;
   cursor: pointer;
+  transition: background-color 120ms, border-color 120ms;
+}
+
+.dock-unit:hover,
+.dock-unit:focus-visible {
+  background: rgb(139 92 246 / 0.12);
+  border-color: rgb(139 92 246 / 0.45);
 }
 
 .dock-unit[aria-pressed="true"] {
+  background: rgb(255 165 0 / 0.14);
   border-color: orange;
-  box-shadow: 0 0 0 2px orange;
+  box-shadow: 0 0 0 1px orange;
+}
+
+.dock-slot {
+  border: 1px dashed rgb(139 92 246 / 0.25);
+}
+
+/* The pencil art is dark linework: in the dark theme a soft light rim keeps
+ * it off the card without a parchment tile behind it. */
+html.dark [data-skin="pencil"] .dock-unit img {
+  filter: drop-shadow(0 0 1px rgb(255 255 255 / 0.6)) drop-shadow(0 0 4px rgb(255 255 255 / 0.25));
 }
 
 .dock-unit img,
@@ -582,26 +602,53 @@
   .cyvasse-board.is-arrival .hex .unit-shade { transition: none; }
 }
 
-/* The "Your army" panel: Ready is the main call to action, a full-width
- * filled violet button that stays muted until every unit is on the board;
- * Random Setup sits under it, full width too but smaller and hollow. */
-.cyvasse-setup-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+/* The "Your army" card (games/_army_card). One grid, five rows: heading,
+ * lead, dock, Ready, tail. The lead and tail rows are each one button tall
+ * whatever they hold, and the dock keeps a slot per unit, so no state change
+ * moves Ready, the dock or anything under the card. With nothing placed the
+ * Smart Setup button leads, filled; after that it sits in the tail, hollow,
+ * and the lead shows the count. Ready stays muted until the army is placed. */
+.cyvasse-army {
+  --army-slot: 2.75rem;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto var(--army-slot) auto var(--army-slot) var(--army-slot);
+  grid-template-areas: "heading" "lead" "dock" "ready" "tail";
 }
 
-.cyvasse-setup-actions .btn {
+.cyvasse-army > h2 { grid-area: heading; }
+.cyvasse-army .cyvasse-dock { grid-area: dock; }
+.cyvasse-army .cyvasse-ready { grid-area: ready; }
+.cyvasse-army .cyvasse-smart { grid-area: tail; }
+.cyvasse-army[data-army-mode="smart"] .cyvasse-smart { grid-area: lead; }
+
+.cyvasse-army .btn {
   width: 100%;
+  height: var(--army-slot);
 }
 
-.cyvasse-ready {
+.cyvasse-army-count {
+  grid-area: lead;
+  align-self: center;
+  text-align: center;
+  margin: 0;
+}
+
+.cyvasse-army[data-army-mode="smart"] .cyvasse-army-count {
+  visibility: hidden;
+}
+
+.cyvasse-ready,
+.cyvasse-army[data-army-mode="smart"] .cyvasse-smart {
   color: #fff;
   background-color: #7c3aed;
+  border: 1px solid transparent;
   box-shadow: 0 0 0 1px rgb(167 139 250 / 0.5), 0 6px 18px -6px rgb(124 58 237 / 0.7);
 }
 
-.cyvasse-ready:hover:not(:disabled) {
+.cyvasse-ready:hover:not(:disabled),
+.cyvasse-army[data-army-mode="smart"] .cyvasse-smart:hover {
   background-color: #6d28d9;
 }
 
@@ -611,13 +658,15 @@
   filter: saturate(0.5);
 }
 
-.cyvasse-outline {
-  border-color: #8b5cf6;
+.cyvasse-smart {
+  color: inherit;
+  background-color: transparent;
+  border: 1px solid #8b5cf6;
+  box-shadow: none;
 }
 
-.cyvasse-outline:hover {
+.cyvasse-smart:hover {
   background-color: rgb(139 92 246 / 0.15);
-  color: inherit;
 }
 
 /* The strip above the board: the start-over hint while a piece is picked,
