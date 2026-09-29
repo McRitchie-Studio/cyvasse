@@ -150,11 +150,12 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     JS
     assert_equal [ "inline", "rgb(255, 255, 0)", find("g.hex[data-hex='44']")["transform"], true ], cursor
 
-    # Show threats off: no perimeter at all.
-    uncheck "Show threats"
+    # Both threat switches off: no perimeter at all.
+    uncheck "Ranged threats"
+    uncheck "Melee threats"
     assert_empty edge_table.select { |e| e["kind"] == "perimeter" }
   ensure
-    page.execute_script("try { localStorage.removeItem('cyvasse.showThreats') } catch {}")
+    page.execute_script("try { localStorage.clear() } catch {}")
   end
 
   private
