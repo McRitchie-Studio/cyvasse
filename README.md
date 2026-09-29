@@ -67,7 +67,10 @@ piece of the epic. The rules are the legacy engine's, ported line for line from
 | `ai.js` | the computer opponent (`ai.js`) |
 
 `app/javascript/controllers/cyvasse_game_controller.js` draws the board and turns
-clicks into `Game` calls; it holds no rules. The board plays from the keyboard
+clicks into `Game` calls; it holds no rules. Highlight borders are drawn once
+per edge, full width, by whichever highlight owns it (`cyvasse/edges.js`:
+selection > move rings > last move > danger > threat perimeter > team edge);
+"Show threats" outlines only the rim of the opponent's reach. The board plays from the keyboard
 too (it is one tab stop: arrows move between hexes, Enter or Space selects),
 and when a side has no legal move its turn passes and the page says who passed
 (`cyvasse/banner.js`); if neither side can move the game is a draw. `/rules`
