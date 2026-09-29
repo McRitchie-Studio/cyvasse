@@ -42,11 +42,16 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     assert_operator vs, :<, bot
     page.save_screenshot(Rails.root.join("tmp/screenshots/versus-desktop.png")) if ENV["SCREENSHOTS"]
 
+    # The phone viewport outlives the test in a shared browser: always undo it.
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 360, height: 800, deviceScaleFactor: 1, mobile: true)
-    assert_selector "h1.match-versus [data-avatar=bot-fallback]"
-    scroll, client = page_widths
-    assert_operator scroll, :<=, client, "no sideways scroll at 360px"
-    page.save_screenshot(Rails.root.join("tmp/screenshots/versus-phone.png")) if ENV["SCREENSHOTS"]
+    begin
+      assert_selector "h1.match-versus [data-avatar=bot-fallback]"
+      scroll, client = page_widths
+      assert_operator scroll, :<=, client, "no sideways scroll at 360px"
+      page.save_screenshot(Rails.root.join("tmp/screenshots/versus-phone.png")) if ENV["SCREENSHOTS"]
+    ensure
+      page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
+    end
   end
 
   test "ten seconds from the end the player is told to hurry" do
