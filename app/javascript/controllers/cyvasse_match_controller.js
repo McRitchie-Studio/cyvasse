@@ -269,8 +269,9 @@ export default class extends GameController {
     } else if (state.can_accept) {
       text = `${them} challenged you. Accept to set up your army.`
     } else if (state.can_set_up) {
-      const left = this.game.teamUnits(PLAYER, "unplaced").length
-      text = left > 0 ? `Place your army: ${left} unit${left === 1 ? "" : "s"} left.` : "Your army is in place. Press Ready to lock it in."
+      const army = this.game.teamUnits(PLAYER)
+      const placed = army.filter((unit) => unit.status !== "unplaced").length
+      text = placed < army.length ? `Place your army: ${placed} of ${army.length} placed.` : "Your army is in place. Press Ready to lock it in."
     } else if (state.status === "pending") {
       text = `Your army is in place. Waiting for ${them} to accept.`
     } else {

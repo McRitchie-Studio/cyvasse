@@ -91,7 +91,7 @@ test("the button's label follows how much of the army is placed", () => {
   assert.equal(smartSetupMode(1, 19), "fill");
   assert.equal(smartSetupMode(18, 19), "fill");
   assert.equal(smartSetupMode(19, 19), "new");
-  assert.deepEqual(SMART_LABELS, { smart: "✨ Smart Setup", fill: "✨ Place All", new: "✨ New Setup" });
+  assert.deepEqual(SMART_LABELS, { smart: "Smart Setup", fill: "Place All", new: "New Setup" });
 });
 
 const armyOf = (game) => game.teamUnits(PLAYER);
