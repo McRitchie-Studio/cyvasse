@@ -27,7 +27,10 @@ import { seeded } from "./fixtures.js";
 
 export const SCATTER_POSITIONS = 60;
 export const GAMES = 6;
-export const MAX_TURNS = 150;
+// A safety cap, not a target: every recorded game must end below it (the
+// coverage test checks). The September 2026 trebuchet and king rules made
+// random games longer, up to 328 turns at these seeds, so 150 became 500.
+export const MAX_TURNS = 500;
 
 export function buildAgreementFixture() {
   return { positions: scatterPositions(), games: playedGames(), scenarios: playedScenarios() };

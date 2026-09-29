@@ -5,6 +5,7 @@ module CyvasseRules
   # browser's: test/models/cyvasse_rules/js_agreement_test.rb replays the JS
   # engine's own answers (test/fixtures/files/rules_agreement.json) against
   # this port, and test/lib/engine_rulebook_agreement_test.rb pins the table.
+  # The September 2026 trebuchet and king changes are explained in units.js.
   module Units
     Type = Data.define(:codename, :name, :rank, :attack, :defence, :move_range, :attack_range, :trump) do
       def mountain? = codename == "mountain"
@@ -26,10 +27,10 @@ module CyvasseRules
       type("lighthorse", "Light Horse", "cavalry", attack: 2, defence: 2, move: 3, range: 0),
       type("heavyhorse", "Heavy Horse", "cavalry", attack: 3, defence: 3, move: 2, range: 0),
       type("crossbowman", "Crossbowman", "range", attack: 2, defence: 1, move: 1, range: 2, trump: [ "elephant" ]),
-      type("trebuchet", "Trebuchet", "range", attack: 1, defence: 1, move: 0, range: 3, trump: [ "dragon" ]),
+      type("trebuchet", "Trebuchet", "range", attack: 1, defence: 1, move: 0, range: 4, trump: [ "dragon", "spearman", "lighthorse" ]),
       type("catapult", "Catapult", "range", attack: 3, defence: 1, move: 2, range: 3, trump: [ "dragon" ]),
       type("dragon", "Dragon", "unique", attack: 5, defence: 5, move: 10, range: 0),
-      type("king", "King", "unique", attack: 2, defence: 2, move: 2, range: 0),
+      type("king", "King", "unique", attack: 2, defence: 2, move: 2, range: 0, trump: [ "dragon" ]),
       type("mountain", "Mountain", "mountain", attack: 9, defence: 9, move: 0, range: 0)
     ].index_by(&:codename).freeze
 

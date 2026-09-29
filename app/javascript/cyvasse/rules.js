@@ -117,6 +117,15 @@ function dragonCode(piece, occupant) {
 // The projectile rings (setRangeRings.js). Shots pass over empty hexes,
 // friends and enemies alike; a mountain throws a shadow one ring deep, and
 // the shadow deepens ring by ring.
+//
+// No shooter fires over a mountain, and that includes the trebuchet (Alex,
+// 2026-09-29: "can't shoot over mountains"). The ripple only spreads from a
+// hex the shot has reached cleanly (the shooter, 1x, 2x), never out of a
+// mountain (4x, 3x) or its shadow, so a hex is in reach only along a shortest
+// path with no mountain on it. A mountain off the shooter's six lines (3x)
+// shades the next ring even where a clear path exists. Every mountain blocks,
+// whichever side placed it. This was already the legacy rule for all three
+// shooters, so the trebuchet's longer reach needed no new geometry.
 function walkRangeRings({ position, piece, type, origin, rings }, candidates) {
   const locked = new Set();
   const ringsOfNeighbors = (index) => neighbors(hexAt(index)).map((n) => rings.get(n.index));

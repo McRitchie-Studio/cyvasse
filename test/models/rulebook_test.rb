@@ -37,11 +37,21 @@ class RulebookTest < ActiveSupport::TestCase
     assert_includes units["catapult"].trumps, "Dragon"
   end
 
+  test "the stats reflect the September 2026 rule changes" do
+    units = Rulebook.classes.flat_map(&:units).index_by(&:slug)
+
+    assert_equal 4, units["trebuchet"].range
+    assert_equal [ "Dragon", "Spearman", "Light Horse" ], units["trebuchet"].trumps
+    assert_equal [ "Dragon" ], units["king"].trumps
+    assert_equal 3, Rulebook::CHANGES_2026.size
+  end
+
   test "trump_list joins with and, and shows a dash for none" do
     units = Rulebook.classes.flat_map(&:units).index_by(&:slug)
 
     assert_equal "Light Horse", Rulebook.trump_list(units["spearman"])
-    assert_equal "—", Rulebook.trump_list(units["king"])
+    assert_equal "Dragon, Spearman and Light Horse", Rulebook.trump_list(units["trebuchet"])
+    assert_equal "—", Rulebook.trump_list(units["rabble"])
     two = Rulebook::Unit.new(piece: Piece.all.first, movement: "1", strength: "1", range: nil, trumps: %w[Elephant Dragon])
     assert_equal "Elephant and Dragon", Rulebook.trump_list(two)
   end

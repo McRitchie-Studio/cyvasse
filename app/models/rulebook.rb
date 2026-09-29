@@ -4,7 +4,7 @@
 #
 # Ported from the legacy app (amcritchie/Cyvasse, app/models/units/*.rb and
 # app/controllers/home_controller.rb#rules), whose stats already include the
-# April 14, 2015 changes. A reference card, not the game's source of truth:
+# April 14, 2015 changes; the September 29, 2026 changes are applied on top. A reference card, not the game's source of truth:
 # the engine (epic piece 4) owns the rules it enforces.
 module Rulebook
   # movement and strength are strings where the original printed words
@@ -35,13 +35,21 @@ module Rulebook
     UnitClass.new(name: "Range", units: [
       unit("crossbowman", movement: 1, strength: 2, range: 2, trumps: [ "Elephant" ]),
       unit("catapult", movement: 2, strength: 3, range: 3, trumps: [ "Dragon" ]),
-      unit("trebuchet", movement: 0, strength: 1, range: 3, trumps: [ "Dragon" ])
+      unit("trebuchet", movement: 0, strength: 1, range: 4, trumps: [ "Dragon", "Spearman", "Light Horse" ])
     ]),
     UnitClass.new(name: "Unique", units: [
       unit("dragon", movement: "Moves in a straight line", strength: 5),
-      unit("king", movement: 2, strength: 2),
+      unit("king", movement: 2, strength: 2, trumps: [ "Dragon" ]),
       unit("mountain", movement: "Immovable", strength: "Impassable")
     ])
+  ].freeze
+
+  # Alex's rule changes of September 29, 2026, to help the game play. The
+  # engine enforces them (app/javascript/cyvasse/units.js and its Ruby mirror).
+  CHANGES_2026 = [
+    "Trebuchet range rose from 3 to 4. Mountains still block its shots.",
+    "Trebuchets now trump Spearmen and Light Horse, so neither can take a Trebuchet. They still cannot take the King.",
+    "Kings now trump Dragons: a Dragon within the King's move can be taken."
   ].freeze
 
   # The rule changes of April 14, 2015 (legacy home/new_rules.html.erb).

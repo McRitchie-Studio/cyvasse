@@ -78,11 +78,114 @@ test("a shooter stays put and never captures by moving", () => {
   assert.ok(!moves.includes(47));
 });
 
-test("the trebuchet cannot move but reaches three hexes, and trumps the dragon", () => {
-  const board = position({ 46: [ALLY, "trebuchet"], 49: [ENEMY, "dragon"], 43: [ENEMY, "rabble"], 44: [ENEMY, "spearman"] });
+// Rule changes of September 29, 2026: the trebuchet reaches four hexes and
+// trumps the spearman and the light horse as well as the dragon; the king
+// stays safe from it.
+test("the trebuchet cannot move but reaches four hexes, and trumps the dragon, spearman and light horse", () => {
+  const board = position({
+    46: [ALLY, "trebuchet"],
+    50: [ENEMY, "dragon"], // four away along the middle row
+    42: [ENEMY, "rabble"], // four away the other way
+    51: [ENEMY, "rabble"], // five away: out of reach
+    44: [ENEMY, "spearman"],
+    36: [ENEMY, "lighthorse"],
+    45: [ENEMY, "king"],
+    48: [ENEMY, "heavyhorse"]
+  });
   const { moves, attacks } = legalActions(board, 46);
   assert.deepEqual(moves, []);
-  assert.deepEqual(attacks, [43, 49], "the rabble (1) and the dragon (trumped); not the spearman (2 > 1)");
+  assert.deepEqual(attacks, [36, 42, 44, 50],
+    "the light horse and spearman (trumped), the rabble (1) and the dragon (trumped) at four; not the king (2 > 1), the heavy horse (3 > 1) or the rabble at five");
+});
+
+test("an open trebuchet's shot reaches every hex within four and none beyond", () => {
+  const { rangeRings } = legalActions(position({ 46: [ALLY, "trebuchet"] }), 46);
+  const reached = [...rangeRings.keys()].filter((i) => i !== 46).sort((a, b) => a - b);
+  assert.deepEqual(reached, disc(46, 4));
+});
+
+test("the trebuchet never takes the king, wherever it stands in reach", () => {
+  for (const hex of disc(46, 4)) {
+    const board = position({ 46: [ALLY, "trebuchet"], [hex]: [ENEMY, "king"] });
+    assert.deepEqual(legalActions(board, 46).attacks, [], `king on ${hex}`);
+  }
+});
+
+test("a mountain of either side stops the trebuchet's shot at four", () => {
+  const open = position({ 46: [ALLY, "trebuchet"], 50: [ENEMY, "spearman"] });
+  assert.deepEqual(legalActions(open, 46).attacks, [50], "control: the spearman four away is in reach");
+
+  for (const side of [ALLY, ENEMY]) {
+    const walled = position({ 46: [ALLY, "trebuchet"], 47: [side, "mountain"], 50: [ENEMY, "spearman"] });
+    assert.deepEqual(legalActions(walled, 46).attacks, [], `a ${side === ALLY ? "friendly" : "enemy"} mountain on 47`);
+    const far = position({ 46: [ALLY, "trebuchet"], 49: [side, "mountain"], 50: [ENEMY, "spearman"] });
+    assert.deepEqual(legalActions(far, 46).attacks, [], `a ${side === ALLY ? "friendly" : "enemy"} mountain on 49`);
+  }
+});
+
+// The trebuchet's reach, written from the rule alone: a hex is in reach only
+// along a shortest path from the trebuchet with no mountain on it.
+function clearReach(board, origin, range) {
+  const at = hexAt(origin);
+  const reach = new Set([origin]);
+  for (let d = 1; d <= range; d++) {
+    for (const hex of HEXES) {
+      if (distance(at, hex) !== d) continue;
+      const fromClear = neighbors(hex).some((n) => reach.has(n.index) && distance(at, n) === d - 1);
+      if (fromClear && board.pieceAt(hex.index)?.type.codename !== "mountain") reach.add(hex.index);
+    }
+  }
+  reach.delete(origin);
+  return reach;
+}
+
+test("the trebuchet never shoots over a mountain, on random boards", () => {
+  const rng = seeded(29);
+  const kinds = ["rabble", "spearman", "lighthorse", "dragon", "king", "crossbowman", "catapult"];
+  let fourAway = 0;
+  let sheltered = 0;
+  for (let trial = 0; trial < 300; trial++) {
+    const layout = {};
+    for (const hex of HEXES) {
+      const roll = rng();
+      if (roll < 0.12) layout[hex.index] = [rng() < 0.5 ? ALLY : ENEMY, "mountain"];
+      else if (roll < 0.4) layout[hex.index] = [ENEMY, kinds[Math.floor(rng() * kinds.length)]];
+    }
+    const origin = 1 + Math.floor(rng() * 91);
+    layout[origin] = [ALLY, "trebuchet"];
+    const board = position(layout);
+    const reach = clearReach(board, origin, 4);
+    const { attacks } = legalActions(board, origin);
+
+    for (const target of attacks) {
+      assert.ok(reach.has(target), `trial ${trial}: the trebuchet on ${origin} fires over a mountain at ${target}`);
+      if (distance(hexAt(origin), hexAt(target)) === 4) fourAway += 1;
+    }
+    for (const hex of disc(origin, 4)) {
+      const kind = board.pieceAt(hex)?.type.codename;
+      if (!reach.has(hex) && kind && kind !== "mountain" && kind !== "king") sheltered += 1;
+    }
+  }
+  assert.ok(fourAway > 20, `shots at four hexes were taken (${fourAway})`);
+  assert.ok(sheltered > 20, `targets were sheltered by mountains (${sheltered})`);
+});
+
+test("a king takes a dragon that comes within its move, and the dragon can still take the king", () => {
+  const adjacent = position({ 46: [ALLY, "king"], 47: [ENEMY, "dragon"] });
+  assert.deepEqual(legalActions(adjacent, 46).attacks, [47], "a dragon next to the king");
+
+  const twoAway = position({ 46: [ALLY, "king"], 48: [ENEMY, "dragon"] });
+  assert.deepEqual(legalActions(twoAway, 46).attacks, [48], "a dragon two away, through an empty hex");
+
+  const threeAway = position({ 46: [ALLY, "king"], 49: [ENEMY, "dragon"] });
+  assert.deepEqual(legalActions(threeAway, 46).attacks, [], "beyond the king's move of two");
+
+  const shielded = { 46: [ALLY, "king"], 48: [ENEMY, "dragon"] };
+  for (const n of [35, 36, 45, 47, 56, 57]) shielded[n] = [ALLY, "mountain"];
+  assert.deepEqual(legalActions(position(shielded), 46).attacks, [], "the king walks to it; it cannot pass its own mountains");
+
+  const dragon = position({ 46: [ALLY, "dragon"], 47: [ENEMY, "king"] });
+  assert.deepEqual(legalActions(dragon, 46).attacks, [47], "the dragon's captures ignore trumps");
 });
 
 test("a mountain in the line of fire shelters the hex directly behind it", () => {
