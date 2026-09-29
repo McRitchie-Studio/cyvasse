@@ -24,6 +24,7 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
     # Ready waits for a full army; Random Setup is the hollow secondary.
     assert_button "Ready", disabled: true
     assert_selector "button.btn-outline", text: "Random Setup"
+    assert_selector ".cyvasse-setup-actions button.cyvasse-ready:first-child + button.btn-outline", text: "Random Setup"
     click_on "Random Setup"
     assert_button "Ready", disabled: false
     if ENV["SCREENSHOTS"]

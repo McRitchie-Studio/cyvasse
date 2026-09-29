@@ -310,11 +310,20 @@
   color: var(--color-danger-ink, var(--color-danger, #EF4444));
 }
 
-/* The "Your army" panel: Ready is the main call to action, a filled violet
- * button that stays muted until every unit is on the board; Random Setup is
- * the hollow secondary beside it. */
+/* The "Your army" panel: Ready is the main call to action, a full-width
+ * filled violet button that stays muted until every unit is on the board;
+ * Random Setup sits under it, full width too but smaller and hollow. */
+.cyvasse-setup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cyvasse-setup-actions .btn {
+  width: 100%;
+}
+
 .cyvasse-ready {
-  flex: 1 1 auto;
   color: #fff;
   background-color: #7c3aed;
   box-shadow: 0 0 0 1px rgb(167 139 250 / 0.5), 0 6px 18px -6px rgb(124 58 237 / 0.7);

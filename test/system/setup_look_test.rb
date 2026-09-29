@@ -34,6 +34,18 @@ class SetupLookTest < ApplicationSystemTestCase
     random = find_button("Random Setup")
     assert_includes random[:class], "btn-outline"
     assert_equal "rgba(0, 0, 0, 0)", random.style("background-color")["background-color"]
+    # Ready leads; Random Setup sits under it, as wide but smaller.
+    ready_box, random_box = page.evaluate_script(<<~JS)
+      ["[data-cyvasse-game-target=startButton]", "[data-action='cyvasse-game#randomSetup']"].map((s) => {
+        const b = document.querySelector(s)
+        const r = b.getBoundingClientRect()
+        return { top: r.top, bottom: r.bottom, width: r.width, height: r.height, font: parseFloat(getComputedStyle(b).fontSize) }
+      })
+    JS
+    assert_operator random_box["top"], :>=, ready_box["bottom"], "Random Setup is under Ready"
+    assert_in_delta ready_box["width"], random_box["width"], 1, "both are full width"
+    assert_operator random_box["height"], :<, ready_box["height"]
+    assert_operator random_box["font"], :<, ready_box["font"]
 
     # Picking a unit lights the empty hexes it may go to.
     first(".cyvasse-dock .dock-unit").click
