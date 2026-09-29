@@ -18,6 +18,7 @@
          data-cyvasse-match-state-url-value="<%= match_path(@match, format: :json) %>"
          data-cyvasse-match-setup-url-value="<%= setup_match_path(@match) %>"
          data-cyvasse-match-move-url-value="<%= moves_match_path(@match) %>"
+         data-cyvasse-match-seat-url-value="<%= seat_match_path(@match) %>"
          <% if @match.live? %>data-cyvasse-match-poll-ms-value="1000" data-live="true"<% end %>
          <% if current_user.guest? %>data-cyvasse-match-return-to-value="<%= match_path(@match, claim: GuestClaim.token_for(current_user)) %>"<% end %>>
   <%# The versus row takes the whole top; everything else lives in the panel. %>
@@ -48,9 +49,15 @@
         <p class="text-secondary font-medium" role="status" aria-live="polite" data-cyvasse-match-target="status">Loading the board…</p>
         <p class="text-sm text-secondary" hidden data-cyvasse-match-target="deadline"></p>
         <p class="cyvasse-alert" role="alert" hidden data-cyvasse-match-target="error"></p>
-        <p class="live-notice" role="status" aria-live="polite" hidden data-cyvasse-match-target="notice"></p>
-        <%# Reserved for the "Take back my seat" control. %>
-        <div data-match-slot="take-back-seat" hidden></div>
+        <div class="live-notice" role="status" aria-live="polite" hidden data-cyvasse-match-target="notice">
+          <span data-cyvasse-match-target="noticeText"></span>
+          <button type="button" class="live-notice-dismiss" aria-label="Dismiss" hidden
+                  data-cyvasse-match-target="noticeDismiss" data-action="cyvasse-match#dismissNotice">&times;</button>
+        </div>
+        <%# Shown while a computer holds this player's seat (LiveMatch#take_back_seat!). %>
+        <div data-match-slot="take-back-seat" hidden data-cyvasse-match-target="takeBackSeat">
+          <button type="button" class="btn btn-primary btn-sm" data-action="cyvasse-match#takeBackSeat">Take back my seat</button>
+        </div>
       </div>
 
       <div class="match-actions">

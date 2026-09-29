@@ -425,6 +425,30 @@
   color: var(--color-text-heading, inherit);
 }
 
+.live-notice:not([hidden]) {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.live-notice > span {
+  flex: 1;
+}
+
+.live-notice-dismiss {
+  flex: none;
+  line-height: 1;
+  font-size: 1.1rem;
+  padding: 0 0.2rem;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.live-notice-dismiss:hover,
+.live-notice-dismiss:focus-visible {
+  opacity: 1;
+}
+
 .live-computer-tag {
   display: inline-block;
   vertical-align: middle;
