@@ -165,19 +165,18 @@ html:not(.dark) .about-page a {
   color: rgb(var(--color-primary-700-rgb));
 }
 
-/* A Special Rules card marks the stats its rule is about with a gold band
- * across the label and the value (the old screenshots circled them). */
+/* A Special Rules card marks the stats its rule is about with a gold pill on
+ * the label and the value (the old screenshots circled them by hand). */
 .unit-stat-marked {
-  background: rgb(var(--color-primary-rgb) / 0.18);
+  justify-self: start;
   padding: 0 0.375rem;
-}
-
-dt.unit-stat-marked {
-  border-radius: 0.25rem 0 0 0.25rem;
+  margin-left: -0.375rem;
+  border-radius: 0.25rem;
+  background: rgb(var(--color-primary-rgb) / 0.25);
 }
 
 dd.unit-stat-marked {
-  border-radius: 0 0.25rem 0.25rem 0;
+  margin-left: -0.375rem;
 }
 
 /* A unit card's art tile: the parchment .piece-tile above, at a fixed size. */
