@@ -13,6 +13,9 @@
 # move the rules allow. The seven-day clock runs from time_of_last_move; the
 # player who lets it run out forfeits (Match.expire_stale!).
 class Match < ApplicationRecord
+  # Short clocks, strikes and computer seats for games played in one sitting.
+  include LiveMatch
+
   PENDING = "pending"
   ACCEPTED = "new"
   IN_PROGRESS = "in progress"
@@ -138,6 +141,7 @@ class Match < ApplicationRecord
     change_on_clock(user) do
       raise Refused, "This match is not in play." unless in_progress?
       raise Refused, "It is #{user_to_move.username}'s turn." unless your_turn?(user)
+      raise Refused, "A computer player has taken your seat for this match." if live? && bot_seat?(seat(user))
 
       apply_turn(steps)
     end
@@ -243,7 +247,7 @@ class Match < ApplicationRecord
       phase: if in_progress? then "play" elsif finished? then "over" else "setup" end,
       version: updated_at.to_f.to_s,
       you: { username: user.username, ready: ready?(user) },
-      opponent: { username: opponent_of(user).username, ready: ready?(opponent_of(user)) },
+      opponent: { username: display_name_of(opponent_of(user)), ready: ready?(opponent_of(user)) },
       seat: seat(user),
       can_accept: pending? && seat(user) == :away,
       can_set_up: pregame? && !ready?(user) && !(pending? && seat(user) == :away),
@@ -255,7 +259,8 @@ class Match < ApplicationRecord
       util_move: hexes(utility_saved_hex).map(&view).first,
       deadline: deadline&.iso8601,
       winner: winner_id.nil? ? nil : (winner_id == user.id ? 1 : 0),
-      finish_reason: finish_reason
+      finish_reason: finish_reason,
+      live: live? ? live_state_for(user) : nil
     }
   end
 
@@ -268,6 +273,8 @@ class Match < ApplicationRecord
   # the engine's outbox after the write commits; a player without an email
   # address is skipped.
   def notify(action, user)
+    # A live match is played in one sitting, with the board open: no mail.
+    return if live?
     return if user&.email.blank?
 
     Studio::Email.deliver(MatchMailer, action, self, user, to: user.email, user: user)
@@ -312,6 +319,7 @@ class Match < ApplicationRecord
     self.turn = game.turn
     self.match_status = IN_PROGRESS
     finish!(winner: nil, reason: "draw", save: false) if result.over
+    live_turn_started
   end
 
   def apply_turn(steps)
@@ -328,6 +336,7 @@ class Match < ApplicationRecord
       winner = { HOME => home_user, AWAY => away_user }[result.winner]
       finish!(winner: winner, reason: winner ? "king" : "draw", save: false)
     end
+    live_turn_started
     save!
   end
 

@@ -22,6 +22,7 @@ class MatchesController < ApplicationController
   end
 
   def show
+    settle_live_clocks
     respond_to do |format|
       format.html do
         @state = @match.state_for(current_user)
@@ -97,11 +98,25 @@ class MatchesController < ApplicationController
   end
 
   def answer(error)
-    state = @match.reload.state_for(current_user)
+    @match.reload
+    settle_live_clocks
+    state = @match.state_for(current_user)
     if error
       render json: { error: error, state: state }, status: :unprocessable_entity
     else
       render json: { state: state }
     end
+  end
+
+  # A live match's clocks and computer seats are settled when a board asks
+  # (LiveMatch#tick!): there is no background worker. A failure is logged
+  # (rescue_and_log re-raises) and swallowed, so the board still draws the
+  # last settled state and the next poll tries again.
+  def settle_live_clocks
+    return unless @match.live?
+
+    rescue_and_log(target: @match) { @match.tick! }
+  rescue StandardError
+    nil
   end
 end
