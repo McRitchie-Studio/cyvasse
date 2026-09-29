@@ -151,6 +151,16 @@ resignation, acceptance or army (a stale page cannot overturn the forfeit), so
 it needs no scheduler; `bin/rails matches:expire` sweeps every match and may
 be run daily by one.
 
+**The computer's pace.** The computer plays in steps a player can follow:
+it selects a unit after 2-5 s, moves it 3-5 s later, and makes a cavalry
+unit's second jump 2-3 s after that. On `/play` the browser times it
+(`cyvasse/pacing.js`); in a live match the server does (`LiveMatch::BOT_PACING`):
+the turn is chosen up front into `matches.bot_plan`, each step is written
+when due so the polling board shows the selection, and the turn is played
+only when its last step lands, which is when the other player's clock starts.
+The test suite sets `LiveMatch.bot_pace = 0` (and `/play`'s `pace` value to 0)
+so a computer turn is instant.
+
 **Legacy columns.** The `matches` table and `users.username`, `wins` and
 `losses` keep the legacy names, types and nullability (see the
 `CreateMatches` migration for the column encoding), so the legacy rows import
