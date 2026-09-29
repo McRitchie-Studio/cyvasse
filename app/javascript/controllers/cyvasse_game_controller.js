@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { Game, PLAYER, COMPUTER } from "cyvasse/game"
 import { chooseAction, KILL_PRIORITY } from "cyvasse/ai"
+import { botDelays } from "cyvasse/pacing"
 import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
 import { UNIT_TYPES } from "cyvasse/units"
 import { Banner, passNotice } from "cyvasse/banner"
@@ -260,18 +261,19 @@ export default class extends Controller {
     if (this.game.offense === COMPUTER) this.computerTurn()
   }
 
-  // The legacy AI's rhythm: think 1.5 s, show its unit's rings, move a second
-  // later, and a second after that for a cavalry unit's second jump.
+  // The computer's rhythm (cyvasse/pacing): select its unit after 2-5 s, move
+  // it 3-5 s later, and a cavalry unit's second jump 2-3 s after that.
   computerTurn() {
     const action = chooseAction(this.game)
     if (!action) return
-    this.later(1500, () => {
+    const delays = botDelays()
+    this.later(delays.select, () => {
       this.select(action.from)
-      this.later(1000, () => {
+      this.later(delays.move, () => {
         const result = this.game.act(action.from, action.to)
         if (result.secondJump) {
           this.select(this.game.activeHex)
-          this.later(1000, () => {
+          this.later(delays.second, () => {
             const next = chooseAction(this.game)
             this.runTurn(this.game.act(next.from, next.to))
           })
