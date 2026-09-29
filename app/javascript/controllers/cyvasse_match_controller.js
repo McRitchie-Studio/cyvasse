@@ -239,6 +239,7 @@ export default class extends GameController {
     if (this.game.phase === "setup" && !this.state.can_set_up) {
       for (const { group } of this.hexNodes.values()) group.classList.remove("is-deploy", "is-drop")
       this.paintGround()
+      this.labelHexes()
     }
     // "Ready" waits for a full army, and for a setup the server still takes.
     this.startButtonTarget.disabled = !this.state.can_set_up || !this.game.readyToStart
@@ -265,6 +266,8 @@ export default class extends GameController {
     } else if (state.phase === "play") {
       if (!state.your_turn) text = `Turn ${state.turn}: waiting for ${them} to move.`
       else text = this.game.jump === 2 ? `Turn ${state.turn}: your cavalry jumps again.` : `Turn ${state.turn}: your move.`
+      const picked = state.your_turn ? this.pickedNote() : ""
+      if (picked) text = `${text} ${picked}`
     } else if (state.can_accept) {
       text = `${them} challenged you. Accept to set up your army.`
     } else if (state.can_set_up) {
@@ -276,7 +279,7 @@ export default class extends GameController {
     } else {
       text = `Your army is in place. Waiting for ${them} to set up.`
     }
-    this.statusTarget.textContent = text
+    this.setStatus(text)
   }
 
   renderDeadline() {
