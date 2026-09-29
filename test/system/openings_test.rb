@@ -79,7 +79,7 @@ class OpeningsSystemTest < ApplicationSystemTestCase
   test "starting a game fires the played_match beacon for a player from an email" do
     visit play_path(ref: "AbCdEfGhIjKlMnOpQrSt12")
     assert_selector "[data-controller=cyvasse-game][data-phase=setup]"
-    click_on "Random Setup"
+    find("button.cyvasse-smart").click
     click_on "Ready"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
 
@@ -91,7 +91,7 @@ class OpeningsSystemTest < ApplicationSystemTestCase
 
   test "a player with no ref fires no beacon" do
     visit play_path
-    click_on "Random Setup"
+    find("button.cyvasse-smart").click
     click_on "Ready"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
     assert_nil page.evaluate_script(<<~JS)

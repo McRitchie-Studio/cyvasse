@@ -1,4 +1,4 @@
-// [unit] The twenty opening lineups in the setup panel: each is a whole army
+// [unit] The twenty-five opening lineups in the setup panel: each is a whole army
 // on the player's rows that Game#loadLineup accepts, and each keeps the
 // promise its description makes about the king, checked with the real rules.
 import { test } from "node:test";
@@ -22,10 +22,10 @@ const loaded = (opening) => {
 
 const kingHex = (game) => game.teamUnits(PLAYER).find((u) => u.type.codename === "king").hex;
 
-test("there are twenty openings with distinct slugs and names", () => {
-  assert.equal(OPENINGS.length, 20);
-  assert.equal(new Set(OPENINGS.map((o) => o.slug)).size, 20);
-  assert.equal(new Set(OPENINGS.map((o) => o.name)).size, 20);
+test("there are twenty-five openings with distinct slugs and names", () => {
+  assert.equal(OPENINGS.length, 25);
+  assert.equal(new Set(OPENINGS.map((o) => o.slug)).size, 25);
+  assert.equal(new Set(OPENINGS.map((o) => o.name)).size, 25);
   for (const opening of OPENINGS) assert.ok(opening.idea.length > 40, `${opening.slug} explains itself`);
 });
 

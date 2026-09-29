@@ -1,0 +1,19 @@
+<%# The setup panel's army card, on /play and a match. Locals: board, the
+    board's Stimulus identifier; note, an optional sentence read to screen
+    readers with Ready. The board sets data-army-mode (smart, fill, new) from
+    how much of the army is placed: "smart" leads with the filled Smart Setup
+    button; "fill" and "new" move it, hollow, under Ready and put the count in
+    its place. Both slots keep one button's height, so nothing jumps. %>
+<div class="card p-4 cyvasse-army" data-army-mode="smart" data-<%= board %>-target="army">
+  <h2 class="text-sm font-semibold uppercase tracking-widest text-muted text-center">Your army</h2>
+  <p class="sr-only" id="<%= board %>-army-hint">
+    Pick a unit, then a lit hex in your five rows. Click a placed unit to move it again. <%= local_assigns[:note] %>
+  </p>
+  <p class="cyvasse-army-count text-sm text-secondary" aria-hidden="true" data-<%= board %>-target="armyCount"></p>
+  <button type="button" class="btn cyvasse-smart" data-<%= board %>-target="smartButton"
+          data-action="<%= board %>#smartSetup">✨ Smart Setup</button>
+  <div class="cyvasse-dock" role="group" aria-label="Units to place" aria-describedby="<%= board %>-army-hint"
+       data-<%= board %>-target="dock"></div>
+  <button type="button" class="btn cyvasse-ready" disabled aria-describedby="<%= board %>-army-hint"
+          data-<%= board %>-target="startButton" data-action="<%= board %>#start">Ready</button>
+</div>

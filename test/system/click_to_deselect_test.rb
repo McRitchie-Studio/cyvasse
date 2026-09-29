@@ -18,7 +18,7 @@ class ClickToDeselectTest < ApplicationSystemTestCase
     with_seeded_random(PLAY_SEED) do
       visit play_path
       assert_selector "[data-controller=cyvasse-game][data-phase=setup]"
-      click_on "Random Setup"
+      find("button.cyvasse-smart").click
       click_on "Ready"
       # As the sibling /play tests do: the game has started before the pace
       # drops, and a computer that moves first gets the time its paced turn takes.

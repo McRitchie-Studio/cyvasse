@@ -25,6 +25,7 @@ class PlayNowSystemTest < ApplicationSystemTestCase
     assert_text(/match found/i, wait: 8)
     assert_selector "[data-live-seek-target=computerTag]", text: /computer/i # styled uppercase
     assert_selector "[data-live-seek-target=you]", text: /Guest_\d{4}/
+    assert_selector "[data-live-seek-target=opponentInitial] img[data-avatar=bot-portrait][src*='/assets/bots/']"
     sleep 0.6 # past the splash's fade-in, for the screenshot
     screenshot("splash")
 
@@ -62,12 +63,30 @@ class PlayNowSystemTest < ApplicationSystemTestCase
 
     assert_text(/match found/i, wait: 0.5)
     assert_selector "[data-live-seek-target=computerTag]", text: /computer/i
+    portrait = find("[data-live-seek-target=opponentInitial] img[data-avatar=bot-portrait]")
+    assert_equal LiveSeek.last.match.display_name_of(LiveSeek.last.match.away_user), portrait[:alt]
+    splash_screenshots
     assert_selector "[data-controller=cyvasse-match]", wait: 8
     assert_current_path(%r{/matches/\d+})
     assert LiveSeek.last.match.away_user.computer?
   end
 
   private
+
+  # The splash with a computer player's portrait, at desktop and 390px.
+  def splash_screenshots
+    return unless ENV["SCREENSHOTS"]
+
+    sleep 0.4
+    page.save_screenshot(Rails.root.join("tmp/screenshots/bot-portraits-splash-desktop.png"))
+    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+    begin
+      sleep 0.2
+      page.save_screenshot(Rails.root.join("tmp/screenshots/bot-portraits-splash-390.png"))
+    ensure
+      page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
+    end
+  end
 
   def screenshot(name)
     page.save_screenshot(Rails.root.join("tmp/screenshots/play-now-#{name}.png")) if ENV["SCREENSHOTS"]
