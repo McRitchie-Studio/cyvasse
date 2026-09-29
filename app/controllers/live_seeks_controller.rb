@@ -1,10 +1,12 @@
 # Play Now (task play-now-matchmaking). POST /live starts a search, signing a
 # visitor in as a guest if need be; GET /live/:id is the searching page, and
 # its JSON is what that page polls each second until a match is made (another
-# live player, or a computer player once the search time is up).
+# live player, or a computer player once the search time is up). POST
+# /live/:id/computer is "Play the computer now".
 class LiveSeeksController < ApplicationController
   skip_before_action :require_authentication, only: :create
-  before_action :set_seek, only: :show
+  before_action :set_seek, only: %i[show computer]
+  helper_method :splash_ms
 
   SPLASH = 5.seconds
 
@@ -19,6 +21,14 @@ class LiveSeeksController < ApplicationController
     rescue_and_log(target: @seek, parent: current_user) { @seek.settle! }
     respond_to do |format|
       format.html
+      format.json { render json: status_json }
+    end
+  end
+
+  def computer
+    rescue_and_log(target: @seek, parent: current_user) { @seek.settle!(computer: true) }
+    respond_to do |format|
+      format.html { redirect_to match_path(@seek.match) }
       format.json { render json: status_json }
     end
   end
