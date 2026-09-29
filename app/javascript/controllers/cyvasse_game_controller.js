@@ -11,7 +11,8 @@ import { Banner, passNotice } from "cyvasse/banner"
 // this controller only draws a Game and turns clicks into Game calls. The
 // look follows the legacy match screen: black hexes with white edges, orange
 // for the last move, and the ring ripple (animation.js) washing out from a
-// selected unit in the legacy colours, one ring every 120 ms.
+// selected unit in the legacy colours, one ring every 120 ms. Each lit hex is
+// a gradient in its ring's colour under a faint hatch (ringStops, below).
 //
 // Values
 //   skin    which piece art the board draws ("vector" by default); the server
@@ -32,8 +33,35 @@ const RIPPLE_MS = 120
 // outward. The dragon's longer reach uses the ten-step table.
 const HSL_SHORT = ["40%,30%", "42%,39%", "44%,47%", "46%,50%", "48%,55%", "50%,60%"]
 const HSL_LONG = ["40%,30%", "41%,34%", "42%,38%", "43%,42%", "44%,45%", "45%,48%", "46%,51%", "47%,54%", "48%,57%", "50%,60%"]
+const HSL_TABLES = { short: HSL_SHORT, long: HSL_LONG }
 // Move ring code -> hue (animation.js updateRing).
 const MOVE_HUE = { 1: 240, 2: 290, 3: 10, 4: 10, 5: 280 }
+// The range ripple's attack rings (code 2 of rangeRings) are the capture red.
+const RANGE_HUE = 10
+
+// Each lit hex is filled with a radial gradient rather than the flat legacy
+// colour: the ring's own hsl() sits at the middle stop, the centre is lighter
+// and the edge deeper, so the hex has depth. The hue drifts a little across
+// the hex for colour (blue towards cyan at the centre and indigo at the edge);
+// the capture red drifts towards crimson, never towards the selection orange.
+// One gradient per hue, table and ripple step, so the outward brightening of
+// the ripple still reads. [centre, edge] hue offsets:
+const RING_DRIFT = { 240: [-16, 14], 290: [-14, 12], 10: [-4, -18], 280: [-10, 8] }
+
+function ringStops(hue, entry) {
+  const [s, l] = entry.split(",").map((part) => parseFloat(part))
+  const [inner, outer] = RING_DRIFT[hue]
+  const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n))
+  return [
+    ["0%", `hsl(${hue + inner}, ${clamp(s + 14, 0, 100)}%, ${clamp(l + 20, 0, 80)}%)`],
+    ["55%", `hsl(${hue}, ${s}%, ${l}%)`],
+    ["100%", `hsl(${hue + outer}, ${clamp(s + 10, 0, 100)}%, ${clamp(l - 14, 12, 100)}%)`]
+  ]
+}
+
+function ringFill(hue, table, step) {
+  return `url(#ring-${hue}-${table}-${step})`
+}
 const PREVIEW_STROKE = { 6: "blue", 7: "red", 8: "purple" }
 const RANGE_STROKE = { 1: "red", 2: "red", 3: "blue", 4: "blue" }
 
@@ -276,6 +304,20 @@ export default class extends Controller {
         defs.append(gradient)
       })
     }
+    for (const hue of new Set([...Object.values(MOVE_HUE), RANGE_HUE])) {
+      for (const [table, entries] of Object.entries(HSL_TABLES)) {
+        entries.forEach((entry, step) => {
+          const gradient = el("radialGradient", { id: `ring-${hue}-${table}-${step}`, cx: "50%", cy: "46%", r: "62%", fx: "42%", fy: "34%" })
+          for (const [offset, color] of ringStops(hue, entry)) gradient.append(el("stop", { offset, "stop-color": color }))
+          defs.append(gradient)
+        })
+      }
+    }
+    // The texture over a lit hex: a fine diagonal hatch, light and faint.
+    const texture = el("pattern", { id: "ring-texture", patternUnits: "userSpaceOnUse", width: 5, height: 5, patternTransform: "rotate(40)" })
+    texture.append(el("line", { x1: 0, y1: 0, x2: 0, y2: 5, stroke: "white", "stroke-opacity": 0.14, "stroke-width": 1.2 }))
+    texture.append(el("line", { x1: 2.5, y1: 0, x2: 2.5, y2: 5, stroke: "black", "stroke-opacity": 0.1, "stroke-width": 0.8 }))
+    defs.append(texture)
     svg.append(defs)
     this.hexNodes = new Map()
     this.hexCentres = new Map()
@@ -291,10 +333,11 @@ export default class extends Controller {
         transform: `translate(${cx.toFixed(2)} ${cy.toFixed(2)})`
       })
       const polygon = el("polygon", { class: "hex-poly", points: corners })
+      const texture = el("polygon", { class: "ring-texture", points: corners, fill: "url(#ring-texture)" })
       const shade = el("polygon", { class: "unit-shade", points: corners })
       const disc = el("circle", { class: "unit-disc", r: 24 })
       const image = el("image", { class: "unit-image", x: -22, y: -24, width: 44, height: 48 })
-      group.append(polygon, shade, disc, image)
+      group.append(polygon, texture, shade, disc, image)
       svg.append(group)
       this.hexNodes.set(hex.index, { group, polygon, shade, disc, image })
       this.hexCentres.set(hex.index, { x: cx, row: hex.y })
@@ -369,7 +412,7 @@ export default class extends Controller {
     for (const [index, node] of this.hexNodes) {
       const unit = game.pieceAt(index)
       node.group.classList.toggle("has-unit", !!unit)
-      node.group.classList.remove("is-move", "is-attack", "is-selected", "is-deploy", "is-last-move")
+      node.group.classList.remove("is-move", "is-attack", "is-selected", "is-deploy", "is-last-move", "is-lit")
       node.group.dataset.unitId = unit?.id ?? ""
       node.group.dataset.team = unit ? unit.team : ""
       if (unit) {
@@ -512,7 +555,7 @@ export default class extends Controller {
 
   ripple(unit) {
     const type = unit.type
-    const hsl = type.moveRange > 5 ? HSL_LONG : HSL_SHORT
+    const table = type.moveRange > 5 ? "long" : "short"
     const { rings, rangeRings } = this.actions
     const reach = type.rank === "range" ? type.attackRange : type.rank === "cavalry" ? type.moveRange * 2 : type.moveRange
     let distance = 1
@@ -522,16 +565,22 @@ export default class extends Controller {
       for (const [index, ring] of rings) {
         if (ring % 10 !== step || ring < 10) continue
         const code = Math.floor(ring / 10)
-        const polygon = this.hexNodes.get(index).polygon
-        if (MOVE_HUE[code] !== undefined) polygon.style.fill = `hsl(${MOVE_HUE[code]}, ${hsl[step]})`
+        const { group, polygon } = this.hexNodes.get(index)
+        if (MOVE_HUE[code] !== undefined) {
+          polygon.style.fill = ringFill(MOVE_HUE[code], table, step)
+          group.classList.add("is-lit")
+        }
         if (PREVIEW_STROKE[code]) polygon.style.stroke = PREVIEW_STROKE[code]
       }
       if (type.rank === "range") {
         for (const [index, ring] of rangeRings) {
           if (ring % 10 !== step || ring < 10) continue
           const code = Math.floor(ring / 10)
-          const polygon = this.hexNodes.get(index).polygon
-          if (code === 2) polygon.style.fill = `hsl(10, ${hsl[step]})`
+          const { group, polygon } = this.hexNodes.get(index)
+          if (code === 2) {
+            polygon.style.fill = ringFill(RANGE_HUE, table, step)
+            group.classList.add("is-lit")
+          }
           if (RANGE_STROKE[code]) polygon.style.stroke = RANGE_STROKE[code]
         }
       }
