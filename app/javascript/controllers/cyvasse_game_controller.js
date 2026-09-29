@@ -5,6 +5,7 @@ import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
 import { UNIT_TYPES } from "cyvasse/units"
 import { Banner, passNotice } from "cyvasse/banner"
 import { threats } from "cyvasse/threats"
+import { EDGES, perimeter, hexClaim, resolveEdges } from "cyvasse/edges"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -177,6 +178,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.cursorEvents?.abort()
     this.clearTimers()
     this.bannerBox.hide()
   }
@@ -464,10 +466,10 @@ export default class extends Controller {
     this.hexNodes = new Map()
     this.hexCentres = new Map()
 
-    const cornersAt = (scale) => [[0, -H / 2], [W / 2, -H / 4], [W / 2, H / 4], [0, H / 2], [-W / 2, H / 4], [-W / 2, -H / 4]]
-      .map(([x, y]) => `${(x * scale).toFixed(2)},${(y * scale).toFixed(2)}`).join(" ")
+    const FULL = [[0, -H / 2], [W / 2, -H / 4], [W / 2, H / 4], [0, H / 2], [-W / 2, H / 4], [-W / 2, -H / 4]]
+    const cornersAt = (scale) => FULL.map(([x, y]) => `${(x * scale).toFixed(2)},${(y * scale).toFixed(2)}`).join(" ")
     const corners = cornersAt(0.97)
-    // Inset, so the pulse never tints the hex's red range edge.
+    // Inset, inside the band a highlight edge draws over.
     const dangerCorners = cornersAt(0.935)
 
     for (const hex of HEXES) {
@@ -480,16 +482,41 @@ export default class extends Controller {
       const polygon = el("polygon", { class: "hex-poly", points: corners })
       const texture = el("polygon", { class: "ring-texture", points: corners, fill: "url(#ring-texture)" })
       const shade = el("polygon", { class: "unit-shade", points: corners })
-      // Over the shade, so a unit's hex shows its whole red range edge.
-      const range = el("polygon", { class: "range-edge", points: corners })
       const danger = el("polygon", { class: "danger-edge", points: dangerCorners, fill: "url(#danger-edge)" })
       const disc = el("circle", { class: "unit-disc", r: 27 })
       const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
-      group.append(polygon, texture, shade, range, danger, disc, image)
+      group.append(polygon, texture, shade, danger, disc, image)
       svg.append(group)
       this.hexNodes.set(hex.index, { group, polygon, shade, disc, image })
       this.hexCentres.set(hex.index, { x: cx, y: cy, row: hex.y })
     }
+
+    // Every highlight border, one line per edge on the line two hexes share,
+    // wide enough to cover both their edges (renderEdges gives it an owner).
+    const edges = el("g", { class: "hex-edges" })
+    this.edgeLines = new Map()
+    for (const { key, hex, side, other } of EDGES) {
+      const { x, y } = this.hexCentres.get(hex)
+      const [ax, ay] = FULL[side]
+      const [bx, by] = FULL[(side + 1) % 6]
+      const line = el("line", {
+        class: "hex-edge", "data-edge": key, "data-between": `${hex} ${other ?? "rim"}`,
+        x1: (x + ax).toFixed(2), y1: (y + ay).toFixed(2), x2: (x + bx).toFixed(2), y2: (y + by).toFixed(2)
+      })
+      edges.append(line)
+      this.edgeLines.set(key, line)
+    }
+    // Hover and keyboard focus, drawn over every border (moveCursor).
+    this.hoverCursor = el("polygon", { class: "hex-cursor", points: corners })
+    this.focusCursor = el("polygon", { class: "hex-cursor is-focus", points: corners })
+    svg.append(edges, this.hoverCursor, this.focusCursor)
+    this.cursorEvents?.abort()
+    this.cursorEvents = new AbortController()
+    const on = (type, fn) => svg.addEventListener(type, fn, { signal: this.cursorEvents.signal })
+    on("pointerover", (e) => { if (e.pointerType !== "touch") this.moveCursor(this.hoverCursor, e.target.closest?.("[data-hex]")) })
+    on("pointerleave", () => this.moveCursor(this.hoverCursor, null))
+    on("focusin", (e) => this.moveCursor(this.focusCursor, e.target.matches?.(":focus-visible") ? e.target.closest("[data-hex]") : null))
+    on("focusout", () => this.moveCursor(this.focusCursor, null))
 
     // What a screen reader says after a threatened unit's name (renderThreats).
     // Hidden text, joined to the name with aria-labelledby (which reads hidden
@@ -630,9 +657,10 @@ export default class extends Controller {
   }
 
   // Where the opponent could strike next turn (cyvasse/threats, from the
-  // rules' own legal actions): each hex in reach gets .is-threatened (a full
-  // red outline in game.css) and each unit of yours they could actually kill
-  // .is-danger (the orange edge pulse). Play only; the switch turns it off.
+  // rules' own legal actions): each hex in reach gets .is-threatened, and the
+  // edge round that area (their own units counted in, so it is one shape) is
+  // outlined red by renderEdges; each unit of yours they could actually kill
+  // gets .is-danger (the orange edge pulse). Play only; the switch turns it off.
   renderThreats() {
     const game = this.game
     // Read once per page, by /play and the match board alike.
@@ -643,6 +671,9 @@ export default class extends Controller {
       this.threatToggleTarget.closest("label").hidden = game.phase !== "play"
     }
     const { reach, kills } = live ? threats(game, 1 - PLAYER) : { reach: new Set(), kills: new Set() }
+    const region = new Set(reach)
+    if (live) for (const unit of game.teamUnits(1 - PLAYER, "alive")) if (unit.hex != null) region.add(unit.hex)
+    this.threatRim = perimeter(region)
     for (const [index, node] of this.hexNodes) {
       const unit = game.pieceAt(index)
       const danger = kills.has(index) && unit?.team === PLAYER
@@ -657,6 +688,32 @@ export default class extends Controller {
         node.group.removeAttribute("aria-labelledby")
       }
     }
+    this.renderEdges()
+  }
+
+  // Each edge drawn once, in the colour of the highest highlight on either
+  // side (cyvasse/edges EDGE_PRIORITY). Runs per render and ripple step only.
+  renderEdges() {
+    if (!this.edgeLines) return
+    const claims = new Map()
+    for (const [index, { group }] of this.hexNodes) {
+      const team = group.dataset.team ? Number(group.dataset.team) : null
+      const kind = hexClaim(new Set(group.classList), { team, ghost: group.dataset.ghost })
+      if (kind) claims.set(index, kind)
+    }
+    const owners = resolveEdges(claims, this.threatRim)
+    for (const [key, line] of this.edgeLines) {
+      const kind = owners.get(key)
+      // Only on a change, so the danger pulse is not restarted.
+      if (line.dataset.kind === kind) continue
+      if (kind) line.dataset.kind = kind
+      else delete line.dataset.kind
+    }
+  }
+
+  moveCursor(cursor, group) {
+    cursor.classList.toggle("is-on", !!group)
+    if (group) cursor.setAttribute("transform", group.getAttribute("transform"))
   }
 
   // The "start over" hint shows while there is something to start over from.
@@ -759,6 +816,7 @@ export default class extends Controller {
     node.polygon.style.fill = "orange"
     for (const i of this.actions.moves) this.hexNodes.get(i).group.classList.add("is-move")
     for (const i of this.actions.attacks) this.hexNodes.get(i).group.classList.add("is-attack")
+    this.renderEdges()
     this.ripple(unit)
     this.renderHint()
   }
@@ -810,7 +868,8 @@ export default class extends Controller {
         }
       }
       distance += 1
-      }
+      this.renderEdges()
+    }
 
     // No ripple for a player who asked for less motion: the rings land at once.
     const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches

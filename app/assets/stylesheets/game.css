@@ -161,7 +161,7 @@
 
 .cyvasse-board .hex.is-target:not(:focus-visible) .hex-poly {
   stroke: hsl(0 100% 66%);
-  stroke-width: 3.5;
+  stroke-width: 2;
 }
 
 .cyvasse-board .hex.is-blocked:not(:focus-visible) .hex-poly {
@@ -188,20 +188,52 @@
   opacity: 0.2;
 }
 
-/* The last move stays orange for a whole turn, and both armies share the art,
- * so the unit standing there needs another mark of its team. A low-worth unit
- * has almost no shade to spare, so the mark is the hex's own edge, drawn in
- * the team colour whatever the unit is worth. It yields to the keyboard's
- * yellow focus edge, or a keyboard player loses the cursor on that hex. */
-.cyvasse-board .hex.is-last-move.has-unit[data-team="1"]:not(:focus-visible) .hex-poly {
-  stroke: #3b82f6;
-  stroke-width: 4;
+/* Highlight borders (renderEdges, cyvasse/edges): one line per edge on the
+ * line two hexes share, wide enough to cover both hexes' own edges, in the
+ * colour of the highest highlight on either side. Highest first:
+ *   selection > move rings > last move > danger > threat perimeter > team
+ * A plain move ring ("ring") draws nothing: its hexes keep their thin edges
+ * and nothing beneath crosses them. The last move is orange; a unit standing
+ * on it gets its team's edge instead (both armies share the art). */
+.cyvasse-board .hex-edge {
+  display: none;
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  pointer-events: none;
 }
 
-.cyvasse-board .hex.is-last-move.has-unit[data-team="0"]:not(:focus-visible) .hex-poly {
-  stroke: #dc2626;
-  stroke-width: 4;
+.cyvasse-board .hex-edge[data-kind]:not([data-kind="ring"]) { display: inline; }
+.cyvasse-board .hex-edge[data-kind="selected"],
+.cyvasse-board .hex-edge[data-kind="last-move"] { stroke: orange; }
+.cyvasse-board .hex-edge[data-kind="target"] { stroke: hsl(0 100% 66%); stroke-width: 4.5; }
+.cyvasse-board .hex-edge[data-kind="field"] { stroke: hsl(354 60% 44%); }
+.cyvasse-board .hex-edge[data-kind^="ghost-"],
+.cyvasse-board .hex-edge[data-kind="blocked"] { stroke-linecap: butt; stroke-dasharray: 5 3; }
+.cyvasse-board .hex-edge[data-kind="ghost-6"] { stroke: hsl(226 95% 70%); }
+.cyvasse-board .hex-edge[data-kind="ghost-7"] { stroke: hsl(0 90% 66%); }
+.cyvasse-board .hex-edge[data-kind="ghost-8"] { stroke: hsl(285 75% 72%); }
+.cyvasse-board .hex-edge[data-kind="blocked"] { stroke: hsl(214 16% 58%); stroke-dasharray: 3 3; }
+.cyvasse-board .hex-edge[data-kind="perimeter"] { stroke: #ef4444; }
+.cyvasse-board .hex-edge[data-kind="team-1"] { stroke: #3b82f6; stroke-width: 4; }
+.cyvasse-board .hex-edge[data-kind="team-0"] { stroke: #dc2626; stroke-width: 4; }
+
+.cyvasse-board .hex-edge[data-kind="danger"] {
+  stroke: #f97316;
+  animation: cyvasse-danger 1.8s ease-in-out infinite;
 }
+
+/* Hover and the keyboard's focus edge, over every border (moveCursor). */
+.cyvasse-board .hex-cursor {
+  display: none;
+  fill: none;
+  stroke: yellow;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.cyvasse-board .hex-cursor.is-on { display: inline; }
+.cyvasse-board .hex-cursor.is-focus { stroke-width: 4; }
 
 /* The rotator banner: slides in from the left, out to the right. */
 .cyvasse-banner {
@@ -618,29 +650,15 @@
   accent-color: #e25c3c;
 }
 
-/* The opponent's reach: every hex they could strike next turn wears a full
- * red outline (.is-threatened, from renderThreats; drawn over the unit
- * shade, so a unit's hex shows it whole), so the region reads as
- * clearly outlined cells. It lies beneath the selection, its move rings and
- * the last move (those hexes keep their own edges), and yields to hover and
- * the keyboard's yellow focus edge. Class-driven: nothing runs per frame. */
-.cyvasse-board .range-edge {
-  display: none;
-  fill: none;
-  stroke: #ef4444;
-  stroke-width: 2.5;
-  pointer-events: none;
-}
-
-.cyvasse-board .hex.is-threatened:not(.is-selected, .is-move, .is-attack, .is-last-move, .is-lit, .is-ghost, .is-field, .is-target, .is-blocked, :hover, :focus-visible) .range-edge {
-  display: inline;
-}
+/* The opponent's reach (.is-threatened, from renderThreats) is outlined only
+ * round its rim: a red "perimeter" edge (above) where the area meets the rest
+ * of the board or the board's edge; edges inside it stay plain. */
 
 /* A unit of yours the opponent could kill next turn: an orange glow from its
- * hex's edges in, like the team shade, that breathes (steady for a player who
- * asked for less motion). Inset inside the red range edge, so both read. It
- * breathes by opacity alone, so no frame rebuilds its geometry (it is still
- * repainted: SVG children get no layer of their own). */
+ * hex's edges in, like the team shade, and an orange edge, both breathing
+ * (steady for a player who asked for less motion). They breathe by opacity
+ * alone, so no frame rebuilds geometry (still repainted: SVG children get no
+ * layer of their own). */
 .cyvasse-board .danger-edge {
   display: none;
   pointer-events: none;
@@ -663,7 +681,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cyvasse-board .is-danger .danger-edge {
+  .cyvasse-board .is-danger .danger-edge,
+  .cyvasse-board .hex-edge[data-kind="danger"] {
     animation: none;
     opacity: 0.9;
   }
