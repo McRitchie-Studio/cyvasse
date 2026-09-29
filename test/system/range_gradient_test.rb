@@ -57,13 +57,41 @@ class RangeGradientTest < ApplicationSystemTestCase
     assert_equal [ "rgb(0, 0, 0)" ], dark
     screenshot("dragon")
 
-    # Picking the dragon up again clears the gradients and the texture.
-    dragon.click
-    assert_no_selector "svg.cyvasse-board g.hex.is-lit"
-    screenshot("cleared")
+    # The pencil skin redraws only the art: the gradients stay on the rings.
+    lit = lit_hexes
+    within(".skin-toggle") { click_on "Pencil" }
+    assert_selector "[data-controller=cyvasse-game][data-skin=pencil]"
+    assert_equal lit, lit_hexes
+    assert_match(/\Aurl\("#ring-/, fill_of(lit.first))
+    screenshot("dragon-pencil")
+    # The light site theme leaves the board's own colours alone.
+    page.execute_script("document.documentElement.classList.remove('dark')")
+    assert_match(/\Aurl\("#ring-/, fill_of(lit.first))
+    assert_equal ORANGE, fill_of(hex)
+    screenshot("dragon-pencil-light")
+    page.execute_script("document.documentElement.classList.add('dark')")
+    within(".skin-toggle") { click_on "Vector" }
+    assert_selector "[data-controller=cyvasse-game][data-skin=vector]"
+
+    # Picking another unit clears the dragon's gradients and texture from every
+    # hex the new unit does not reach.
+    before = lit_hexes
+    find("svg.cyvasse-board g.hex[aria-label='Your king']").click
+    assert_no_selector "svg.cyvasse-board g.hex.is-selected[data-hex='#{hex}']"
+    left = before - settled { lit_hexes }
+    assert_operator left.size, :>, 3
+    left.each do |index|
+      assert_equal "rgb(0, 0, 0)", fill_of(index), "hex #{index} is dark again"
+      assert_equal "none", page.evaluate_script("getComputedStyle(document.querySelector(\"g.hex[data-hex='#{index}'] .ring-texture\")).display")
+    end
+    screenshot("king")
   end
 
   private
+
+  def lit_hexes
+    page.evaluate_script("[...document.querySelectorAll('g.hex.is-lit')].map((g) => g.dataset.hex)")
+  end
 
   def fill_of(hex)
     settled { page.evaluate_script("getComputedStyle(document.querySelector(\"g.hex[data-hex='#{hex}'] .hex-poly\")).fill") }

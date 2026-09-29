@@ -4,7 +4,8 @@
  * with white edges, orange for the selected unit and the last move. Each
  * unit's hex is shaded blue (yours) or red (the computer's) from the edge in,
  * in place of the legacy ring outlines. The ring ripple paints hex fills
- * inline from the controller; everything static lives here. */
+ * inline from the controller (gradients it defines in the board's <defs>);
+ * everything static lives here. */
 
 .cyvasse-layout {
   display: grid;
@@ -96,6 +97,18 @@
 
 .cyvasse-board .unit-image {
   pointer-events: none;
+}
+
+/* A hex the ripple has lit (.is-lit) carries a faint diagonal hatch over its
+ * gradient, for texture. It sits under the unit shade and the art, and never
+ * on the selected hex, so the orange stays a clean flat colour. */
+.cyvasse-board .ring-texture {
+  display: none;
+  pointer-events: none;
+}
+
+.cyvasse-board .is-lit:not(.is-selected) .ring-texture {
+  display: inline;
 }
 
 /* A unit's hex is shaded in its team's colour from the edge in, deeper the
