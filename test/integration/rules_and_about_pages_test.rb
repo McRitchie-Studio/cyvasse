@@ -20,6 +20,7 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     assert_select "#rule-changes #changes-2026 li", count: Rulebook::CHANGES_2026.size
     assert_select "#rule-changes h3", text: "Implemented on September 29, 2026"
     assert_select "#rule-changes #changes-2026 li", text: /Trebuchet range rose from 3 to 4/
+    assert_select "#rule-changes #changes-2026 li", text: /so neither can take a Trebuchet/
     assert_select "#unit-trebuchet dd", text: "4"
     assert_select "#unit-trebuchet dd", text: "Dragon, Spearman and Light Horse"
     assert_select "#combat p", text: /Every\s+Mountain blocks a shot, whichever army placed it/

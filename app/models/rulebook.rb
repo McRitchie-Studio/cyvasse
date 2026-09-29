@@ -48,7 +48,7 @@ module Rulebook
   # engine enforces them (app/javascript/cyvasse/units.js and its Ruby mirror).
   CHANGES_2026 = [
     "Trebuchet range rose from 3 to 4. Mountains still block its shots.",
-    "Trebuchets now trump Spearmen and Light Horse. They still cannot take the King.",
+    "Trebuchets now trump Spearmen and Light Horse, so neither can take a Trebuchet. They still cannot take the King.",
     "Kings now trump Dragons: a Dragon within the King's move can be taken."
   ].freeze
 
