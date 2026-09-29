@@ -6,6 +6,7 @@ require "test_helper"
 # each turn in paced steps (select, move, second jump).
 class LiveMatchTest < ActiveSupport::TestCase
   include MatchPlay
+  include LiveBot
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
@@ -114,25 +115,6 @@ class LiveMatchTest < ActiveSupport::TestCase
     match.play!(@home, quiet_turn_for(match)) if match.in_progress? && match.seat_to_move == :home
     match.reload
     assert_equal :away, match.seat_to_move
-    match
-  end
-
-  # Plan the computer's turn as a cavalry double jump (the opening leaves
-  # the bot little choice, so the steps are picked by the rules directly).
-  def plan_double_jump(match)
-    game = match.to_game
-    steps = CyvasseRules::Bot.movers(game).filter_map do |hex|
-      next unless game.piece_at(hex).type.cavalry?
-
-      game.legal_actions(hex).moves.filter_map do |to|
-        second = CyvasseRules::Bot.after_step(game, hex, to).legal_actions(to, jump: 2).moves.first
-        [ [ hex, to ], [ to, second ] ] if second
-      end.first
-    end.first
-    assert steps, "a cavalry unit has a double jump"
-    match.send(:schedule_bot, Random.new(1))
-    match.bot_plan = match.bot_plan.merge("steps" => steps)
-    match.save!
     match
   end
 
