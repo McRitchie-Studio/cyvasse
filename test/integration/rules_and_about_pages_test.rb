@@ -11,7 +11,21 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
       assert_select "section##{id}", 1, "section ##{id}"
     end
     assert_select "#combat p", text: /Spearman will always defeat a Light Horse/
-    assert_select "#rule-changes li", count: Rulebook::CHANGES_2015.size
+    assert_select "#rule-changes #changes-2015 li", count: Rulebook::CHANGES_2015.size
+  end
+
+  test "rules states the September 2026 trebuchet and king changes" do
+    get rules_path
+
+    assert_select "#rule-changes #changes-2026 li", count: Rulebook::CHANGES_2026.size
+    assert_select "#rule-changes h3", text: "Implemented on September 29, 2026"
+    assert_select "#rule-changes #changes-2026 li", text: /Trebuchet range rose from 3 to 4/
+    assert_select "#unit-trebuchet dd", text: "4"
+    assert_select "#unit-trebuchet dd", text: "Dragon, Spearman and Light Horse"
+    assert_select "#combat p", text: /Every\s+Mountain blocks a shot, whichever army placed it/
+    assert_select "#combat p", text: /King is the one unit that trumps the Dragon/
+    assert_select "#special-rules .tutorial-card[data-tutorial=dragon] p", text: /or a King it strays too close to/
+    assert_select "#special-rules .tutorial-card[data-tutorial=range] figcaption", text: /reaches 4, not 3/
   end
 
   test "rules shows every unit with its vector art and stats" do
@@ -25,7 +39,8 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
       end
     end
     assert_select "#unit-catapult dd", text: "Dragon"
-    assert_select "#unit-king dd", text: "—"
+    assert_select "#unit-king dd", text: "Dragon"
+    assert_select "#unit-rabble dd", text: "—"
     assert_select "#class-range .unit-card", count: 3
   end
 

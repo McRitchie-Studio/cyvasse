@@ -107,7 +107,14 @@
       </p>
       <p>
         A Range unit may attack an enemy within its Range, unless a Mountain
-        blocks the direct path between the Range unit and its target.
+        blocks the direct path between the Range unit and its target. Every
+        Mountain blocks a shot, whichever army placed it, and no Range unit
+        can shoot over one.
+      </p>
+      <p>
+        The King is the one unit that trumps the Dragon: a Dragon that comes
+        within the King's Movement can be taken by it. The Dragon can still
+        take the King.
       </p>
     </section>
   </div>
@@ -159,11 +166,15 @@
 
   <section id="rule-changes" class="card p-5 mb-6">
     <h2 class="text-xl font-bold text-heading mb-1">Rule Changes</h2>
-    <p class="text-muted text-sm mb-4">Implemented on April 14, 2015. The unit stats above include them.</p>
-    <ul class="list-disc pl-5 space-y-1 text-secondary">
-      <% Rulebook::CHANGES_2015.each do |change| %>
-        <li><%= change %></li>
-      <% end %>
-    </ul>
+    <p class="text-muted text-sm mb-4">The unit stats above include every change below.</p>
+    <% [ [ "changes-2026", "September 29, 2026", Rulebook::CHANGES_2026 ],
+         [ "changes-2015", "April 14, 2015", Rulebook::CHANGES_2015 ] ].each do |id, date, changes| %>
+      <h3 class="text-sm font-semibold text-heading mt-4 mb-2">Implemented on <%= date %></h3>
+      <ul id="<%= id %>" class="list-disc pl-5 space-y-1 text-secondary">
+        <% changes.each do |change| %>
+          <li><%= change %></li>
+        <% end %>
+      </ul>
+    <% end %>
   </section>
 </article>
