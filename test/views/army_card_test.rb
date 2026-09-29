@@ -27,11 +27,14 @@ class ArmyCardTest < ActionView::TestCase
     assert_select "p.cyvasse-army-count[data-cyvasse-game-target=armyCount][aria-live=polite][aria-atomic=true]"
     assert_select "p.cyvasse-army-count[aria-hidden]", false, "the count is no longer hidden from screen readers"
     assert_select "button.cyvasse-smart" do
-      assert_select "> span[aria-hidden=true]", text: "✨", count: 1
-      assert_select "> span[data-smart-label]:not([aria-hidden])", text: "Smart Setup"
+      assert_select "span[aria-hidden=true]", text: "✨", count: 1
+      assert_select "span[data-smart-label]:not([aria-hidden])", text: "Smart Setup"
     end
-    visible = css_select("button.cyvasse-smart").first.children.reject { |node| node["aria-hidden"] == "true" }
-    assert_equal "Smart Setup", visible.map(&:text).join.strip, "the button reads Smart Setup, not sparkles"
+    spoken = lambda do |node|
+      next "" if node["aria-hidden"] == "true"
+      node.text? ? node.text : node.children.map { |child| spoken.call(child) }.join
+    end
+    assert_equal "Smart Setup", spoken.call(css_select("button.cyvasse-smart").first).strip, "the button reads Smart Setup, not sparkles"
   end
 
   test "a match's lock-in note goes to screen readers with the hint" do

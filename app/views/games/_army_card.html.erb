@@ -5,7 +5,8 @@
     button; "fill" and "new" move it, hollow, under Ready and put the count in
     its place. Both slots keep one button's height, so nothing jumps. The count
     is a polite live region, so a screen reader hears it change; the sparkle
-    is decoration, hidden from screen readers. %>
+    is decoration, hidden from screen readers; one wrapping span keeps the
+    space before the words, which a flex button would drop between two. %>
 <div class="card p-4 cyvasse-army" data-army-mode="smart" data-<%= board %>-target="army">
   <h2 class="text-sm font-semibold uppercase tracking-widest text-muted text-center">Your army</h2>
   <p class="sr-only" id="<%= board %>-army-hint">
@@ -13,7 +14,7 @@
   </p>
   <p class="cyvasse-army-count text-sm text-secondary" aria-live="polite" aria-atomic="true" data-<%= board %>-target="armyCount"></p>
   <button type="button" class="btn cyvasse-smart" data-<%= board %>-target="smartButton"
-          data-action="<%= board %>#smartSetup"><span aria-hidden="true">✨</span> <span data-smart-label>Smart Setup</span></button>
+          data-action="<%= board %>#smartSetup"><span><span aria-hidden="true">✨</span> <span data-smart-label>Smart Setup</span></span></button>
   <div class="cyvasse-dock" role="group" aria-label="Units to place" aria-describedby="<%= board %>-army-hint"
        data-<%= board %>-target="dock"></div>
   <button type="button" class="btn cyvasse-ready" disabled aria-describedby="<%= board %>-army-hint"
