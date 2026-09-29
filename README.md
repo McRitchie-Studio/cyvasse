@@ -244,6 +244,37 @@ in (blue yours, red theirs), and the more the piece is worth the deeper and
 stronger the shade: mountains faintest, then rabble up to the king, in the
 order the computer values them (`KILL_PRIORITY` in `cyvasse/ai.js`).
 
+## Leaderboard
+
+The landing page shows the live leaderboard's top ten under Play Now;
+`/leaderboard` has the whole live board and an **All-time** tab. The rule is
+written out in `app/models/leaderboard.rb`:
+
+- **Live** counts wins in live matches (`Match.live`, the Play Now games from
+  the 2026-09-29 relaunch on). A win counts only from a human seat that no
+  computer took over: a computer player's win never counts, and a stand-in's
+  (a seat taken over after two missed clocks) counts for nobody. Wins over
+  computer players count. Computer players, guests and accounts with no
+  username never appear. Ranked by wins, then fewest losses, then the most
+  recent win (`matches.finished_at`).
+- **All-time** is the won/lost record on the account (`users.wins`,
+  `users.losses`): the legacy totals plus every result since. `Match#finish!`
+  puts a result on a record only when a person played the seat, so computer
+  players and stand-ins gain neither wins nor losses.
+
+**Guests sign in to claim.** When a Play Now guest's live game ends, the match
+page asks them to sign in: "You won! Sign in to put this win on the
+leaderboard" for a win that counts, "Sign in to save your games" otherwise.
+Both go to `/leaderboard/join`, whose magic-link form returns to the
+leaderboard (a win) or My games (anything else). On sign-in, `GuestClaim`
+moves the guest's match seats, wins, searches and chat to the account, adds
+the guest's record to it and deletes the guest. It runs from
+`ApplicationController#set_app_session`, so every sign-in path claims; the
+session keeps the guest's id under `:guest_user_id` so a guest who signed out
+first is still claimed. When the email link is opened in another browser,
+the return address carries a signed `claim` token (one day) that does the
+same. An account with no username is asked to choose one before the board.
+
 ## Email results
 
 A player who arrives from a McRitchie Studio email carries `?ref=<delivery
