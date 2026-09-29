@@ -314,6 +314,7 @@ export default class extends GameController {
     const clock = live?.clock
     const them = this.state.opponent.username
     this.clockTarget.hidden = !live || this.state.phase === "over" || (!clock && !live.thinking)
+    if (this.hasArmyClockTarget) this.armyClockTarget.hidden = true
     if (this.clockTarget.hidden) return
 
     this.clockTarget.classList.toggle("is-thinking", !!live.thinking)
@@ -340,6 +341,12 @@ export default class extends GameController {
     this.clockLabelTarget.textContent = label
     this.clockSecondsTarget.textContent = `${Math.ceil(remaining)}s`
     this.clockBarTarget.style.width = `${Math.min(100, (remaining / clock.seconds) * 100)}%`
+    // The docked army sheet's copy of the setup clock (games/_army_card).
+    if (this.hasArmyClockTarget && clock.kind === "setup" && mine) {
+      this.armyClockTarget.hidden = false
+      this.armyClockTarget.textContent = this.clockSecondsTarget.textContent
+      this.armyClockTarget.classList.toggle("is-warning", warning)
+    }
 
     // Out of time: ask the server now rather than at the next poll.
     if (remaining === 0 && this.firedFor !== clock.ends_at) {

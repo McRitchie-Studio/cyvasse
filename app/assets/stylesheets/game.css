@@ -830,3 +830,87 @@ html.dark [data-skin="pencil"] .dock-unit img {
     opacity: 0.9;
   }
 }
+
+/* The setup clock's copy in the army card: shown only in the phone dock. */
+.cyvasse-army-clock {
+  display: none;
+}
+
+/* Phone setup dock (task cyvasse-phone-setup-dock). On a phone the army card
+ * followed the board, so picking a unit and placing it meant scrolling
+ * between them, 19 times, on a running clock. During setup it docks instead:
+ * a sheet fixed to the bottom of the screen, clear of the home indicator,
+ * holding the count (and a live match's clock), every unit in three rows of
+ * seven, and Smart Setup beside Ready. The rest of the panel (openings, saved
+ * lineups) stays in the page, padded clear of the sheet. The controller
+ * measures the sheet into --dock-sheet; the fallback is its usual height.
+ * The board is capped to the screen left above the sheet and the pinned
+ * navbar, and picking a unit scrolls it into view there
+ * (showBoardAboveDock), so a whole setup needs no scrolling. Nothing in the
+ * sheet moves as the army is placed: every tile keeps its slot and Smart
+ * Setup keeps one place, only its label and fill change. */
+@media (max-width: 640px) {
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) {
+    --dock-sheet-h: var(--dock-sheet, calc(15.5rem + env(safe-area-inset-bottom, 0px)));
+    padding-bottom: calc(var(--dock-sheet-h) + 0.5rem);
+  }
+
+  /* The pinned navbar (about 6.5rem once collapsed) and the board's bar
+   * (2.5rem) share the screen with the board and the sheet. */
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) .cyvasse-board {
+    max-height: calc(100svh - var(--dock-sheet-h) - 9.5rem);
+  }
+
+  .cyvasse-setup-controls .cyvasse-army {
+    --army-slot: 2.75rem;
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 40;
+    margin: 0;
+    gap: 0.5rem 0.75rem;
+    padding: 0.625rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    border-radius: 1rem 1rem 0 0;
+    border-bottom-width: 0;
+    box-shadow: 0 -10px 24px -14px rgb(0 0 0 / 0.45);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: 1.25rem auto var(--army-slot);
+    grid-template-areas: "heading meta" "dock dock" "smart ready";
+  }
+
+  .cyvasse-setup-controls .cyvasse-army > h2 {
+    align-self: center;
+    text-align: left;
+    line-height: 1.25rem;
+  }
+
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-army-count {
+    grid-area: meta;
+    justify-self: start;
+    line-height: 1.25rem;
+    white-space: nowrap;
+  }
+
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-army-clock:not([hidden]) {
+    display: block;
+    grid-area: meta;
+    justify-self: end;
+    align-self: center;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25rem;
+    color: var(--color-heading, inherit);
+  }
+
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-army-clock.is-warning {
+    color: #dc2626;
+  }
+
+  .cyvasse-setup-controls .cyvasse-army[data-army-mode] .cyvasse-smart {
+    grid-area: smart;
+  }
+
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-dock {
+    grid-template-columns: repeat(7, minmax(0, 3.25rem));
+    justify-content: center;
+  }
+}

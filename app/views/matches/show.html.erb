@@ -89,7 +89,7 @@
         </div>
       <% end %>
 
-      <div class="space-y-4" hidden data-cyvasse-match-target="setupControls">
+      <div class="space-y-4 cyvasse-setup-controls" hidden data-cyvasse-match-target="setupControls">
         <%= render "games/army_card", board: "cyvasse-match",
               note: "Once you press Ready, your army is locked in; #{them} will not see it until the game starts.#{" When the clock runs out, your army is placed for you." if @match.live?}" %>
         <div class="card p-4 space-y-3">
