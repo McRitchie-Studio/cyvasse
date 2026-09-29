@@ -35,6 +35,20 @@ class LiveSeekTest < ActiveSupport::TestCase
     end
   end
 
+  test "play the computer now starts the timeout's computer match at once" do
+    seek = LiveSeek.join!(@arya)
+    match = seek.settle!(computer: true).match
+    assert match.away_user.computer?
+    assert match.away_ready?, "the computer is set up already"
+    assert_nil LiveSeek.join!(@brienne).match, "a chosen computer game leaves no open search"
+  end
+
+  test "play the computer now keeps a person already found" do
+    first = LiveSeek.join!(@arya)
+    paired = LiveSeek.join!(@brienne).match
+    assert_equal paired, first.settle!(computer: true).match
+  end
+
   test "a searcher who stopped asking is not paired" do
     LiveSeek.join!(@arya)
     travel 6.seconds do

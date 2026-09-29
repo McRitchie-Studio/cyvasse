@@ -3,7 +3,9 @@
          data-controller="live-seek"
          data-live-seek-url-value="<%= live_seek_path(@seek, format: :json) %>"
          data-live-seek-ends-at-value="<%= @seek.ends_at.iso8601(3) %>"
-         data-live-seek-server-time-value="<%= Time.current.iso8601(3) %>">
+         data-live-seek-server-time-value="<%= Time.current.iso8601(3) %>"
+         data-live-seek-splash-ms-value="<%= splash_ms %>"
+         data-live-seek-you-value="<%= current_user.username %>">
   <div data-live-seek-target="searching">
     <div class="live-seek-radar mx-auto mb-6" aria-hidden="true">
       <span></span><span></span><span></span>
@@ -13,7 +15,9 @@
     <p class="text-secondary" role="status" aria-live="polite" data-live-seek-target="message">
       Looking for another player who wants a game right now. If no one turns up in time, you'll play a computer player.
     </p>
-    <%= link_to "Cancel", root_path, class: "inline-block mt-6 text-sm text-secondary underline underline-offset-2" %>
+    <%= button_to "Play the computer now", computer_live_seek_path(@seek), class: "btn btn-secondary mt-6",
+          form: { data: { action: "submit->live-seek#playComputer" } } %>
+    <%= link_to "Cancel", root_path, class: "inline-block mt-4 text-sm text-secondary underline underline-offset-2" %>
   </div>
 
   <div class="live-seek-splash" hidden data-live-seek-target="splash" role="status" aria-live="assertive">
