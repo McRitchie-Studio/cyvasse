@@ -23,7 +23,7 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     assert_select "#unit-trebuchet dd", text: "4"
     assert_select "#unit-trebuchet dd", text: "Dragon, Spearman and Light Horse"
     assert_select "#combat p", text: /Every\s+Mountain blocks a shot, whichever army placed it/
-    assert_select "#combat p", text: /King is the one unit that trumps the Dragon/
+    assert_select "#combat p", text: /Besides the Trebuchet and the Catapult, the King is the one unit that\s+trumps the Dragon/
     assert_select "#special-rules .tutorial-card[data-tutorial=dragon] p", text: /or a King it strays too close to/
     assert_select "#special-rules .tutorial-card[data-tutorial=range] figcaption", text: /reaches 4, not 3/
   end
