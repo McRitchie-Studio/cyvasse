@@ -134,8 +134,13 @@ seeded games, and for four set positions that reach a pass and a stalemate
 draw (random games never do), and writes `test/fixtures/files/rules_agreement.json`.
 `test/javascript/agreement_fixture_test.js` fails if the engine no longer
 gives those answers, and `test/models/cyvasse_rules/js_agreement_test.rb`
-fails if the Ruby port does not. **Change a rule in `app/javascript/cyvasse`,
+fails if the Ruby port does not. `test/models/cyvasse_rules/units_parity_test.rb`
+reads `units.js` itself and holds `CyvasseRules::Units` to it row for row, so a
+unit's number changed in one language only goes red even where no recorded
+position exercises it. **Change a rule in `app/javascript/cyvasse`,
 run `bin/rules-agreement`, and port the change until both lanes are green.**
+A regenerated record replays different games, so the match tests' recorded
+game (`test/support/match_play.rb`) may need to point at another one.
 
 **Seats.** Matches are stored exactly as the legacy app stored them, from the
 home seat: home is team 1 on hexes 52-91, away is team 0 on hexes 1-40, and
