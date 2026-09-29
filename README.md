@@ -74,6 +74,18 @@ and when a side has no legal move its turn passes and the page says who passed
 states that rule. The modules import each other as
 `cyvasse/<module>`, pinned in `config/importmap.rb`.
 
+## Player avatars
+
+The match header reads `[avatar] you vs them [avatar]` (`matches/_versus`).
+`players/_avatar` draws one avatar anywhere, in Tailwind utilities alone: a
+person's uploaded picture, else their initials on `User#avatar_color`. A
+computer player shows `app/assets/images/bots/<username>.webp` (or `.png`,
+`.jpg`, `.svg`; `qavo`, `tyrion`, `haldon`, `doran`, `ben`, `aegon`) the moment
+that file exists; until then it shows its own piece of the vector art on a
+parchment disc ringed in the computer accent (`AvatarsHelper::BOT_PIECES`).
+A portrait must be original art: never a likeness of the characters the
+computer players are named after.
+
 ## Piece skins
 
 Every piece is drawn in two skins, pencil and vector. A **Piece art** toggle on

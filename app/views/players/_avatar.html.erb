@@ -1,0 +1,20 @@
+<%# A player's avatar (AvatarsHelper), styled with utilities so it works on any page.
+    Locals: user, name (the name beside it), size (Tailwind size classes). %>
+<% name ||= user.display_name %>
+<% size ||= "w-12 h-12 text-lg" %>
+<% shape = "#{size} player-avatar shrink-0 rounded-full" %>
+<% if user.computer? %>
+  <% if (portrait = bot_portrait(user)) %>
+    <%= image_tag portrait, alt: name, class: "#{shape} object-cover", data: { avatar: "bot-portrait" } %>
+  <% else %>
+    <span class="<%= shape %> inline-flex items-center justify-center p-0.5 ring-2 ring-[var(--color-cta,#8E82FE)] bg-[#f4ecd8]"
+          role="img" aria-label="<%= name %>" data-avatar="bot-fallback">
+      <%= image_tag bot_piece(user).image(:vector), alt: "", class: "h-full w-full object-contain", aria: { hidden: true } %>
+    </span>
+  <% end %>
+<% elsif user.avatar.attached? %>
+  <%= image_tag user.avatar, alt: name, class: "#{shape} object-cover", data: { avatar: "photo" } %>
+<% else %>
+  <span class="<%= shape %> inline-flex items-center justify-center font-bold text-white" role="img" aria-label="<%= name %>"
+        style="background-color: <%= user.avatar_color %>" data-avatar="initials"><%= user.avatar_initials %></span>
+<% end %>
