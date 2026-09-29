@@ -38,6 +38,21 @@ Imported from the legacy repo and served through Propshaft
 | `pieces/vector/*.svg` | The coloured vector skin, 11 pieces (verbatim) | `public/images/svgs/` |
 | `backgrounds/`, `title/`, `hex.svg` | Page backgrounds, title wordmarks, the hex outline | `app/assets/images/cyvasse_*.png`, `hex.svg` |
 | `tutorial/`, `thanks/` | Tutorial figures and the gSchool thanks photos | `public/images/tutorial/`, `public/images/thanks/` |
+| `backgrounds/home/*.webp` | The home page's background gallery: one action shot per piece, a 2:1 wide crop and a `-mobile` portrait crop each | New: captured from `/play` (below) |
+
+The home page's background (`HomeGallery`, `pages/_home_gallery`,
+`home_gallery_controller.js`) crossfades through the eleven shots every 7
+seconds from a random first piece. Only the first carries its `src` and is
+preloaded; each later one loads a slide ahead of its turn, and
+`prefers-reduced-motion` holds the first still. The shots are real board
+states staged in `test/capture/home_gallery_capture.rb`, one scene per piece,
+in the vector skin. Re-capture them (Chrome and `cwebp` needed; a re-run is
+byte-identical) with:
+
+```bash
+bin/rails cyvasse:capture_home_gallery                     # all eleven
+PIECES=dragon PREVIEW=1 bin/rails cyvasse:capture_home_gallery  # one, plus its whole board in tmp/home_gallery
+```
 
 `Piece` (`app/models/piece.rb`) is the lineup and resolves each skin's path.
 The rasters were compressed on import (256-colour PNG, JPEG q82, title art
