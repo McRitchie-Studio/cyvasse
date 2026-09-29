@@ -140,7 +140,8 @@ unit's number changed in one language only goes red even where no recorded
 position exercises it. **Change a rule in `app/javascript/cyvasse`,
 run `bin/rules-agreement`, and port the change until both lanes are green.**
 A regenerated record replays different games, so the match tests' recorded
-game (`test/support/match_play.rb`) may need to point at another one.
+game (`test/support/match_play.rb`) can change its length and its winner; the
+match tests name who wins it.
 
 **Seats.** Matches are stored exactly as the legacy app stored them, from the
 home seat: home is team 1 on hexes 52-91, away is team 0 on hexes 1-40, and

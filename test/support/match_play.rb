@@ -1,11 +1,11 @@
 # Shared by the match tests: two players and a real recorded game to play.
 #
 # The game is one the JavaScript engine played itself
-# (test/fixtures/files/rules_agreement.json, game 4: home moves first, away
-# wins at turn 20), so every step posted below is one the browser would offer.
+# (test/fixtures/files/rules_agreement.json, game 5: home moves first and
+# wins at turn 27), so every step posted below is one the browser would offer.
 module MatchPlay
   RECORD = JSON.parse(Rails.root.join("test/fixtures/files/rules_agreement.json").read)
-  GAME = RECORD.fetch("games").fetch(4)
+  GAME = RECORD.fetch("games").fetch(5)
 
   def mirror(hex) = CyvasseRules::Board.mirror(hex)
 
