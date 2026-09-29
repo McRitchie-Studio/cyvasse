@@ -1,0 +1,20 @@
+<%# The front door's background slides (HomeGallery), behind the scrim.
+    Only the first carries its src, so it paints at once (and the page
+    preloads it); every later one carries data-src and data-srcset, and
+    home_gallery_controller.js fills in the next one a slide ahead of its
+    turn. A phone gets the portrait crop. Decorative: alt is empty. %>
+<div class="home-gallery absolute inset-0" aria-hidden="true">
+  <% slides.each_with_index do |slide, index| %>
+    <% first = index.zero? %>
+    <div class="home-slide<%= ' is-active' if first %>" data-home-gallery-target="slide" data-piece="<%= slide.slug %>">
+      <picture>
+        <source media="(max-width: 640px)" <%= first ? "srcset" : "data-srcset" %>="<%= image_path(slide.mobile_image) %>">
+        <% if first %>
+          <%= image_tag slide.desktop_image, alt: "", width: 1800, height: 1125, decoding: "async", loading: "eager", fetchpriority: "high", data: { home_background: true } %>
+        <% else %>
+          <img alt="" width="1800" height="1125" decoding="async" loading="lazy" data-src="<%= image_path(slide.desktop_image) %>">
+        <% end %>
+      </picture>
+    </div>
+  <% end %>
+</div>

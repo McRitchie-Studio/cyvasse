@@ -30,8 +30,8 @@ class HomeGalleryCapture < ApplicationSystemTestCase
   # hexagon, so a crop centred far from the middle catches the empty corners:
   # `reach` keeps each crop's centre that close to the board's centre, and the
   # hero may sit off the crop's centre instead.
-  DESKTOP = { width: 440, height: 275, pixels: 1800, reach: { x: 44, y: 62 } }.freeze
-  MOBILE = { width: 300, height: 480, pixels: 720, reach: { x: 134, y: 60 } }.freeze
+  DESKTOP = { width: 440, height: 275, pixels: 1800, reach: { x: 60, y: 120 } }.freeze
+  MOBILE = { width: 300, height: 480, pixels: 720, reach: { x: 134, y: 120 } }.freeze
   QUALITY = 72
   MAX_BYTES = 150 * 1024
 
@@ -225,10 +225,12 @@ class HomeGalleryCapture < ApplicationSystemTestCase
       (() => {
         const ctrl = #{CONTROLLER}
         const svg = ctrl.boardTarget
-        const box = svg.getBoundingClientRect()
+        // Board units to page pixels: the element box can be letterboxed
+        // around the drawing, so read the drawing's own transform.
+        const ctm = svg.getScreenCTM()
         const view = svg.viewBox.baseVal
         const centre = ctrl.hexCentres.get(#{focus})
-        return { left: box.left + window.scrollX, top: box.top + window.scrollY, scale: box.width / view.width,
+        return { left: ctm.e + window.scrollX, top: ctm.f + window.scrollY, scale: ctm.a,
                  width: view.width, height: view.height, cx: centre.x, cy: centre.y }
       })()
     JS

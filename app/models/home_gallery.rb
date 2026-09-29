@@ -11,6 +11,8 @@
 # A catalogue, not a record, like Piece.
 class HomeGallery
   DIRECTORY = "backgrounds/home".freeze
+  # How long each slide holds before the next fades in.
+  INTERVAL_MS = 7000
 
   Slide = Data.define(:piece) do
     def slug = piece.slug
