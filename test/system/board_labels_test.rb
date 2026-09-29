@@ -38,6 +38,7 @@ class BoardLabelsTest < ApplicationSystemTestCase
     move = moves.first
     far = page.evaluate_script("[...Array(40).keys()].map((i) => i + 2).find((i) => !#{moves}.includes(i) && !#{CONTROLLER}.game.pieceAt(i))")
 
+    live_regions = live_region_count
     hex(75).click
     assert_selector "svg.cyvasse-board g.hex[data-hex='75'][aria-pressed=true]"
     assert_selector "svg.cyvasse-board g.hex[aria-pressed]", count: 1
@@ -48,8 +49,8 @@ class BoardLabelsTest < ApplicationSystemTestCase
     assert_equal "Mountain, unreachable", label(76)
     assert_equal "Your king", label(91), "another unit of yours stays as it is"
     assert_match(/Rabble selected: \d+ moves?, 1 attack\./, status_text)
-    assert_equal 1, page.evaluate_script("document.querySelectorAll('.cyvasse-game [aria-live]').length"),
-      "the status line stays the one live region"
+    assert_equal live_regions, live_region_count, "no live region is added: the status line says it"
+    assert_equal "status", find("[data-cyvasse-game-target=status]")["role"]
 
     hex(75).click
     assert_no_selector "svg.cyvasse-board g.hex[aria-pressed]"
@@ -83,7 +84,7 @@ class BoardLabelsTest < ApplicationSystemTestCase
     find(".cyvasse-legend summary").click
     assert_selector ".cyvasse-legend-entry", count: BoardLegendHelper::BOARD_LEGEND.size, visible: true
     assert_selector ".cyvasse-legend-entry", text: "Move here"
-    assert_selector "svg.cyvasse-board g.hex[data-hex='75'][aria-pressed=true]", "reading the key keeps the pick"
+    assert_selector "svg.cyvasse-board g.hex[data-hex='75'][aria-pressed=true]" # reading the key keeps the pick
     screenshot("desktop")
     find(".cyvasse-legend summary").click
     assert_no_selector ".cyvasse-legend-panel", visible: true
@@ -146,6 +147,10 @@ class BoardLabelsTest < ApplicationSystemTestCase
 
   def status_text
     find("[data-cyvasse-game-target=status]").text
+  end
+
+  def live_region_count
+    page.evaluate_script("document.querySelectorAll('[aria-live], [role=status], [role=alert]').length")
   end
 
   def active

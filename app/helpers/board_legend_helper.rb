@@ -11,7 +11,7 @@ module BoardLegendHelper
   BoardLegendEntry = Data.define(:key, :label, :marks)
 
   BOARD_LEGEND = [
-    BoardLegendEntry.new("selected", "Selected unit, last move", %w[is-selected is-last-move selected last-move]),
+    BoardLegendEntry.new("selected", "Selected, last move", %w[is-selected is-last-move selected last-move]),
     BoardLegendEntry.new("yours", "Your unit", %w[team-1]),
     BoardLegendEntry.new("enemy", "Enemy unit", %w[team-0]),
     BoardLegendEntry.new("move", "Move here", %w[is-move is-lit ring]),
