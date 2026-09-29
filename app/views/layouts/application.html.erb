@@ -18,5 +18,15 @@
       <%= yield %>
       <% email_goal_beacons.each do |beacon| %><img src="<%= beacon %>" alt="" width="1" height="1" hidden data-email-beacon><% end %>
     </main>
+
+    <%# The engine's modal host. Cyvasse's modals (game over, sign in) are
+        registered in modals/_host_extras. Card widths by modal id, set
+        before the host reads them. %>
+    <script>
+      window.StudioModals = window.StudioModals || {};
+      window.StudioModals.CARD_WIDTHS = Object.assign({}, window.StudioModals.CARD_WIDTHS || {},
+        { "game-over": "max-w-md", "auth": "max-w-md", "check-inbox": "max-w-md" });
+    </script>
+    <%= render "studio/modals/host" %>
   </body>
 </html>

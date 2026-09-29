@@ -1,0 +1,12 @@
+<%# Cyvasse's modals on the engine's host (layouts/application renders
+    studio/modals/host; the host renders this partial inside its card). Open
+    one with $store.modals.open(id, props). %>
+<template x-if="$store.modals.current()?.id === 'game-over'">
+  <%= render "modals/game_over", guest: current_user&.guest? %>
+</template>
+<template x-if="$store.modals.current()?.id === 'auth'">
+  <%= render "modals/auth" %>
+</template>
+<template x-if="$store.modals.current()?.id === 'check-inbox'">
+  <%= render "modals/check_inbox" %>
+</template>

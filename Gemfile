@@ -29,6 +29,11 @@ gem "tailwindcss-rails", "~> 4.5"
 # turf-monster resolve today, and is above NEW_APP_SETUP's own floor (0.57,
 # Studio::GeoDetection). Read Gemfile.lock for what actually resolves.
 gem "studio-engine", "~> 0.76"
+# Google sign-in through the engine's OmniauthCallbacksController, beside the
+# magic link (config/initializers/omniauth.rb). The same three gems the hub runs.
+gem "omniauth"
+gem "omniauth-google-oauth2"
+gem "omniauth-rails_csrf_protection"
 # Use Redis adapter to run Action Cable in production
 # gem "redis", ">= 4.0.1"
 

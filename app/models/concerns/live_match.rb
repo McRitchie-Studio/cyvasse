@@ -115,8 +115,8 @@ module LiveMatch
       computer: opponent_of(user).computer?,
       taken_over: { you: taken_over?(mine), opponent: taken_over?(theirs) },
       auto_set_up: { you: auto_set_up?(mine), opponent: auto_set_up?(theirs) },
-      # The game-over panel's call to a guest (matches/show): sign in to put
-      # this win on the leaderboard.
+      # The game-over modal's line to a guest (modals/_game_over): signing in
+      # puts this win on the leaderboard.
       board_win: leaderboard_win?(user)
     }
   end

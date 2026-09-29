@@ -17,6 +17,7 @@ import { Game, PLAYER } from "cyvasse/game"
 //   state     the match as Match#state_for renders it
 //   stateUrl  GET, JSON state      setupUrl  POST { lineup }
 //   moveUrl   POST { steps }       pollMs    how often to look for news
+//   returnTo  a guest's way back here after signing in (the game-over modal)
 
 const REASON_TEXT = {
   king: { 1: "You captured the king. You win.", 0: "Your king fell. You were defeated." },
@@ -25,13 +26,14 @@ const REASON_TEXT = {
 }
 
 export default class extends GameController {
-  static targets = ["error", "deadline", "clock", "clockLabel", "clockSeconds", "clockBar", "notice", "claimWin", "claimLoss"]
+  static targets = ["error", "deadline", "clock", "clockLabel", "clockSeconds", "clockBar", "notice"]
   static values = {
     state: Object,
     stateUrl: String,
     setupUrl: String,
     moveUrl: String,
-    pollMs: { type: Number, default: 15000 }
+    pollMs: { type: Number, default: 15000 },
+    returnTo: String
   }
 
   connect() {
@@ -56,6 +58,8 @@ export default class extends GameController {
     // A live setup that ran out: the army the server placed arrives piece by
     // piece rather than all at once.
     const arriving = this.state?.can_set_up && !state.can_set_up && state.live?.auto_set_up?.you
+    // The game ended while this page watched, or a live game is opened over.
+    const ended = state.phase === "over" && (this.state ? this.state.phase !== "over" : state.live)
     this.state = state
     this.steps = []
     this.pendingJump = null
@@ -79,8 +83,9 @@ export default class extends GameController {
     if (arriving) this.animateArrival()
     this.startLiveClock()
 
-    this.renderGuestClaim()
-    if (state.phase === "over") {
+    if (ended) {
+      this.openGameOver()
+    } else if (state.phase === "over") {
       this.banner(this.outcomeText(), null, { stay: true })
     } else if (announce && state.phase === "play") {
       this.banner(state.your_turn ? `Turn ${state.turn} · Your move` : `Turn ${state.turn} · ${state.opponent.username} to move`)
@@ -344,14 +349,24 @@ export default class extends GameController {
     setTimeout(() => this.boardTarget.classList.remove("is-arrival"), 120 + nodes.length * step + 400)
   }
 
-  // A guest's game is over: a win for the leaderboard asks them to sign in
-  // for it; anything else, more gently, to save their games.
-  renderGuestClaim() {
-    if (!this.hasClaimWinTarget) return
-    const over = this.state.phase === "over"
-    const won = over && Boolean(this.state.live?.board_win)
-    this.claimWinTarget.hidden = !won
-    this.claimLossTarget.hidden = !over || won
+  // The engine's modal (modals/_game_over): the result, then sign in (a
+  // guest) or play again. Closed, it leaves the final board to look over.
+  // Until Alpine has the modal store, the result stays on the board.
+  openGameOver() {
+    const store = window.Alpine?.store?.("modals")
+    if (!store) {
+      this.banner(this.outcomeText(), null, { stay: true })
+      document.addEventListener("alpine:initialized", () => this.state.phase === "over" && this.openGameOver(), { once: true })
+      return
+    }
+    this.hideBanner()
+    if (store.isLive("game-over")) return
+    store.open("game-over", {
+      ariaLabel: "Game over",
+      result: this.outcomeText(),
+      boardWin: Boolean(this.state.live?.board_win),
+      returnTo: this.returnToValue || null
+    })
   }
 
   outcomeText() {

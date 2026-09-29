@@ -280,18 +280,29 @@ written out in `app/models/leaderboard.rb`:
   puts a result on a record only when a person played the seat, so computer
   players and stand-ins gain neither wins nor losses.
 
-**Guests sign in to claim.** When a Play Now guest's live game ends, the match
-page asks them to sign in: "You won! Sign in to put this win on the
-leaderboard" for a win that counts, "Sign in to save your games" otherwise.
-Both go to `/leaderboard/join`, whose magic-link form returns to the
-leaderboard (a win) or My games (anything else). On sign-in, `GuestClaim`
-moves the guest's match seats, wins, searches and chat to the account, adds
-the guest's record to it and deletes the guest. It runs from
+**Guests sign in to claim.** When a match ends on the board, a modal on the
+engine's modal host (`modals/_game_over`, registered in
+`modals/_host_extras`) gives the result. A Play Now guest is asked to "Sign in
+to keep your record" (a win that counts adds that it goes on the live
+leaderboard) or to play another game; a signed-in player may play again or
+close it and look over the final board. It opens when the game ends while the
+page watches, or when a finished live match is opened; an older finished
+match keeps its result on the board. Sign in opens the sign-in modal
+(`modals/_auth`, the hub's card): Google, where the app has it, then the
+engine's magic link, both bringing the player back to the match. On sign-in,
+`GuestClaim` moves the guest's match seats, wins, searches and chat to the
+account, its saved lineups into the slots the account has free, and its piece
+art if the account chose none; adds the guest's record to the account's and
+deletes the guest, or keeps it marked merged (`users.merged_into_id`) when it
+played the account itself, so it is never claimed again. It runs from
 `ApplicationController#set_app_session`, so every sign-in path claims; the
 session keeps the guest's id under `:guest_user_id` so a guest who signed out
-first is still claimed. When the email link is opened in another browser,
-the return address carries a signed `claim` token (one day) that does the
-same. An account with no username is asked to choose one before the board.
+first is still claimed, and a failed claim is logged without blocking the
+sign-in. When the email link is opened in another browser, the return address
+carries a signed `claim` token (one day) that does the same. Only this
+browser's guest is ever claimed: no guest id is read from a request. An
+account with no username is asked to choose one before the board.
+`/leaderboard/join` is the sign-in page for a browser without script.
 
 ## Email results
 
@@ -382,9 +393,15 @@ two of the seeded identities in two browsers (or one private window).
 
 ## Auth and hub SSO
 
-Sign-in is passwordless magic link only (`config/initializers/studio.rb`). Google
-and wallet sign-in are off by design; adding Google is a config change because the
-`users` table already carries `provider` and `uid`.
+Sign-in is passwordless: the engine's magic link, and Google through the engine's
+`OmniauthCallbacksController` (`User.from_omniauth` links a Google identity to an
+existing email only once Google has verified it). Google is on only where its OAuth
+client is configured (`config/initializers/omniauth.rb`): `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET` set, with `https://cyvasse.mcritchie.studio/auth/google_oauth2/callback`
+registered on the client. Unset, the app is magic link only and draws no Google
+button. Google always lands on the home page; the sign-in modal passes
+`?return_to=`, and the home page sends the player on to it once. Wallet sign-in is
+off by design.
 
 Hub SSO rides the session cookie: a player signed in on mcritchie.studio can
 "Continue as ..." here only when this app reads the hub's cookie. That takes the
@@ -403,6 +420,7 @@ opt-in switch (`config/initializers/session_store.rb`):
 |---|---|---|
 | `DATABASE_URL` | production, desks | Postgres connection |
 | `TEST_DATABASE_URL` | desks | the desk's isolated test database |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | production (optional) | Google sign-in; both unset, the app is magic link only |
 | `SECRET_KEY_BASE` | production | session and cookie encryption; the hub's value when SSO is on. The app keeps no `credentials.yml.enc` |
 | `APP_HOST` | production | public host for links, default `cyvasse.mcritchie.studio` |
 | `APP_PORT` | desks | the desk's port, default 3600 |

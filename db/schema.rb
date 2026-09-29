@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_030000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -292,6 +292,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_030000) do
     t.jsonb "ip_locations", default: [], null: false
     t.integer "legacy_id"
     t.integer "losses", default: 0, null: false
+    t.bigint "merged_into_id"
     t.string "name"
     t.string "piece_skin"
     t.string "provider"
@@ -304,6 +305,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_030000) do
     t.index "lower((username)::text)", name: "index_users_on_lower_username"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["legacy_id"], name: "index_users_on_legacy_id", unique: true
+    t.index ["merged_into_id"], name: "index_users_on_merged_into_id"
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true
     t.index ["slug"], name: "index_users_on_slug", unique: true
     t.index ["username"], name: "index_users_on_username", unique: true
@@ -322,4 +324,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_030000) do
   add_foreign_key "messages", "users", column: "sender_id"
   add_foreign_key "setups", "users", on_delete: :cascade
   add_foreign_key "studio_email_deliveries", "users"
+  add_foreign_key "users", "users", column: "merged_into_id", on_delete: :nullify
 end
