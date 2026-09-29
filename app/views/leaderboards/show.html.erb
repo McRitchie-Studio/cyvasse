@@ -5,8 +5,9 @@
     <h1 class="text-3xl font-extrabold text-heading tracking-tight">Leaderboard</h1>
     <p class="text-secondary text-sm">
       <% if @board == "live" %>
-        Wins in live games since the relaunch. Beating a computer player counts; a seat a computer
-        took over after missed clocks counts for nobody. Ties go to fewer losses, then the latest win.
+        Live games since the relaunch: 1 point for every game you finish, 3 for a win. Games against
+        the computer count; a seat a computer took over after missed clocks counts for nobody. Ties go
+        to more wins, then whoever reached the score first.
       <% else %>
         Every player's record, the old Cyvasse's games included.
       <% end %>
@@ -28,14 +29,14 @@
         Be the first on the board — <strong>Play Now</strong>
       <% end %>
     <% else %>
-      <%= render "leaderboards/rows", rows: @rows, losses: true %>
+      <%= render "leaderboards/rows", rows: @rows, board: @board %>
     <% end %>
   </div>
 
   <% if current_user&.guest? %>
     <p class="text-sm text-secondary">
       Playing as <%= current_user.username %>.
-      <%= link_to "Sign in", join_leaderboard_path, class: "underline underline-offset-2" %> to put your wins on the board.
+      <%= link_to "Sign in", join_leaderboard_path, class: "underline underline-offset-2" %> to keep your points under your own name.
     </p>
   <% end %>
 </section>
