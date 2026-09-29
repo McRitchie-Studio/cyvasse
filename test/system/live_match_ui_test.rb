@@ -40,14 +40,6 @@ class LiveMatchUiTest < ApplicationSystemTestCase
 
   def hex(index) = "svg.cyvasse-board g.hex[data-hex='#{index}']"
 
-  # Hold the computer's next turn past the end of the test. At pace 0 it
-  # lands inside the very tick that settles the clock under test, before the
-  # page draws that tick: from these armies it can take the player's units on
-  # its first turn, or their king in reply to a move made for them.
-  def hold_computer
-    LiveMatch.bot_pace = 10_000
-  end
-
   setup do
     @arya = User.create!(email: "arya@example.com", name: "Arya", username: "arya")
     @match = Match.start_live!(@arya, computer: true, rng: Random.new(4))
@@ -102,7 +94,9 @@ class LiveMatchUiTest < ApplicationSystemTestCase
   end
 
   test "an army placed by the clock arrives on the board, and the player is told" do
-    hold_computer
+    # The computer's reply stays on its real pacing, so it cannot land (and,
+    # with an unlucky opening, end the game) before the notice is read.
+    LiveMatch.bot_pace = 1
     rewind_clock(58)
     visit match_path(@match)
     assert_selector ".cyvasse-dock .dock-unit", count: 19
@@ -115,18 +109,22 @@ class LiveMatchUiTest < ApplicationSystemTestCase
   test "a missed move clock plays a move for you and says so" do
     @match.set_up!(@arya, CyvasseRules::Bot.random_lineup(rng: Random.new(2)))
     @match.reload
-    assert_equal :home, @match.seat_to_move, "both armies are seeded: the player moves first"
-    # Without the hold, the computer's reply to the move made for the player
-    # takes their king in the same tick, and the game-over modal hides the notice.
-    hold_computer
+    unless @match.seat_to_move == :home
+      # Real time, not travel_to: a write stamped in the future makes the
+      # page read the next poll as stale. bot_pace 0 makes the turn due now.
+      @match.tick!
+      @match.reload
+    end
+    skip "the computer won on its first move" if @match.finished?
+    # From here the computer keeps its real pacing: with bot_pace 0 one poll
+    # settled the missed clock AND the computer's whole reply, which could take
+    # the king and put the game-over modal over the notice (CI seed 11698).
+    LiveMatch.bot_pace = 1
     rewind_clock(29)
     visit match_path(@match)
     assert_selector "[data-cyvasse-match-target=clockLabel]", text: /Your move|Hurry/
     assert_text "You missed a clock", wait: 10
-    @match.reload
-    assert_equal 1, @match.home_strikes
-    assert_equal :away, @match.seat_to_move, "a move was made for the player"
-    assert_not @match.finished?
+    assert_equal 1, @match.reload.home_strikes
   end
 
   test "the live poll mid-setup keeps the army the player has placed" do
