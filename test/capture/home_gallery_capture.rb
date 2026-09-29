@@ -22,6 +22,11 @@ require "application_system_test_case"
 # rings are the game's own. A light horse's scene plays its first jump through
 # the controller, so the picture is the second-jump board.
 class HomeGalleryCapture < ApplicationSystemTestCase
+  # Software raster, one colour profile: the same scene draws the same pixels.
+  driven_by :selenium, using: :headless_chrome, screen_size: [ 1400, 1100 ] do |options|
+    %w[--disable-gpu --force-color-profile=srgb --disable-partial-raster --num-raster-threads=1].each { options.add_argument(_1) }
+  end
+
   CONTROLLER = "Stimulus.getControllerForElementAndIdentifier(document.querySelector('[data-controller=cyvasse-game]'), 'cyvasse-game')".freeze
   OUT = Rails.root.join("app/assets/images", HomeGallery::DIRECTORY)
   PREVIEWS = Rails.root.join("tmp/home_gallery")
