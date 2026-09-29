@@ -75,12 +75,16 @@ class PhoneWidthTest < ApplicationSystemTestCase
 
   private
 
-  # Place the army. On a cold CI browser under phone emulation the piece art
-  # and fonts can still be loading when Selenium scrolls the button into view,
-  # so the page shifts and the click lands where the button was: a silent
-  # no-op, 19 units still in the dock. Wait for the page to settle, then
-  # confirm the click took, clicking again if it did not (Random Setup only
-  # ever places the army, so a second click is harmless).
+  # Place the army. On a phone, Random Setup sits below the fold, so the click
+  # first scrolls it into view, and that scroll collapses the engine's sticky,
+  # in-flow navbar (navCollapse: about 40px, at most 5px a frame). The page
+  # slides up under a click already aimed, and on a loaded CI runner it lands
+  # below the button: a silent no-op, 19 units still in the dock (CI runs
+  # 36556041722 and 36555774130, both with a warm browser). The load wait
+  # below only rules out a page still painting; it cannot see a collapse that
+  # the click's own scroll starts. The confirm-and-retry is the fix: by the
+  # second click the page is scrolled and the navbar settled. A second click
+  # is harmless: Random Setup only ever places or reshuffles your own army.
   def random_setup!
     assert page.evaluate_async_script(<<~JS), "the page finished loading"
       const done = arguments[arguments.length - 1]
