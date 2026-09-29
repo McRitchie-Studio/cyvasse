@@ -62,6 +62,19 @@ class TakeBackSeatTest < ActiveSupport::TestCase
     assert match.your_turn?(@away)
   end
 
+  test "the move the computer is already showing is the one that lands" do
+    match = taken_over_match(to_move: :home)
+    match.update_columns(bot_due_at: nil)
+    match.tick!(rng: @rng)
+    plan = match.reload.bot_plan["steps"]
+    expected = match.to_game.tap { _1.play!(plan) }.position(Match::HOME)
+
+    match.take_back_seat!(@home, rng: Random.new(99))
+
+    assert_equal expected, match.reload.home_units_position
+    assert_not match.bot_seat?(:home)
+  end
+
   test "only the seat's own player can take it back" do
     match = taken_over_match(to_move: :away)
 

@@ -236,7 +236,7 @@ class Match < ApplicationRecord
     my_team = team(user)
     turned = seat(user) == :away
     view = ->(hex) { turned ? CyvasseRules::Board.mirror(hex) : hex }
-    game = to_game
+    game = live? ? shown_game : to_game
     show_all = in_progress? || finished?
 
     units = game.units.filter_map do |unit|
@@ -260,7 +260,7 @@ class Match < ApplicationRecord
       turn: turn.to_i,
       offense: in_progress? ? (whos_turn == my_team ? 1 : 0) : nil,
       units: units,
-      last_move: hexes(last_move).map(&view),
+      last_move: hexes(live? ? shown_last_move : last_move).map(&view),
       util_move: hexes(utility_saved_hex).map(&view).first,
       deadline: deadline&.iso8601,
       winner: winner_id.nil? ? nil : (winner_id == user.id ? 1 : 0),
