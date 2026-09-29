@@ -484,7 +484,7 @@
   gap: 0.5rem 1rem;
 }
 
-.match-actions .cyvasse-threat-toggle {
+.match-actions .cyvasse-threat-toggles {
   margin-left: 0;
   font-size: 0.875rem;
 }
@@ -682,18 +682,24 @@
   }
 }
 
+.cyvasse-threat-toggles {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin-left: auto;
+}
+
+.cyvasse-threat-toggles[hidden] {
+  display: none;
+}
+
 .cyvasse-threat-toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  margin-left: auto;
   color: var(--color-text-secondary, inherit);
   cursor: pointer;
   user-select: none;
-}
-
-.cyvasse-threat-toggle[hidden] {
-  display: none;
 }
 
 .cyvasse-threat-toggle input {

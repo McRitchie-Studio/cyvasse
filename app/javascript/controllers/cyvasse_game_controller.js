@@ -3,7 +3,7 @@ import { Game, PLAYER, COMPUTER } from "cyvasse/game"
 import { chooseAction, KILL_PRIORITY } from "cyvasse/ai"
 import { botDelays } from "cyvasse/pacing"
 import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
-import { UNIT_TYPES } from "cyvasse/units"
+import { UNIT_TYPES, THREAT_GROUPS } from "cyvasse/units"
 import { Banner, passNotice } from "cyvasse/banner"
 import { threats } from "cyvasse/threats"
 import { EDGES, perimeter, hexClaim, resolveEdges } from "cyvasse/edges"
@@ -140,12 +140,14 @@ function overBoard(color, alpha) {
 // Every class a ripple may leave on a hex; render() and each repaint clear
 // the lot, so a hex never carries two looks.
 const RING_CLASSES = ["is-lit", "is-ghost", "is-field", "is-target", "is-blocked"]
-// The threat outline (renderThreats) is on unless the player turned it off.
+// Each threat group's outline (renderThreats) is on unless the player turned
+// it off; a player who turned off the old single switch starts with both off.
 const THREATS_KEY = "cyvasse.showThreats"
 
-function threatsWanted() {
+function threatsWanted(group) {
   try {
-    return window.localStorage.getItem(THREATS_KEY) !== "off"
+    const stored = window.localStorage.getItem(`${THREATS_KEY}.${group}`) ?? window.localStorage.getItem(THREATS_KEY)
+    return stored !== "off"
   } catch {
     return true
   }
@@ -430,9 +432,10 @@ export default class extends Controller {
   }
 
   toggleThreats(event) {
-    this.showThreats = event.target.checked
+    const { threatGroup } = event.target.dataset
+    this.showThreats[threatGroup] = event.target.checked
     try {
-      window.localStorage.setItem(THREATS_KEY, this.showThreats ? "on" : "off")
+      window.localStorage.setItem(`${THREATS_KEY}.${threatGroup}`, event.target.checked ? "on" : "off")
     } catch {
       // Storage refused (a private window): the switch still works this visit.
     }
@@ -690,19 +693,20 @@ export default class extends Controller {
   // rules' own legal actions): each hex in reach gets .is-threatened, and the
   // edge round that area (their own units counted in, so it is one shape) is
   // outlined red by renderEdges; each unit of yours they could actually kill
-  // gets .is-danger (the orange edge pulse). Play only; the switch turns it off.
+  // gets .is-danger (the orange edge pulse). Play only; the ranged and melee
+  // switches each turn off their own units' share.
   renderThreats() {
     const game = this.game
     // Read once per page, by /play and the match board alike.
-    this.showThreats ??= threatsWanted()
-    const live = game.phase === "play" && this.showThreats
-    if (this.hasThreatToggleTarget) {
-      this.threatToggleTarget.checked = this.showThreats
-      this.threatToggleTarget.closest("label").hidden = game.phase !== "play"
+    this.showThreats ??= Object.fromEntries(THREAT_GROUPS.map((group) => [group, threatsWanted(group)]))
+    const groups = THREAT_GROUPS.filter((group) => this.showThreats[group])
+    const live = game.phase === "play" && groups.length > 0
+    for (const input of this.threatToggleTargets) {
+      input.checked = this.showThreats[input.dataset.threatGroup]
+      input.closest(".cyvasse-threat-toggles").hidden = game.phase !== "play"
     }
-    const { reach, kills } = live ? threats(game, 1 - PLAYER) : { reach: new Set(), kills: new Set() }
-    const region = new Set(reach)
-    if (live) for (const unit of game.teamUnits(1 - PLAYER, "alive")) if (unit.hex != null) region.add(unit.hex)
+    const { reach, kills, units } = live ? threats(game, 1 - PLAYER, { groups }) : { reach: new Set(), kills: new Set(), units: new Set() }
+    const region = new Set([...reach, ...units])
     this.threatRim = perimeter(region)
     for (const [index, node] of this.hexNodes) {
       const unit = game.pieceAt(index)
