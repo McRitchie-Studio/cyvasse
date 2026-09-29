@@ -202,8 +202,9 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     assert_selector "[data-cyvasse-match-target=clockLabel]", text: /Your move|Hurry/, wait: 5
     turn = @match.reload.turn
     take_a_turn
-    assert_selector "[data-cyvasse-match-target=clockLabel]", text: /is thinking/, wait: 5
-    assert_operator @match.reload.turn, :>, turn
+    # The move reaches the server (the computer, paced at 0 here, may answer at once).
+    Timeout.timeout(5) { sleep 0.1 until @match.reload.turn > turn || @match.finished? }
+    assert @match.last_move.present?
     assert_equal 2, @match.home_strikes
   end
 
