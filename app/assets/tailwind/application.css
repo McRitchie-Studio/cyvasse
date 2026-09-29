@@ -56,16 +56,25 @@
   background: rgb(0 0 0 / 0.7);
 }
 
-/* Secondary to the gold Play Now: an outline in the secondary green. */
+/* Secondary to the gold Play Now: a green outline with a white label. The
+ * label colour is the view's text-white, not a colour here: the green label
+ * was ~3:1 over the brightest spot of the scrimmed art, and white clears AA.
+ * Hover and keyboard focus both tint the fill green; focus also draws a white
+ * ring outside the border. */
 .home-secondary-btn {
   --home-accent: var(--btn-secondary-bg, var(--color-success));
   background: transparent;
   border: 2px solid var(--home-accent);
-  color: var(--home-accent);
 }
 
-.home-secondary-btn:hover {
-  background: color-mix(in srgb, var(--home-accent) 20%, transparent);
+.home-secondary-btn:hover,
+.home-secondary-btn:focus-visible {
+  background: color-mix(in srgb, var(--home-accent) 30%, transparent);
+}
+
+.home-secondary-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 
 /* Rules and about pages (/rules, /about). */

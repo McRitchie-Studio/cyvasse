@@ -15,6 +15,14 @@ class HomePageTest < ActionView::TestCase
     assert_select "a.btn-secondary", 0, "no filled secondaries"
   end
 
+  # The green label was ~3:1 over the scrimmed art; white clears WCAG AA.
+  test "the outlined secondaries carry a white label, not the green" do
+    render_home(user: nil)
+
+    assert_select "a.home-secondary-btn", 3
+    assert_select "a.home-secondary-btn:not(.text-white)", 0, "every secondary label is white"
+  end
+
   test "no Play the computer button, and the copy does not offer one" do
     render_home(user: nil)
 

@@ -14,10 +14,10 @@
         <%= button_to "Play Now", live_seeks_path, class: "btn btn-primary btn-lg text-xl px-10", form: { class: "inline-block" } %>
       </div>
       <div class="flex flex-wrap justify-center gap-3 mb-6">
-        <%= link_to "Rules", rules_path, class: "btn home-secondary-btn" %>
-        <%= link_to "Play a friend", matches_path, class: "btn home-secondary-btn" %>
+        <%= link_to "Rules", rules_path, class: "btn home-secondary-btn text-white" %>
+        <%= link_to "Play a friend", matches_path, class: "btn home-secondary-btn text-white" %>
         <% unless logged_in? %>
-          <%= link_to "Sign in", signin_path, class: "btn home-secondary-btn" %>
+          <%= link_to "Sign in", signin_path, class: "btn home-secondary-btn text-white" %>
         <% end %>
       </div>
       <% if logged_in? %>
