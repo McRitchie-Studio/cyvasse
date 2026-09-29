@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_230000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -51,6 +51,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_200000) do
     t.index ["created_at", "id"], name: "index_board_posts_on_created_at_and_id"
     t.index ["legacy_id"], name: "index_board_posts_on_legacy_id", unique: true
     t.index ["user_id"], name: "index_board_posts_on_user_id"
+  end
+
+  create_table "email_handoff_attempts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "outcome", null: false
+    t.string "reason"
+    t.bigint "user_id"
+    t.index ["created_at"], name: "index_email_handoff_attempts_on_created_at"
+    t.index ["outcome", "reason"], name: "index_email_handoff_attempts_on_outcome_and_reason"
+  end
+
+  create_table "email_handoff_nonces", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.string "jti", null: false
+    t.index ["expires_at"], name: "index_email_handoff_nonces_on_expires_at"
+    t.index ["jti"], name: "index_email_handoff_nonces_on_jti", unique: true
   end
 
   create_table "error_logs", force: :cascade do |t|
@@ -288,6 +305,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_200000) do
     t.integer "birth_year"
     t.datetime "created_at", null: false
     t.string "email"
+    t.boolean "email_updates"
+    t.datetime "email_updates_at"
     t.string "first_name"
     t.boolean "guest", default: false, null: false
     t.jsonb "ip_locations", default: [], null: false
@@ -295,6 +314,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_200000) do
     t.integer "losses", default: 0, null: false
     t.bigint "merged_into_id"
     t.string "name"
+    t.jsonb "onboarding_steps", default: {}, null: false
     t.string "piece_skin"
     t.string "provider"
     t.string "role", default: "viewer"
@@ -315,6 +335,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_200000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "board_posts", "users"
+  add_foreign_key "email_handoff_attempts", "users", on_delete: :nullify
   add_foreign_key "live_seeks", "matches"
   add_foreign_key "live_seeks", "users"
   add_foreign_key "matches", "users", column: "away_user_id"
