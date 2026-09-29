@@ -791,6 +791,122 @@ html.dark [data-skin="pencil"] .dock-unit img {
   accent-color: #e25c3c;
 }
 
+/* The board key (games/_threat_toggle, BoardLegendHelper): a small "?" by the
+ * threat switches that opens a panel over the board, one swatch per look a
+ * hex takes in play. The swatches copy the board rules above; the board looks
+ * the same in both themes, so they do too, and only the panel follows it. */
+.cyvasse-legend {
+  position: relative;
+}
+
+.cyvasse-legend-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-text-secondary, inherit);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.cyvasse-legend-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.cyvasse-legend-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border-strong, var(--color-border));
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cyvasse-legend[open] .cyvasse-legend-mark {
+  border-color: currentColor;
+}
+
+.cyvasse-legend-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.375rem);
+  right: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.375rem 0.75rem;
+  width: min(22rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  color: var(--color-text-body, inherit);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  list-style: none;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+/* In the match panel the key sits at the left of a wrapped row. */
+.match-actions .cyvasse-legend-panel {
+  right: auto;
+  left: 0;
+  width: min(17rem, calc(100vw - 2rem));
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cyvasse-legend-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cyvasse-legend-swatch {
+  flex: none;
+  width: 0.875rem;
+  height: 1rem;
+  overflow: visible;
+}
+
+.cyvasse-legend-swatch polygon {
+  fill: hsl(220 11% 17%);
+  stroke: white;
+  stroke-width: 1;
+}
+
+.cyvasse-legend-swatch[data-swatch="selected"] polygon { fill: orange; stroke: orange; }
+.cyvasse-legend-swatch[data-swatch="yours"] polygon { fill: hsl(217 60% 30%); stroke: #3b82f6; stroke-width: 2; }
+.cyvasse-legend-swatch[data-swatch="enemy"] polygon { fill: hsl(0 55% 28%); stroke: #dc2626; stroke-width: 2; }
+.cyvasse-legend-swatch[data-swatch="move"] polygon { fill: hsl(240 44% 47%); }
+.cyvasse-legend-swatch[data-swatch="attack"] polygon { fill: hsl(10 44% 47%); stroke: hsl(0 100% 66%); stroke-width: 2; }
+.cyvasse-legend-swatch[data-swatch="sunken"] polygon { fill: hsl(220 4% 11%); stroke: hsl(220 4% 34%); }
+.cyvasse-legend-swatch[data-swatch="ghost"] polygon { fill: hsl(226 30% 22%); stroke: hsl(226 95% 70%); stroke-dasharray: 2 1.5; }
+.cyvasse-legend-swatch[data-swatch="field"] polygon { fill: hsl(4 45% 26%); stroke: hsl(354 60% 44%); }
+.cyvasse-legend-swatch[data-swatch="blocked"] polygon { fill: hsl(214 12% 20%); stroke: hsl(214 16% 58%); stroke-dasharray: 1.5 1.5; }
+.cyvasse-legend-swatch[data-swatch="reach"] polygon { stroke: #ef4444; stroke-width: 2; }
+.cyvasse-legend-swatch[data-swatch="danger"] polygon { fill: hsl(25 70% 30%); stroke: #f97316; stroke-width: 2; }
+.cyvasse-legend-swatch[data-swatch="focus"] polygon { stroke: yellow; stroke-width: 2; }
+
+/* A phone keeps only the "?"; the name stays for screen readers. */
+@media (max-width: 639px) {
+  .cyvasse-legend-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .cyvasse-legend-panel {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(15rem, calc(100vw - 2rem));
+  }
+}
+
 /* The opponent's reach (.is-threatened, from renderThreats) is outlined only
  * round its rim: a solid red "perimeter" edge (above) where the area meets
  * the rest of the board or the board's edge. In cyvasse/edges' "dual"
