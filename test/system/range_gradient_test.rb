@@ -52,9 +52,12 @@ class RangeGradientTest < ApplicationSystemTestCase
     # The selected hex keeps its flat orange and is not textured.
     assert_equal ORANGE, fill_of(hex)
     assert_equal "none", page.evaluate_script("getComputedStyle(document.querySelector(\"g.hex[data-hex='#{hex}'] .ring-texture\")).display")
-    # An unlit hex keeps the slate board gradient and no hatch.
-    dark = page.evaluate_script("[...document.querySelectorAll('g.hex:not(.is-lit):not(.is-selected):not(.is-move):not(.is-attack) .hex-poly')].map((p) => getComputedStyle(p).fill)").uniq
+    # An unlit hex keeps the slate board gradient and no hatch; one the
+    # dragon cannot stop on is sunken gray (board_highlights_test.rb).
+    dark = page.evaluate_script("[...document.querySelectorAll('g.hex:not(.is-lit):not(.is-sunken):not(.is-selected):not(.is-move):not(.is-attack) .hex-poly')].map((p) => getComputedStyle(p).fill)").uniq
     assert_equal [ %(url("#hex-base")) ], dark
+    sunken = page.evaluate_script("[...document.querySelectorAll('g.hex.is-sunken .hex-poly')].map((p) => getComputedStyle(p).fill)").uniq
+    assert sunken.all? { |fill| fill.match?(/\Aurl\("#sunken-/) }, sunken.inspect
     screenshot("dragon")
 
     # The pencil skin redraws only the art: the gradients stay on the rings.

@@ -159,6 +159,49 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     page.execute_script("try { localStorage.clear() } catch {}")
   end
 
+  test "a unit nobody can take inside the zone is not outlined: only the zone's outer rim is" do
+    start_game
+    # Their catapult, king, rabble and heavy horse; your elephant on 23 is out
+    # of their reach but every hex round it is in it.
+    stage("0-15" => 46, "0-17" => 1, "0-1" => 10, "0-10" => 25, "1-17" => 91, "1-6" => 23)
+    mouse_away
+    assert_no_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='23']"
+    assert_empty edge_table.select { |e| e["between"].include?(23) && e["kind"].to_s.start_with?("perimeter") }, "no outline round the hole"
+    assert edge_table.any? { |e| e["kind"] == "perimeter" }
+  ensure
+    page.execute_script("try { localStorage.clear() } catch {}")
+  end
+
+  test "a hex the picked unit cannot stop on is sunken gray: no hue, no hatch" do
+    start_game
+    # Your dragon on 80 between two rabbles of yours: it flies over them but
+    # cannot land there.
+    stage("1-16" => 80, "1-1" => 79, "1-2" => 81, "1-17" => 91, "0-17" => 1)
+    find("svg.cyvasse-board g.hex[data-hex='80']").click
+    assert_selector "svg.cyvasse-board g.hex.is-sunken[data-hex='79']"
+    assert_selector "svg.cyvasse-board g.hex.is-sunken[data-hex='81']"
+    assert_selector "svg.cyvasse-board g.hex.is-lit", minimum: 3
+    cells = page.evaluate_script(<<~JS)
+      [79, 81].map((hex) => {
+        const g = document.querySelector(`g.hex[data-hex='${hex}']`)
+        const fill = getComputedStyle(g.querySelector(".hex-poly")).fill
+        const stops = [...document.querySelector(fill.match(/#[^"]+/)[0]).querySelectorAll("stop")].map((s) => s.getAttribute("stop-color"))
+        return { fill, lit: g.classList.contains("is-lit"), hatch: getComputedStyle(g.querySelector(".ring-texture")).display, stops }
+      })
+    JS
+    cells.each do |c|
+      assert_match(/\Aurl\("#sunken-(short|long)-\d+"\)\z/, c["fill"])
+      assert_not c["lit"], "not a move"
+      assert_equal "none", c["hatch"]
+      sats = c["stops"].map { |color| color[/hsl\(\d+, (\d+)%/, 1].to_i }
+      lights = c["stops"].map { |color| color[/(\d+(?:\.\d+)?)%\)\z/, 1].to_f }
+      assert sats.all? { |sat| sat <= 6 }, "gray: #{c['stops']}"
+      assert_operator lights.first, :<, lights.last, "darker at the centre: sunken"
+    end
+  ensure
+    page.execute_script("try { localStorage.clear() } catch {}")
+  end
+
   test "the dual style outlines melee solid and ranged dashed, solid where they share an edge" do
     start_game
     # Their king (1, melee) and catapult (46, ranged).

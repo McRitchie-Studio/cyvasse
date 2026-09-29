@@ -88,6 +88,7 @@ test("a hex claims its highest highlight", () => {
   assert.equal(claim(["is-last-move", "has-unit"], { team: 1 }), "team-1", "a moved unit shows its team");
   assert.equal(claim(["is-last-move", "is-danger"], { team: 1 }), "danger");
   assert.equal(claim(["is-field", "is-lit"]), "field");
+  assert.equal(claim(["is-sunken"]), "ring", "a sunken hex is part of the ring: no perimeter crosses it");
   assert.equal(claim(["is-ghost"], { ghost: 7 }), "ghost-7");
   assert.equal(claim(["is-move", "is-danger", "is-selected"]), "selected");
   assert.equal(claim(["is-threatened"]), null, "reach alone claims nothing: only its perimeter is drawn");
