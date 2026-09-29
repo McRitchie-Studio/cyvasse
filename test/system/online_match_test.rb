@@ -89,7 +89,8 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
 
     Capybara.using_session(waiting) do
       assert_selector "#{BOARD}[data-your-turn=true]", wait: 10
-      assert_selector "[role=status]", text: "Turn 2: your move."
+      # Their first move: the turn counter counts full moves, so still turn 1.
+      assert_selector "[role=status]", text: "Turn 1: your move."
       assert_selector "svg.cyvasse-board g.hex.is-last-move", minimum: 2
       assert_selector "svg.cyvasse-board g.hex.is-threatened", minimum: 1
     end

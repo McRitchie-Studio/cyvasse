@@ -29,6 +29,7 @@ class MatchMailerTest < ActionMailer::TestCase
     assert_equal "Your move against arya · Cyvasse", mail.subject
     body = mail.text_part.body.to_s
     assert_includes body, "arya has moved"
+    assert_includes body, "(turn 1)", "brienne's first move is turn 1: full moves, not half-moves"
     assert_includes body, "/matches/#{match.id}"
     assert_includes body, match.deadline.utc.strftime("%B %-d")
     assert_includes body, "forfeit"

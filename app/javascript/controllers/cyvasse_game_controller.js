@@ -5,6 +5,7 @@ import { botDelays } from "cyvasse/pacing"
 import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
 import { UNIT_TYPES, THREAT_GROUPS } from "cyvasse/units"
 import { Banner, passNotice } from "cyvasse/banner"
+import { fullMove } from "cyvasse/turns"
 import { threats } from "cyvasse/threats"
 import { EDGES, hexClaim, resolveEdges, threatRims, PERIMETER_STYLE } from "cyvasse/edges"
 import { playIntent, setupIntent } from "cyvasse/selection"
@@ -281,7 +282,7 @@ export default class extends Controller {
     if (this.game.phase === "over") return this.announceWinner()
 
     const whose = this.game.offense === PLAYER ? "Your move" : "Opponent’s move"
-    this.banner(`${passed ? (this.game.offense === PLAYER ? "Opponent passes · " : "You pass · ") : ""}Turn ${this.game.turn} · ${whose}`)
+    this.banner(`${passed ? (this.game.offense === PLAYER ? "Opponent passes · " : "You pass · ") : ""}Turn ${fullMove(this.game.turn)} · ${whose}`)
     if (this.game.offense === COMPUTER) this.computerTurn()
   }
 
@@ -310,7 +311,8 @@ export default class extends Controller {
 
   announceWinner() {
     if (this.game.winner === null) return this.banner("Neither side can move. A draw.", null, { stay: true })
-    const text = this.game.winner === PLAYER ? `You win, at turn ${this.game.turn}.` : `You were defeated, at turn ${this.game.turn}.`
+    const turn = fullMove(this.game.turn)
+    const text = this.game.winner === PLAYER ? `You win, at turn ${turn}.` : `You were defeated, at turn ${turn}.`
     this.banner(text, null, { stay: true })
   }
 
@@ -878,11 +880,12 @@ export default class extends Controller {
     } else if (game.phase === "over") {
       text = game.winner === PLAYER ? "You win." : game.winner === COMPUTER ? "You were defeated." : "A draw."
     } else if (game.offense === PLAYER) {
-      text = game.jump === 2 ? `Turn ${game.turn}: your cavalry jumps again.` : `Turn ${game.turn}: your move.`
+      const turn = fullMove(game.turn)
+      text = game.jump === 2 ? `Turn ${turn}: your cavalry jumps again.` : `Turn ${turn}: your move.`
       const picked = this.pickedNote()
       if (picked) text = `${text} ${picked}`
     } else {
-      text = `Turn ${game.turn}: the opponent is thinking.`
+      text = `Turn ${fullMove(game.turn)}: the opponent is thinking.`
     }
     this.setStatus(this.notice && game.phase === "play" ? `${this.notice} ${text}` : text)
   }
