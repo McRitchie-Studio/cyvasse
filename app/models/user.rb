@@ -81,6 +81,15 @@ class User < ApplicationRecord
     legacy_id.present? && COMPUTER_LEGACY_IDS.cover?(legacy_id)
   end
 
+  # People with a name on the board (Leaderboard): never a computer player,
+  # never a Play Now guest, and never an account with no public username (the
+  # board shows usernames only, so it cannot leak a name or an email).
+  scope :ranked_players, lambda {
+    where(guest: false).where.not(username: [ nil, "" ])
+      .where("users.legacy_id IS NULL OR users.legacy_id NOT BETWEEN ? AND ?",
+             COMPUTER_LEGACY_IDS.first, COMPUTER_LEGACY_IDS.last)
+  }
+
   def admin?
     role == "admin"
   end
