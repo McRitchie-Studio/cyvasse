@@ -49,12 +49,13 @@ class LiveSeek < ApplicationRecord
   def ends_at = created_at + self.class.search_time
 
   # Called by every poll: mark the searcher present, and when the time is up
-  # with nobody found, start the match against a computer player.
-  def settle!(now: Time.current)
+  # with nobody found, start the match against a computer player. `computer`
+  # is "Play the computer now": that same match, without waiting.
+  def settle!(now: Time.current, computer: false)
     self.class.locked do
       reload
       update_columns(last_seen_at: now)
-      if match.nil? && now >= ends_at
+      if match.nil? && (computer || now >= ends_at)
         update!(match: Match.start_live!(user, computer: true))
       end
     end

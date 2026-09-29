@@ -16,13 +16,9 @@
          data-cyvasse-match-move-url-value="<%= moves_match_path(@match) %>"
          <% if @match.live? %>data-cyvasse-match-poll-ms-value="1000" data-live="true"<% end %>>
   <header class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-    <div>
+    <div class="match-header-main">
       <p class="text-sm text-secondary"><%= link_to "← My games", matches_path, class: "underline underline-offset-2" %></p>
-      <h1 class="text-3xl font-extrabold text-heading tracking-tight">
-        <%= current_user.username %> <span class="text-muted font-semibold">vs</span>
-        <span data-cyvasse-match-target="opponent"><%= them %></span>
-        <% if @opponent.computer? %><span class="live-computer-tag">computer</span><% end %>
-      </h1>
+      <%= render "matches/versus", me: current_user, opponent: @opponent, opponent_name: them %>
       <p class="text-sm text-secondary" hidden data-cyvasse-match-target="deadline"></p>
       <% if @match.live? %>
         <%# The live clock both players see (LiveMatch): setup, then each move. %>

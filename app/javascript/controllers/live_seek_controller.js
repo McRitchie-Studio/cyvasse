@@ -1,18 +1,21 @@
 import { Controller } from "@hotwired/stimulus"
 import { Turbo } from "@hotwired/turbo-rails"
+import { secondsLeft, SplashGate, COUNT_TICK_MS, SEARCH_POLL_MS, SPLASH_POLL_MS } from "cyvasse/seek_splash"
 
 // The Play Now searching page (task play-now-matchmaking;
 // app/views/live_seeks/show). It counts down to the end of the search on the
-// server's clock, asks the server once a second, and once a match is made
-// shows "You vs them" for the splash time before moving into the game.
+// server's clock and asks the server once a second. The "You vs them" splash
+// starts the instant the ring reads 0, a match is found, or the player picks
+// the computer; the server's answer fills in the opponent and the game opens
+// once the splash has run (cyvasse/seek_splash).
 export default class extends Controller {
   static targets = ["count", "searching", "splash", "you", "opponent", "computerTag", "message", "youInitial", "opponentInitial", "progress"]
-  static values = { url: String, endsAt: String, serverTime: String }
+  static values = { url: String, endsAt: String, serverTime: String, splashMs: Number, you: String }
 
   connect() {
+    this.gate = new SplashGate(this.splashMsValue)
     this.offset = Date.parse(this.serverTimeValue) - Date.now()
-    this.endsAt = Date.parse(this.endsAtValue)
-    this.countTimer = setInterval(() => this.renderCount(), 200)
+    this.countTimer = setInterval(() => this.renderCount(), COUNT_TICK_MS)
     this.renderCount()
     this.poll()
   }
@@ -20,15 +23,25 @@ export default class extends Controller {
   disconnect() {
     clearInterval(this.countTimer)
     clearTimeout(this.pollTimer)
-    clearTimeout(this.splashTimer)
+    clearTimeout(this.openTimer)
+  }
+
+  // The system test moves the end of the search by rewriting this value.
+  endsAtValueChanged() {
+    this.endsAt = Date.parse(this.endsAtValue)
+    if (this.gate) this.renderCount()
   }
 
   renderCount() {
-    const left = Math.max(0, Math.ceil((this.endsAt - (Date.now() + this.offset)) / 1000))
+    const left = secondsLeft(this.endsAt, Date.now() + this.offset)
     this.countTarget.textContent = left
+    if (left === 0) this.startSplash()
   }
 
   async poll() {
+    clearTimeout(this.pollTimer)
+    if (this.gate.url || this.asking) return
+    this.asking = true
     try {
       const response = await fetch(this.urlValue, { headers: { Accept: "application/json" }, credentials: "same-origin" })
       if (response.ok) {
@@ -38,31 +51,65 @@ export default class extends Controller {
       }
     } catch {
       // A missed poll just waits for the next one.
+    } finally {
+      this.asking = false
     }
-    this.pollTimer = setTimeout(() => this.poll(), 1000)
+    if (!this.gate.url) this.pollTimer = setTimeout(() => this.poll(), this.gate.started ? SPLASH_POLL_MS : SEARCH_POLL_MS)
   }
 
-  matched(data) {
+  // "Play the computer now": the splash starts at once and the form's answer
+  // names the computer; without it the form submits as a plain POST.
+  async playComputer(event) {
+    event.preventDefault()
+    const form = event.target
+    this.startSplash({ ask: false })
+    try {
+      const response = await fetch(form.action, { method: "POST", body: new FormData(form), headers: { Accept: "application/json" }, credentials: "same-origin" })
+      const data = response.ok ? await response.json() : null
+      if (data?.status === "matched") return this.matched(data)
+    } catch {
+      // Fall through to the plain form.
+    }
+    form.submit()
+  }
+
+  // `ask`: poll now rather than at the next second.
+  startSplash({ ask = true } = {}) {
+    if (!this.gate.start(Date.now())) return
     clearInterval(this.countTimer)
-    this.youTarget.textContent = data.you
-    this.opponentTarget.textContent = data.opponent
-    this.youInitialTarget.textContent = initial(data.you)
-    this.opponentInitialTarget.textContent = initial(data.opponent)
-    this.computerTagTarget.hidden = !data.computer
+    this.fill(this.youValue, "…")
     this.searchingTarget.hidden = true
     this.splashTarget.hidden = false
-    // The bar empties over the splash, then the game opens.
+    // The bar empties over the splash.
     const bar = this.progressTarget
     bar.style.transition = "none"
     bar.style.transform = "scaleX(1)"
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      bar.style.transition = `transform ${data.splash_ms}ms linear`
+      bar.style.transition = `transform ${this.splashMsValue}ms linear`
       bar.style.transform = "scaleX(0)"
     }))
-    this.splashTimer = setTimeout(() => Turbo.visit(data.match_url), data.splash_ms)
+    if (ask) this.poll()
+  }
+
+  matched(data) {
+    clearTimeout(this.pollTimer)
+    this.startSplash({ ask: false })
+    this.fill(data.you, data.opponent)
+    this.computerTagTarget.hidden = !data.computer
+    this.gate.arrive(data.match_url)
+    clearTimeout(this.openTimer)
+    this.openTimer = setTimeout(() => Turbo.visit(this.gate.url), this.gate.wait(Date.now()))
+  }
+
+  fill(you, opponent) {
+    this.youTarget.textContent = you
+    this.opponentTarget.textContent = opponent
+    this.youInitialTarget.textContent = initial(you)
+    this.opponentInitialTarget.textContent = initial(opponent)
   }
 }
 
 function initial(name) {
-  return (name || "?").replace(/^Guest_/, "G").charAt(0).toUpperCase()
+  if (!name || name === "…") return "?"
+  return name.replace(/^Guest_/, "G").charAt(0).toUpperCase()
 }

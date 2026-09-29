@@ -23,7 +23,9 @@ Rails.application.routes.draw do
   # account and nothing saved until matches arrive (piece 6).
   get "play", to: "games#show", as: :play
   # Play Now: search for a live opponent (a computer player if none turns up).
-  resources :live_seeks, path: "live", only: %i[create show]
+  resources :live_seeks, path: "live", only: %i[create show] do
+    post :computer, on: :member
+  end
   # The live leaderboard and the all-time one (task live-leaderboard-and-guest-
   # claim), and a guest's sign-in to put a live win on it. Public.
   get "leaderboard", to: "leaderboards#show", as: :leaderboard

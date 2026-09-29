@@ -1,0 +1,34 @@
+require "test_helper"
+
+# [component] The Play Now searching page: the countdown, the copy, Cancel,
+# and "Play the computer now", which starts the computer match at once.
+class LiveSeekPageTest < ActionDispatch::IntegrationTest
+  setup do
+    post live_seeks_path
+    @seek = LiveSeek.last
+  end
+
+  test "the searching page offers the computer now, and still Cancel" do
+    get live_seek_path(@seek)
+    assert_select "h1", text: "Finding an opponent…"
+    assert_select "[data-live-seek-target=message]", text: /you'll play a computer player/
+    assert_select "form[action='#{computer_live_seek_path(@seek)}'][data-action='submit->live-seek#playComputer'] button",
+                  text: "Play the computer now"
+    assert_select "a[href='#{root_path}']", text: "Cancel"
+    assert_select "[data-live-seek-splash-ms-value='5000'][data-live-seek-you-value='#{@seek.user.username}']"
+  end
+
+  test "play the computer now answers with the computer match" do
+    post computer_live_seek_path(@seek, format: :json)
+    body = response.parsed_body
+    assert_equal "matched", body["status"]
+    assert body["computer"]
+    assert_equal match_path(@seek.reload.match), body["match_url"]
+  end
+
+  test "without JavaScript the button goes straight to the match" do
+    post computer_live_seek_path(@seek)
+    assert_redirected_to match_path(@seek.reload.match)
+    assert @seek.match.away_user.computer?
+  end
+end
