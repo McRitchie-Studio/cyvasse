@@ -43,7 +43,9 @@ class RulebookTest < ActiveSupport::TestCase
     assert_equal 4, units["trebuchet"].range
     assert_equal [ "Dragon", "Spearman", "Light Horse" ], units["trebuchet"].trumps
     assert_equal [ "Dragon" ], units["king"].trumps
-    assert_equal 3, Rulebook::CHANGES_2026.size
+    assert_equal "2", units["elephant"].movement
+    assert_includes Rulebook::CHANGES_2026, "Elephants now move 2."
+    assert_equal 4, Rulebook::CHANGES_2026.size
   end
 
   test "trump_list joins with and, and shows a dash for none" do
