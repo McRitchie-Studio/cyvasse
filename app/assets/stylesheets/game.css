@@ -497,6 +497,12 @@ html.dark [data-skin="pencil"] .dock-unit img {
   display: none;
 }
 
+/* During setup the status line runs to two lines once the army is placed;
+ * keep room for both from the start, so the army card under it never jumps. */
+[data-phase="setup"] .match-panel-status [data-cyvasse-match-target="status"] {
+  min-height: 2lh;
+}
+
 .match-actions {
   display: flex;
   flex-wrap: wrap;
