@@ -14,8 +14,11 @@ class ClickToDeselectTest < ApplicationSystemTestCase
     assert_selector "[data-controller=cyvasse-game][data-phase=setup]"
     click_on "Random Setup"
     click_on "Ready"
+    # As the sibling /play tests do: the game has started before the pace
+    # drops, and a computer that moves first gets the time its paced turn takes.
+    assert_selector "[data-controller=cyvasse-game][data-phase=play]"
     page.execute_script("document.querySelector('[data-controller=cyvasse-game]').dataset.cyvasseGamePaceValue = '0'")
-    assert_selector "[data-controller=cyvasse-game][data-phase=play][data-offense='1'][data-holding=false]", wait: 15
+    assert_selector "[data-controller=cyvasse-game][data-phase=play][data-offense='1'][data-holding=false]", wait: 25
 
     deselects_three_ways
     turn = find("[data-controller=cyvasse-game]")["data-turn"].to_i
