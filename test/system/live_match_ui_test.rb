@@ -124,4 +124,49 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     assert_selector ".live-clock.is-thinking [data-cyvasse-match-target=clockLabel]",
                     text: "#{@match.display_name_of(@match.away_user)} is thinking…"
   end
+
+  # Select our units in turn until one has somewhere to go, and take the
+  # first move offered (a cavalry unit then jumps again).
+  def take_a_turn
+    all("svg.cyvasse-board g.hex.has-unit[data-team='1']").map { |node| node["data-hex"] }.each do |hex|
+      find("svg.cyvasse-board g.hex[data-hex='#{hex}']").click
+      target = first("svg.cyvasse-board g.hex.is-attack, svg.cyvasse-board g.hex.is-move", minimum: 0, wait: 0)
+      next unless target
+
+      target.click
+      if page.has_selector?("[role=status]", text: "jumps again", wait: 0.3)
+        first("svg.cyvasse-board g.hex.is-attack, svg.cyvasse-board g.hex.is-move").click
+      end
+      return
+    end
+    flunk "none of our units could move"
+  end
+
+  test "[e2e] the player dismisses the warning, takes back the seat, and moves again" do
+    @match.set_up!(@arya, CyvasseRules::Bot.random_lineup(rng: Random.new(2)))
+    # The computer is to move and thinks until the test says otherwise.
+    @match.reload.update_columns(whos_turn: Match::AWAY, bot_due_at: 1.hour.from_now, home_strikes: 1, updated_at: Time.current)
+    visit match_path(@match)
+
+    assert_text "You missed a clock"
+    find("[data-cyvasse-match-target=noticeDismiss]").click
+    assert_no_text "You missed a clock"
+
+    @match.update_columns(home_bot: true, home_strikes: 2, updated_at: Time.current)
+    assert_text "a computer player has taken your seat", wait: 5
+    assert_no_selector "[data-cyvasse-match-target=noticeDismiss]", visible: true
+    click_on "Take back my seat"
+    assert_text "You took back your seat"
+    assert_no_selector "[data-match-slot=take-back-seat]", visible: true
+    assert_not @match.reload.bot_seat?(:home)
+
+    # The computer's move lands (as a poll would settle it): the turn is hers.
+    @match.update_columns(whos_turn: Match::HOME, bot_due_at: nil, clock_started_at: Time.current, updated_at: Time.current)
+    assert_selector "[data-cyvasse-match-target=clockLabel]", text: /Your move|Hurry/, wait: 5
+    turn = @match.reload.turn
+    take_a_turn
+    assert_selector "[data-cyvasse-match-target=clockLabel]", text: /is thinking/, wait: 5
+    assert_operator @match.reload.turn, :>, turn
+    assert_equal 2, @match.home_strikes
+  end
 end
