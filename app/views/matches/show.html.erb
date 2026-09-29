@@ -102,12 +102,14 @@
       <%= render "matches/chat", match: @match, opponent: @opponent unless @opponent.computer? %>
 
       <div class="flex flex-wrap items-center gap-3">
-        <% if @match.in_progress? %>
+        <%# Both are drawn until the match ends; the board shows the one its phase allows. %>
+        <% unless @match.finished? %>
           <%= button_to "Resign", resign_match_path(@match), class: "btn btn-secondary",
-                form: { data: { turbo_confirm: "Resign this match? #{them} wins." } } %>
-        <% elsif @match.pregame? && !@state[:can_accept] %>
-          <%= button_to "Cancel match", match_path(@match), method: :delete, class: "btn btn-secondary",
-                form: { data: { turbo_confirm: "Cancel this match with #{them}?" } } %>
+                form: { hidden: !@match.in_progress?, data: { cyvasse_match_target: "resignControl", turbo_confirm: "Resign this match? #{them} wins." } } %>
+          <% unless @state[:can_accept] %>
+            <%= button_to "Cancel match", match_path(@match), method: :delete, class: "btn btn-secondary",
+                  form: { hidden: !@match.pregame?, data: { cyvasse_match_target: "cancelControl", turbo_confirm: "Cancel this match with #{them}?" } } %>
+          <% end %>
         <% end %>
         <%= link_to "How to play", rules_path, class: "text-sm text-secondary underline underline-offset-2" %>
       </div>

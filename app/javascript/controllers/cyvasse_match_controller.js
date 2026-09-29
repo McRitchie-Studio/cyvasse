@@ -26,7 +26,7 @@ const REASON_TEXT = {
 }
 
 export default class extends GameController {
-  static targets = ["error", "deadline", "clock", "clockLabel", "clockSeconds", "clockBar", "notice"]
+  static targets = ["error", "deadline", "clock", "clockLabel", "clockSeconds", "clockBar", "notice", "resignControl", "cancelControl"]
   static values = {
     state: Object,
     stateUrl: String,
@@ -46,6 +46,7 @@ export default class extends GameController {
     super.disconnect()
     clearTimeout(this.pollTimer)
     clearInterval(this.clockTimer)
+    this.stopAwaitingView()
   }
 
   // /play's "New game" and the computer's turn have no place here.
@@ -58,8 +59,9 @@ export default class extends GameController {
     // A live setup that ran out: the army the server placed arrives piece by
     // piece rather than all at once.
     const arriving = this.state?.can_set_up && !state.can_set_up && state.live?.auto_set_up?.you
-    // The game ended while this page watched, or a live game is opened over.
-    const ended = state.phase === "over" && (this.state ? this.state.phase !== "over" : state.live)
+    // The game ended while this page watched, or a live game that just ended
+    // is opened (not an old one, from My games).
+    const ended = state.phase === "over" && (this.state ? this.state.phase !== "over" : Boolean(state.live?.just_ended))
     this.state = state
     this.steps = []
     this.pendingJump = null
@@ -78,6 +80,7 @@ export default class extends GameController {
     this.element.dataset.yourTurn = state.your_turn ? "true" : "false"
     this.setupControlsTarget.hidden = !state.can_set_up
     this.opponentTarget.textContent = state.opponent.username
+    this.renderControls()
     this.renderDeadline()
     this.render()
     if (arriving) this.animateArrival()
@@ -252,6 +255,13 @@ export default class extends GameController {
     this.statusTarget.textContent = text
   }
 
+  // The page was drawn in one phase and the match moves on without it.
+  renderControls() {
+    const { phase, can_accept: canAccept } = this.state
+    if (this.hasResignControlTarget) this.resignControlTarget.hidden = phase !== "play"
+    if (this.hasCancelControlTarget) this.cancelControlTarget.hidden = phase !== "setup" || canAccept
+  }
+
   renderDeadline() {
     if (!this.hasDeadlineTarget) return
     const { deadline, phase, your_turn: yourTurn } = this.state
@@ -353,6 +363,14 @@ export default class extends GameController {
   // guest) or play again. Closed, it leaves the final board to look over.
   // Until Alpine has the modal store, the result stays on the board.
   openGameOver() {
+    // Out of sight (another tab, window or app), it waits for the player:
+    // opened behind their back, the click that brings them back lands on
+    // the backdrop and closes it unseen.
+    if (!inView()) {
+      this.banner(this.outcomeText(), null, { stay: true })
+      this.awaitView()
+      return
+    }
     const store = window.Alpine?.store?.("modals")
     if (!store) {
       this.banner(this.outcomeText(), null, { stay: true })
@@ -367,6 +385,24 @@ export default class extends GameController {
       boardWin: Boolean(this.state.live?.board_win),
       returnTo: this.returnToValue || null
     })
+  }
+
+  awaitView() {
+    if (this.onView) return
+    this.onView = () => {
+      if (!inView()) return
+      this.stopAwaitingView()
+      if (this.state.phase === "over") this.openGameOver()
+    }
+    document.addEventListener("visibilitychange", this.onView)
+    window.addEventListener("focus", this.onView)
+  }
+
+  stopAwaitingView() {
+    if (!this.onView) return
+    document.removeEventListener("visibilitychange", this.onView)
+    window.removeEventListener("focus", this.onView)
+    this.onView = null
   }
 
   outcomeText() {
@@ -384,6 +420,10 @@ export default class extends GameController {
     this.errorTarget.textContent = message || ""
     this.errorTarget.hidden = !message
   }
+}
+
+function inView() {
+  return document.visibilityState === "visible" && document.hasFocus()
 }
 
 function csrfToken() {
