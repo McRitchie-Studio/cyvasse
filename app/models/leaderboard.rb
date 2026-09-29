@@ -33,9 +33,10 @@ class Leaderboard
   # A person's live wins and losses, with at least one win. `limit: nil` is
   # every row.
   def self.live(limit: LIVE_SIZE)
-    scope = User.ranked_players
-                .joins("INNER JOIN (#{live_records_sql}) records ON records.user_id = users.id")
-                .where("records.wins > 0")
+    records = live_records.arel.as("records")
+    join = Arel::Nodes::InnerJoin.new(records, Arel::Nodes::On.new(records[:user_id].eq(User.arel_table[:id])))
+    scope = User.ranked_players.joins(join)
+                .where(records[:wins].gt(0))
                 .select("users.*, records.wins AS board_wins, records.losses AS board_losses")
                 .order(Arel.sql("records.wins DESC, records.losses ASC, records.last_win_at DESC, users.id ASC"))
     rows(scope.limit(limit))
@@ -59,23 +60,20 @@ class Leaderboard
   # finished live match is split into its two seats; a bot seat (a computer
   # player from the start, or a stand-in after missed clocks) is dropped, so
   # neither its wins nor its losses reach anyone.
-  def self.live_records_sql
+  def self.live_records
     finished = Match.live.finished
-    seat = lambda do |side|
-      finished.select(
-        "matches.#{side}_user_id AS user_id", "matches.#{side}_bot AS bot", "matches.winner_id",
-        "COALESCE(matches.finished_at, matches.updated_at) AS ended_at"
-      ).to_sql
-    end
-    <<~SQL.squish
-      SELECT seats.user_id,
-             COUNT(*) FILTER (WHERE seats.winner_id = seats.user_id) AS wins,
-             COUNT(*) FILTER (WHERE seats.winner_id IS NOT NULL AND seats.winner_id <> seats.user_id) AS losses,
-             MAX(seats.ended_at) FILTER (WHERE seats.winner_id = seats.user_id) AS last_win_at
-      FROM (#{seat.call(:home)} UNION ALL #{seat.call(:away)}) seats
-      WHERE NOT seats.bot
-      GROUP BY seats.user_id
-    SQL
+    ended_at = "COALESCE(matches.finished_at, matches.updated_at) AS ended_at"
+    home = finished.select("matches.home_user_id AS user_id", "matches.home_bot AS bot", "matches.winner_id", ended_at)
+    away = finished.select("matches.away_user_id AS user_id", "matches.away_bot AS bot", "matches.winner_id", ended_at)
+    seats = Arel::Nodes::UnionAll.new(home.arel, away.arel)
+
+    Match.unscoped.from(Arel::Nodes::TableAlias.new(Arel::Nodes::Grouping.new(seats), "seats"))
+         .where("NOT seats.bot")
+         .group("seats.user_id")
+         .select("seats.user_id",
+                 "COUNT(*) FILTER (WHERE seats.winner_id = seats.user_id) AS wins",
+                 "COUNT(*) FILTER (WHERE seats.winner_id IS NOT NULL AND seats.winner_id <> seats.user_id) AS losses",
+                 "MAX(seats.ended_at) FILTER (WHERE seats.winner_id = seats.user_id) AS last_win_at")
   end
-  private_class_method :live_records_sql
+  private_class_method :live_records
 end
