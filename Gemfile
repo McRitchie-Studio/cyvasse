@@ -28,7 +28,7 @@ gem "tailwindcss-rails", "~> 4.5"
 # FLOOR (a two-segment ~> admits every 0.x): 0.76 matches what the hub and
 # turf-monster resolve today, and is above NEW_APP_SETUP's own floor (0.57,
 # Studio::GeoDetection). Read Gemfile.lock for what actually resolves.
-gem "studio-engine", "~> 0.76"
+gem "studio-engine", "~> 0.78"
 # Google sign-in through the engine's OmniauthCallbacksController, beside the
 # magic link (config/initializers/omniauth.rb). The same three gems the hub runs.
 # ES256 assertions from the hub (EmailHandoff::Verifier).
