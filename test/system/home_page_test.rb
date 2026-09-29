@@ -6,7 +6,7 @@ require "application_system_test_case"
 class HomePageSystemTest < ApplicationSystemTestCase
   teardown do
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
-    page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [])
+    page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-reduced-motion", value: "" } ])
   end
 
   test "the background is present, the text sits on a dark scrim, and Rules opens the rules" do
@@ -77,8 +77,7 @@ class HomePageSystemTest < ApplicationSystemTestCase
     end
 
     test "reduced motion holds the gallery on one still on a #{name}" do
-      emulate(width:, height:)
-      page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-reduced-motion", value: "reduce" } ])
+      emulate(width:, height:, motion: "reduce")
       visit root_path
       gallery = find("section.home-hero[data-home-gallery-state=still]")
       first = gallery["data-home-gallery-piece"]
@@ -95,8 +94,11 @@ class HomePageSystemTest < ApplicationSystemTestCase
 
   private
 
-  def emulate(width:, height:)
+  # The size, and motion allowed: the browser is shared across the suite, and
+  # an earlier test (jump_range_rings_test) leaves reduced motion on.
+  def emulate(width:, height:, motion: "no-preference")
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width:, height:, deviceScaleFactor: 1, mobile: width < 640)
+    page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-reduced-motion", value: motion } ])
   end
 
   def hero_box
