@@ -23,6 +23,10 @@
 .cyvasse-board-wrap {
   position: relative;
   min-width: 0;
+  /* The banner slides in from the left and out to the right of the board.
+   * Clip it at the board's edges, or on a phone its slide-out pushes the page
+   * wider than the screen and the browser scrolls sideways or zooms out. */
+  overflow-x: clip;
 }
 
 .cyvasse-board {
@@ -211,7 +215,11 @@
   color: white;
   font-weight: 700;
   font-size: 1.125rem;
-  white-space: nowrap;
+  /* One line where it fits; a long line ("Opponent passes · Turn 12 · …")
+   * wraps on a phone rather than running past the board. */
+  width: max-content;
+  max-width: calc(100% - 1rem);
+  text-align: center;
   pointer-events: none;
   opacity: 0;
   transform: translate(-150%, -50%);
