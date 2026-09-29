@@ -23,7 +23,7 @@ class AdminMessageBoardSystemTest < ApplicationSystemTestCase
     assert_equal [ "rematch next week", "anyone for a game tonight?" ], all("[data-board-post] .chat-text").map(&:text)
     assert_equal %w[brienne arya], all("[data-author]").map(&:text)
     assert_text "1 blank post kept but not shown."
-    widths = page.evaluate_script("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
+    widths = page_widths
     assert_operator widths.first, :<=, widths.last, "no sideways scroll at phone width"
   end
 
