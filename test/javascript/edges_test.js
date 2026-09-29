@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { HEXES, hexAt, neighbors, distance } from "cyvasse/board";
-import { sideNeighbors, edgeKey, EDGES, perimeter, EDGE_PRIORITY, hexClaim, resolveEdges } from "cyvasse/edges";
+import { sideNeighbors, edgeKey, EDGES, perimeter, EDGE_PRIORITY, hexClaim, resolveEdges, threatRims, outerRim, PERIMETER_STYLE } from "cyvasse/edges";
 
 const disc = (origin, r) => new Set(HEXES.filter((h) => distance(hexAt(origin), h) <= r).map((h) => h.index));
 const sidesOf = (index) => [0, 1, 2, 3, 4, 5].map((side) => edgeKey(index, side));
@@ -77,7 +77,7 @@ test("every perimeter edge has the region on exactly one side", () => {
 });
 
 test("the priority runs selection, rings, last move, danger, perimeter, team", () => {
-  const order = ["selected", "target", "ring", "last-move", "danger", "perimeter", "team-1"].map((k) => EDGE_PRIORITY.indexOf(k));
+  const order = ["selected", "target", "ring", "last-move", "danger", "perimeter", "perimeter-ranged", "team-1"].map((k) => EDGE_PRIORITY.indexOf(k));
   assert.ok(order.every((rank, i) => rank >= 0 && (i === 0 || rank > order[i - 1])), `${EDGE_PRIORITY}`);
 });
 
@@ -88,6 +88,7 @@ test("a hex claims its highest highlight", () => {
   assert.equal(claim(["is-last-move", "has-unit"], { team: 1 }), "team-1", "a moved unit shows its team");
   assert.equal(claim(["is-last-move", "is-danger"], { team: 1 }), "danger");
   assert.equal(claim(["is-field", "is-lit"]), "field");
+  assert.equal(claim(["is-sunken"]), "ring", "a sunken hex is part of the ring: no perimeter crosses it");
   assert.equal(claim(["is-ghost"], { ghost: 7 }), "ghost-7");
   assert.equal(claim(["is-move", "is-danger", "is-selected"]), "selected");
   assert.equal(claim(["is-threatened"]), null, "reach alone claims nothing: only its perimeter is drawn");
@@ -129,4 +130,50 @@ test("one owner per edge, the highest claim on either side or the perimeter", ()
   for (const key of teamOnRim) assert.equal(owners.get(key), "perimeter");
   assert.ok(sidesOf(25).some((k) => owners.get(k) === "team-0"));
   for (const key of sidesOf(68)) assert.equal(owners.get(key), "team-1");
+});
+
+test("the default style is one solid rim round both groups' areas together", () => {
+  assert.equal(PERIMETER_STYLE, "single");
+  const regions = { melee: disc(46, 1), ranged: disc(47, 1) };
+  const { solid, dashed } = threatRims(regions);
+  assert.deepEqual([...solid].sort(), [...perimeter(new Set([...regions.melee, ...regions.ranged]))].sort());
+  assert.equal(dashed.size, 0);
+  assert.deepEqual([...threatRims({ melee: new Set(), ranged: regions.ranged }).solid].sort(), [...perimeter(regions.ranged)].sort(), "one group alone is solid too");
+  assert.ok([...resolveEdges(new Map(), solid, dashed).values()].every((k) => k === "perimeter"));
+});
+
+test("dual style: melee-only edges solid, ranged-only dashed, shared edges solid", () => {
+  // Two overlapping discs share a stretch of outer rim along the board's edge.
+  const { solid: melee, dashed: ranged } = threatRims({ melee: disc(46, 1), ranged: disc(47, 1) }, "dual");
+  assert.deepEqual([...melee].sort(), [...perimeter(disc(46, 1))].sort());
+  assert.deepEqual([...ranged].sort(), [...perimeter(disc(47, 1))].sort());
+  const shared = [...melee].filter((k) => ranged.has(k));
+  const meleeOnly = [...melee].filter((k) => !ranged.has(k));
+  const rangedOnly = [...ranged].filter((k) => !melee.has(k));
+  assert.ok(shared.length > 0 && meleeOnly.length > 0 && rangedOnly.length > 0);
+
+  const owners = resolveEdges(new Map(), melee, ranged);
+  for (const key of meleeOnly) assert.equal(owners.get(key), "perimeter", `melee edge ${key}`);
+  for (const key of rangedOnly) assert.equal(owners.get(key), "perimeter-ranged", `ranged edge ${key}`);
+  for (const key of shared) assert.equal(owners.get(key), "perimeter", `shared edge ${key}`);
+  assert.equal(owners.size, new Set([...melee, ...ranged]).size, "nothing else is drawn");
+
+  assert.ok([...resolveEdges(new Map(), new Set(), ranged).values()].every((k) => k === "perimeter-ranged"), "ranged alone is all dashed");
+  const edge = [...disc(47, 1)].flatMap((hex) => sidesOf(hex).filter((k) => ranged.has(k)).map((key) => ({ hex, key })))[0];
+  assert.equal(resolveEdges(new Map([[edge.hex, "danger"]]), new Set(), ranged).get(edge.key), "danger", "danger still outranks a ranged edge");
+});
+
+test("the threat outline traces only the outer rim, never a hole inside it", () => {
+  // A ring of hexes round 46: 46 itself is a hole (a unit nobody can take).
+  const ring = new Set([...disc(46, 1)].filter((h) => h !== 46));
+  assert.ok(sidesOf(46).every((k) => perimeter(ring).has(k)), "perimeter() alone traces the hole");
+  const outer = outerRim(ring);
+  assert.deepEqual([...outer].sort(), [...perimeter(disc(46, 1))].sort());
+  for (const style of ["single", "dual"]) {
+    const { solid, dashed } = threatRims({ melee: ring, ranged: ring }, style);
+    for (const key of sidesOf(46)) assert.ok(!solid.has(key) && !dashed.has(key), `${style}: no edge round the hole`);
+  }
+  // A gap that reaches the board's rim is outside, not a hole.
+  const corner = new Set([...disc(1, 2)].filter((h) => h !== 1));
+  assert.deepEqual([...outerRim(corner)].sort(), [...perimeter(corner)].sort());
 });

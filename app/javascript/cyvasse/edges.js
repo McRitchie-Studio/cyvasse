@@ -6,7 +6,10 @@
 //
 //   perimeter(region)          the edges round a set of hexes: in the set on
 //                              one side, off it (or off the board) on the other
-//   resolveEdges(claims, rim)  one owner per edge, by EDGE_PRIORITY
+//   outerRim(region)           perimeter() with the region's holes filled
+//   threatRims(regions)        the threat outline's edges, by PERIMETER_STYLE
+//   resolveEdges(claims, rim, dashedRim)
+//                              one owner per edge, by EDGE_PRIORITY
 
 import { HEXES, cube } from "cyvasse/board";
 
@@ -57,6 +60,40 @@ export function perimeter(region) {
   return keys;
 }
 
+// The edges round `region` with no hole traced: a hex off the region that no
+// path of off-region hexes joins to the board's rim is counted in.
+export function outerRim(region) {
+  const outside = new Set();
+  const queue = [];
+  for (const [index, neighbors] of SIDE_NEIGHBORS) {
+    if (!region.has(index) && neighbors.includes(null)) {
+      outside.add(index);
+      queue.push(index);
+    }
+  }
+  while (queue.length) {
+    for (const other of SIDE_NEIGHBORS.get(queue.pop())) {
+      if (other !== null && !region.has(other) && !outside.has(other)) {
+        outside.add(other);
+        queue.push(other);
+      }
+    }
+  }
+  return perimeter(new Set([...SIDE_NEIGHBORS.keys()].filter((index) => !outside.has(index))));
+}
+
+// How the threat outline is drawn: "single", one solid rim round every
+// switched-on group's area together; "dual", a solid rim round melee's area
+// and a dashed one round ranged's, solid where they share an edge.
+export const PERIMETER_STYLE = "single";
+
+// `regions` maps a threat group (cyvasse/units THREAT_GROUPS) to its area, a
+// Set of hexes. Returns the solid and the dashed rim, for resolveEdges.
+export function threatRims(regions, style = PERIMETER_STYLE) {
+  if (style === "dual") return { solid: outerRim(regions.melee), dashed: outerRim(regions.ranged) };
+  return { solid: outerRim(new Set([...regions.melee, ...regions.ranged])), dashed: new Set() };
+}
+
 // Who owns a shared edge, highest first. "ring" (a plain move ring) draws
 // nothing: its hexes keep their own thin edges, and nothing beneath crosses.
 export const EDGE_PRIORITY = Object.freeze([
@@ -64,7 +101,7 @@ export const EDGE_PRIORITY = Object.freeze([
   "target", "ghost-7", "ghost-6", "ghost-8", "field", "blocked", "ring",
   "last-move",
   "danger",
-  "perimeter",
+  "perimeter", "perimeter-ranged",
   "team-1", "team-0"
 ]);
 
@@ -88,19 +125,23 @@ export function hexClaim(classes, { team = null, ghost = null } = {}) {
   if (classes.has("is-ghost") && ghost) kinds.push(`ghost-${ghost}`);
   if (classes.has("is-field")) kinds.push("field");
   if (classes.has("is-blocked")) kinds.push("blocked");
-  if (classes.has("is-lit") || classes.has("is-move") || classes.has("is-attack")) kinds.push("ring");
+  if (classes.has("is-lit") || classes.has("is-sunken") || classes.has("is-move") || classes.has("is-attack")) kinds.push("ring");
   if (classes.has("is-last-move")) kinds.push(team === null ? "last-move" : `team-${team}`);
   if (classes.has("is-danger")) kinds.push("danger");
   return best(kinds);
 }
 
 // Map of edge key -> owning kind, for every edge anything claims. `claims`
-// maps a hex index to its hexClaim; `rim` is a perimeter() key set, drawn
-// as "perimeter" where no hex claim outranks it.
-export function resolveEdges(claims, rim = new Set()) {
+// maps a hex index to its hexClaim; `rim` (solid) and `dashedRim` are
+// perimeter() key sets (threatRims), drawn where no hex claim outranks them.
+// An edge on both rims is solid.
+export function resolveEdges(claims, rim = new Set(), dashedRim = new Set()) {
   const owners = new Map();
   for (const { key, hex, other } of EDGES) {
-    const owner = best([claims.get(hex), other === null ? null : claims.get(other), rim.has(key) ? "perimeter" : null]);
+    const owner = best([
+      claims.get(hex), other === null ? null : claims.get(other),
+      rim.has(key) ? "perimeter" : null, dashedRim.has(key) ? "perimeter-ranged" : null
+    ]);
     if (owner) owners.set(key, owner);
   }
   return owners;

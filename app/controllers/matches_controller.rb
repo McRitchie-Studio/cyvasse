@@ -74,6 +74,11 @@ class MatchesController < ApplicationController
     answer attempt { @match.play!(current_user, params[:steps]) }
   end
 
+  # JSON from the board: a live seat the computer took over, taken back.
+  def take_back_seat
+    answer attempt { @match.take_back_seat!(current_user) }
+  end
+
   private
 
   def set_match

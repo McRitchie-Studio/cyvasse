@@ -26,7 +26,7 @@ module Rulebook
     UnitClass.new(name: "Vanguard", units: [
       unit("rabble", movement: 3, strength: 1),
       unit("spearman", movement: 2, strength: 2, trumps: [ "Light Horse" ]),
-      unit("elephant", movement: 3, strength: 4)
+      unit("elephant", movement: 2, strength: 4)
     ]),
     UnitClass.new(name: "Cavalry", units: [
       unit("lighthorse", movement: "3 + 2", strength: 2),
@@ -49,7 +49,8 @@ module Rulebook
   CHANGES_2026 = [
     "Trebuchet range rose from 3 to 4. Mountains still block its shots.",
     "Trebuchets now trump Spearmen and Light Horse, so neither can take a Trebuchet. They still cannot take the King.",
-    "Kings now trump Dragons: a Dragon within the King's move can be taken."
+    "Kings now trump Dragons: a Dragon within the King's move can be taken.",
+    "Elephants now move 2."
   ].freeze
 
   # The rule changes of April 14, 2015 (legacy home/new_rules.html.erb).

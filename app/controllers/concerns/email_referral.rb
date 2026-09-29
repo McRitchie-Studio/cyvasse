@@ -71,7 +71,13 @@ module EmailReferral
   end
 
   def remember_email_ref
-    ref = params[:ref].to_s
+    store_email_ref(params[:ref])
+  end
+
+  # Also called with the ref inside an email handoff's assertion
+  # (EmailHandoffsController), which carries no ?ref= of its own.
+  def store_email_ref(ref)
+    ref = ref.to_s
     return unless ref.match?(TOKEN)
 
     # A different email starts its own count of results.

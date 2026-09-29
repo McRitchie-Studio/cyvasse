@@ -11,17 +11,21 @@
 //          attack lists alone, first jump and second
 //
 // A unit merely within reach is not in `kills` unless the rules let the
-// attacker take it.
+// attacker take it. `groups` limits it to units of those threat groups
+// (cyvasse/units THREAT_GROUPS); `units` is the hexes of the units counted.
 
 import { legalActions } from "cyvasse/rules";
+import { THREAT_GROUPS } from "cyvasse/units";
 
 // position: anything with pieceAt(hex) and teamUnits(team, "alive") (a Game).
-export function threats(position, team) {
+export function threats(position, team, { groups = THREAT_GROUPS } = {}) {
   const reach = new Set();
   const kills = new Set();
+  const units = new Set();
 
   for (const unit of position.teamUnits(team, "alive")) {
-    if (unit.hex == null) continue;
+    if (unit.hex == null || !groups.includes(unit.type.threatGroup)) continue;
+    units.add(unit.hex);
     const { moves, attacks, rangeRings } = legalActions(position, unit.hex);
     for (const hex of moves) reach.add(hex);
     for (const hex of attacks) {
@@ -48,7 +52,7 @@ export function threats(position, team) {
       }
     }
   }
-  return { reach, kills };
+  return { reach, kills, units };
 }
 
 // The position after `unit` lands on `landing`, capturing whatever stood there.

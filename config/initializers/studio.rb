@@ -24,6 +24,9 @@ Studio.configure do |config|
   # now (piece 3), but a palette drawn from it is a product call left open;
   # /admin/theme can override it at runtime.
   config.theme_primary = "#C08A2E"
+  # The navbar's own links, My games and Leaderboard with the player's live
+  # rank (NavbarLinks; task cyvasse-nav-links).
+  config.navbar_links = ->(view) { NavbarLinks.call(view) }
   config.sidebar_sections = [
     { title: "Cyvasse", links: [
       { label: "Home", href: "/", emoji: "♟️", desc: "The front door" },
@@ -38,6 +41,7 @@ Studio.configure do |config|
     { title: "Admin", admin: true, links: [
       { label: "Conversations", href: "/admin/conversations", emoji: "💬", desc: "Every conversation between players" },
       { label: "Message Board", href: "/admin/message_board", emoji: "📌", desc: "The old public message board" },
+      { label: "Sign-ins", href: "/admin/sign_ins", emoji: "🔑", desc: "Email sign-ins and onboarding drop-off" },
       { label: "Theme", href: "/admin/theme", emoji: "🎨", desc: "Palette + dark mode" },
       { label: "Error logs", href: "/error_logs", emoji: "🚨", desc: "Captured errors" }
     ] }

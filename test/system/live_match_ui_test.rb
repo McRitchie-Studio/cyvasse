@@ -160,6 +160,58 @@ class LiveMatchUiTest < ApplicationSystemTestCase
                     text: "#{@match.display_name_of(@match.away_user)} is thinking…"
   end
 
+  # Select our units in turn until one has somewhere to go, and take the
+  # first move offered (a cavalry unit then jumps again).
+  def take_a_turn
+    all("svg.cyvasse-board g.hex.has-unit[data-team='1']").map { |node| node["data-hex"] }.each do |hex|
+      find("svg.cyvasse-board g.hex[data-hex='#{hex}']").click
+      target = first("svg.cyvasse-board g.hex.is-attack, svg.cyvasse-board g.hex.is-move", minimum: 0, wait: 0)
+      next unless target
+
+      target.click
+      if page.has_selector?("[role=status]", text: "jumps again", wait: 0.3)
+        first("svg.cyvasse-board g.hex.is-attack, svg.cyvasse-board g.hex.is-move").click
+      end
+      return
+    end
+    flunk "none of our units could move"
+  end
+
+  test "[e2e] the player dismisses the warning, takes back the seat, and moves again" do
+    @match.set_up!(@arya, CyvasseRules::Bot.random_lineup(rng: Random.new(2)))
+    # The computer is to move and thinks until the test says otherwise.
+    @match.reload.update_columns(whos_turn: Match::AWAY, bot_due_at: 1.hour.from_now, home_strikes: 1, updated_at: Time.current)
+    visit match_path(@match)
+
+    assert_text "You missed a clock"
+    find("[data-cyvasse-match-target=noticeDismiss]").click
+    assert_no_text "You missed a clock"
+
+    @match.update_columns(home_bot: true, home_strikes: 2, updated_at: Time.current)
+    assert_text "a computer player has taken your seat", wait: 5
+    assert_no_selector "[data-cyvasse-match-target=noticeDismiss]", visible: true
+    page.save_screenshot(Rails.root.join("tmp/screenshots/take-back-seat.png")) if ENV["SCREENSHOTS"]
+    click_on "Take back my seat"
+    assert_text "You took back your seat"
+    page.save_screenshot(Rails.root.join("tmp/screenshots/took-back-seat.png")) if ENV["SCREENSHOTS"]
+    assert_no_selector "[data-match-slot=take-back-seat]", visible: true
+    assert_not @match.reload.bot_seat?(:home)
+
+    # The computer's move lands (as a poll would settle it): the turn is hers.
+    @match.update_columns(whos_turn: Match::HOME, bot_due_at: nil, clock_started_at: Time.current, updated_at: Time.current)
+    assert_selector "[data-cyvasse-match-target=clockLabel]", text: /Your move|Hurry/, wait: 5
+    turn = @match.reload.turn
+    take_a_turn
+    # The move reaches the server (the computer, paced at 0 here, may answer at once).
+    Timeout.timeout(5) { sleep 0.1 until @match.reload.turn > turn || @match.finished? }
+    assert @match.last_move.present?
+  ensure
+    # A dismissal is kept per match id in sessionStorage, which outlives the
+    # test in the shared browser; a later test's match can reuse the id.
+    page.execute_script("sessionStorage.clear()")
+    assert_equal 2, @match.home_strikes
+  end
+
   test "[e2e] the player sees the computer select its unit before it moves, and a cavalry's second jump follow" do
     match = computer_double_jump
     first, second = match.bot_plan["steps"]

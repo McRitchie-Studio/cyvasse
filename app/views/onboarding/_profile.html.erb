@@ -1,0 +1,47 @@
+<%# Display name, piece skin, and an optional birth date. Skippable. %>
+<div class="space-y-2">
+  <h1 class="text-2xl font-extrabold text-heading tracking-tight">Your name and pieces</h1>
+  <p class="text-secondary text-sm">Your name shows on your profile; your username is what other players see in games.</p>
+</div>
+
+<%= form_with url: onboarding_step_path("profile"), method: :patch, class: "space-y-4", data: { turbo: false } do |form| %>
+  <div>
+    <%= form.label :name, "Display name", class: "block text-sm font-semibold text-heading mb-1" %>
+    <%= form.text_field :name, value: params[:name] || current_user.name, required: true, maxlength: 60,
+          autocomplete: "name", class: "input-field w-full" %>
+    <% if current_user.errors[:name].any? %>
+      <p class="text-sm text-danger-ink mt-1" role="alert">Name <%= current_user.errors[:name].to_sentence %>.</p>
+    <% end %>
+  </div>
+
+  <fieldset>
+    <legend class="block text-sm font-semibold text-heading mb-2">Piece art</legend>
+    <div class="grid grid-cols-2 gap-3">
+      <% Piece::SKINS.each_key do |skin| %>
+        <label class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-subtle p-3 has-[:checked]:border-primary-700 has-[:checked]:bg-surface-alt">
+          <%= radio_button_tag :skin, skin, (params[:skin] || current_user.piece_skin || current_skin).to_s == skin.to_s, class: "sr-only" %>
+          <%= image_tag Piece.all.first.image(skin), alt: "", class: "h-12 w-12", aria: { hidden: true } %>
+          <span class="text-sm font-medium text-heading"><%= skin.to_s.capitalize %></span>
+        </label>
+      <% end %>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend class="block text-sm font-semibold text-heading mb-1">Birthday <span class="font-normal text-muted">(optional)</span></legend>
+    <div class="grid grid-cols-3 gap-2">
+      <%= select_tag :birth_month, options_for_select((1..12).map { |m| [ Date::ABBR_MONTHNAMES[m], m ] }, params[:birth_month] || current_user.birth_month),
+            include_blank: "Month", class: "input-field w-full px-2 text-sm", aria: { label: "Birth month" } %>
+      <%= select_tag :birth_day, options_for_select(1..31, params[:birth_day] || current_user.birth_day),
+            include_blank: "Day", class: "input-field w-full px-2 text-sm", aria: { label: "Birth day" } %>
+      <%= select_tag :birth_year, options_for_select(OnboardingController::BIRTH_YEARS.to_a.reverse, params[:birth_year] || current_user.birth_year),
+            include_blank: "Year", class: "input-field w-full px-2 text-sm", aria: { label: "Birth year" } %>
+    </div>
+    <% if current_user.errors[:birth_date].any? %>
+      <p class="text-sm text-danger-ink mt-1" role="alert">Birthday <%= current_user.errors[:birth_date].to_sentence %>.</p>
+    <% end %>
+  </fieldset>
+
+  <%= form.submit "Save", class: "btn btn-primary btn-lg w-full" %>
+<% end %>
+<%= button_to "Skip this step", skip_onboarding_step_path("profile"), class: "btn btn-neutral w-full", form: { data: { turbo: false } } %>
