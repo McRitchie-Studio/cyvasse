@@ -1,0 +1,63 @@
+<%# Sign in or create an account, as a modal: the McRitchie standard card (the
+    hub's modals/_auth) on the engine's host. Google when the app has it
+    (Studio.auth_method?(:google)), then the engine's magic link
+    (POST /magic_link). Single root; no double quotes inside x-data.
+
+      $store.modals.open('auth', { returnTo: '/matches/1?claim=...', title: '...', subtitle: '...' })
+
+    props.returnTo  where the player lands after signing in: the magic link
+                    carries it; Google keeps it as ?return_to= (OmniAuth's
+                    omniauth.params) and the home page sends them on.
+    Signing in claims the guest this browser played as (GuestClaim). %>
+<div x-data="{
+       email: '', sending: false, error: '',
+       get props() { var c = $store.modals.current(); return (c && c.props) || {}; },
+       get title() { return this.props.title || 'Sign in to Cyvasse'; },
+       get subtitle() { return this.props.subtitle || 'New here? The same step creates your free account.'; },
+       get googleAction() { return '/auth/google_oauth2' + (this.props.returnTo ? '?return_to=' + encodeURIComponent(this.props.returnTo) : ''); },
+       async submit() {
+         if (!this.email || this.sending) return;
+         this.error = ''; this.sending = true;
+         try {
+           await window.postMagicLink(this.email, this.props.returnTo);
+           $store.modals.swap('check-inbox', { sentEmail: this.email, title: 'Check your inbox' });
+         } catch (e) {
+           this.error = 'Could not send the link. Check your connection and try again.';
+         } finally { this.sending = false; }
+       }
+     }"
+     class="relative text-left" data-test="auth-modal">
+  <%= render "studio/modals/blocks/close_x" %>
+  <div class="mb-5 pr-6">
+    <h3 class="text-heading font-bold text-xl" x-text="title">Sign in to Cyvasse</h3>
+    <p class="text-secondary text-sm mt-1" x-text="subtitle"></p>
+  </div>
+
+  <% if Studio.auth_method?(:google) %>
+    <form method="post" action="/auth/google_oauth2" :action="googleAction" data-turbo="false">
+      <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>" autocomplete="off">
+      <button type="submit" class="btn btn-neutral btn-lg w-full gap-3" data-test="auth-google">
+        <%= render "components/google_logo" %>
+        Continue with Google
+      </button>
+    </form>
+
+    <div class="relative my-5">
+      <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-strong"></div></div>
+      <div class="relative flex justify-center text-sm"><span class="bg-surface px-3 text-secondary">or</span></div>
+    </div>
+  <% end %>
+
+  <form @submit.prevent="submit()" novalidate data-test="auth-email-form">
+    <label for="auth-email" class="block text-sm text-secondary mb-2 font-medium">Email</label>
+    <div class="mb-4">
+      <%= render "studio/modals/shared/email_field", name: false, id: "auth-email", required: true,
+            x_model: "email", disabled_expr: "sending" %>
+    </div>
+    <button type="submit" :disabled="sending || !email" class="btn btn-primary btn-lg w-full disabled:cursor-wait disabled:opacity-60">
+      <span x-text="sending ? 'Sending…' : 'Email me a sign-in link'">Email me a sign-in link</span>
+    </button>
+    <p x-show="error" x-cloak role="alert" class="text-xs text-danger-ink text-center mt-2" x-text="error"></p>
+    <p class="text-xs text-muted text-center mt-2">One tap from your inbox, no password.</p>
+  </form>
+</div>

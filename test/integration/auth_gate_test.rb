@@ -1,7 +1,8 @@
 require "test_helper"
 
-# Engine auth smoke: the landing page is public, sign-in is passwordless magic
-# link only, and the magic link actually signs a player in.
+# Engine auth smoke: the landing page is public, sign-in is passwordless (the
+# magic link, and Google where its client is configured), and the magic link
+# actually signs a player in.
 class AuthGateTest < ActionDispatch::IntegrationTest
   # Controllers that deliberately skip require_authentication. Adding one is a
   # product decision, not a convenience — say why in the controller.
@@ -25,13 +26,21 @@ class AuthGateTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", signin_path
   end
 
-  test "the sign-in page offers magic link and nothing else" do
+  test "the sign-in page offers the magic link and Google, and no password" do
     get signin_path
 
     assert_response :success
     assert_select "form[action=?][method=post]", magic_link_request_path
     assert_select "input[type=password]", false, "no password field: this app has no password auth"
-    assert_select "form[action=?]", "/auth/google_oauth2", false, "no Google button: :google is not enabled"
+    assert_select "main form[action=?]", "/auth/google_oauth2", 1
+  end
+
+  test "Google is on only where its OAuth client is configured" do
+    on = { "GOOGLE_CLIENT_ID" => "id", "GOOGLE_CLIENT_SECRET" => "secret" }
+    assert CyvasseGoogleSignIn.enabled?(env: on, test: false)
+    assert_not CyvasseGoogleSignIn.enabled?(env: {}, test: false), "unset: magic link only"
+    assert_not CyvasseGoogleSignIn.enabled?(env: on.merge("GOOGLE_CLIENT_SECRET" => ""), test: false)
+    assert CyvasseGoogleSignIn.enabled?(env: {}, test: true), "tests run it against OmniAuth's mock"
   end
 
   test "legacy /signup lands on /signin" do

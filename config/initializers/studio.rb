@@ -6,12 +6,10 @@ Studio.configure do |config|
   # (layouts/studio/_smooth_load); Play Now's searching page and splash lean on it.
   config.smooth_load = true
   config.welcome_message = ->(user) { "Welcome to Cyvasse, #{user.display_name}!" }
-  # Passwordless magic link only, and the line stays EXPLICIT: the engine's
-  # default auth_methods includes :google, which would draw OAuth routes this
-  # app has no client id for. Add :google (plus the omniauth gems and
-  # initializer) as a deliberate feature task; never :wallet, which is the web3
-  # bolt-on and Cyvasse signs no transactions.
-  config.auth_methods = %i[magic_link]
+  # Magic link always; Google only where its OAuth client is configured
+  # (CyvasseGoogleSignIn, config/initializers/omniauth.rb). Never :wallet, the
+  # web3 bolt-on: Cyvasse signs no transactions.
+  config.auth_methods = CyvasseGoogleSignIn.enabled? ? %i[magic_link google] : %i[magic_link]
   config.registration_params = [ :name, :email ]
   config.mailer_from = Studio.mailer_from_for_transport(
     ses_from: "Cyvasse <team@mcritchie.studio>"
