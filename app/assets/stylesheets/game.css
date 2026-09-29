@@ -408,18 +408,19 @@
 }
 
 /* The match header's versus line (matches/_versus): each avatar at its own
- * outer edge, names ellipsised rather than pushing the page sideways. */
+ * outer edge, long names wrap rather than push the page sideways. */
 .match-header-main {
-  flex: 1 1 26rem;
+  flex: 1 1 32rem;
   min-width: 0;
 }
 
 .match-versus {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, auto) auto minmax(0, auto);
+  justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
-  max-width: 44rem;
+  gap: 1rem;
+  max-width: 52rem;
   margin: 0.25rem 0;
   font-size: 1.875rem;
   font-weight: 800;
@@ -441,9 +442,8 @@
 
 .match-versus-name {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .match-versus-name .live-computer-tag {
@@ -459,6 +459,7 @@
 /* A phone: each side stacks its avatar over its name. */
 @media (max-width: 34rem) {
   .match-versus {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     font-size: 1.125rem;
     gap: 0.5rem;
   }
@@ -476,8 +477,6 @@
 
   .match-versus-name {
     max-width: 100%;
-    white-space: normal;
-    overflow-wrap: anywhere;
   }
 }
 

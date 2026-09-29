@@ -29,6 +29,26 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     assert_no_selector "[data-cyvasse-match-target=deadline]", visible: true
   end
 
+  test "[e2e] the header puts an avatar at each edge, the computer's piece art on the right, and fits a phone" do
+    visit match_path(@match)
+    them = @match.display_name_of(@match.away_user)
+    assert_selector "h1.match-versus [data-side=me] [data-avatar=initials]", text: "A"
+    assert_selector "h1.match-versus [data-side=them] [data-avatar=bot-fallback][aria-label='#{them}'] img[src*='pieces/vector/']"
+    assert_selector "h1.match-versus [data-side=them]", text: them
+    me, vs, bot = %w[[data-side=me]\ [data-avatar] .match-versus-vs [data-side=them]\ [data-avatar]].map do |css|
+      page.evaluate_script("document.querySelector('h1.match-versus #{css}').getBoundingClientRect().left")
+    end
+    assert_operator me, :<, vs
+    assert_operator vs, :<, bot
+    page.save_screenshot(Rails.root.join("tmp/screenshots/versus-desktop.png")) if ENV["SCREENSHOTS"]
+
+    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 360, height: 800, deviceScaleFactor: 1, mobile: true)
+    assert_selector "h1.match-versus [data-avatar=bot-fallback]"
+    scroll, client = page_widths
+    assert_operator scroll, :<=, client, "no sideways scroll at 360px"
+    page.save_screenshot(Rails.root.join("tmp/screenshots/versus-phone.png")) if ENV["SCREENSHOTS"]
+  end
+
   test "ten seconds from the end the player is told to hurry" do
     rewind_clock(52)
     visit match_path(@match)
