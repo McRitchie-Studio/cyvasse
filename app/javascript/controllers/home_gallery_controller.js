@@ -31,6 +31,13 @@ export default class extends Controller {
     this.motion?.removeEventListener?.("change", this.onMotion)
   }
 
+  // A new interval takes effect at once (the system test shortens it).
+  intervalValueChanged() {
+    if (!this.timer) return
+    clearInterval(this.timer)
+    this.timer = setInterval(() => this.advance(), this.intervalValue)
+  }
+
   sync() {
     if (this.motion?.matches || this.slideTargets.length < 2) this.stop()
     else this.start()
