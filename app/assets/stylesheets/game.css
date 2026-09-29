@@ -551,9 +551,10 @@
 
 /* A unit of yours the opponent could kill next turn: a red ring that breathes
  * behind the art (steady for a player who asked for less motion). It breathes
- * by opacity and scale only, so no frame repaints its stroke: scaled about the
- * hex centre (the group's origin), its outer edge swells from 30 to 31 units,
- * where the old stroke-width 3 to 5 took it. */
+ * by opacity and scale, not stroke width, so no frame rebuilds its stroke
+ * geometry (the ring is still repainted: SVG children get no layer of their
+ * own). Scaled about the hex centre (the group's origin), its outer edge
+ * swells from 30 to 31 units, where the old stroke-width 3 to 5 took it. */
 .cyvasse-board .danger-ring {
   display: none;
   fill: none;
@@ -580,17 +581,3 @@
   }
 }
 
-/* Text for screen readers only (the danger note a threatened unit's name
- * points at); on screen it takes no room. */
-.cyvasse-visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
