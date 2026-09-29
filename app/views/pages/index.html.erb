@@ -3,12 +3,15 @@
 <section class="max-w-2xl mx-auto text-center py-16">
   <h1 class="text-4xl font-extrabold text-heading tracking-tight mb-4">Cyvasse</h1>
   <p class="text-secondary leading-relaxed mb-8">
-    The hexagonal strategy game is back on the board. Play the computer now,
-    no account needed, or sign in and challenge a friend: a move a turn, seven
-    days to make each one.
+    The hexagonal strategy game is back on the board. Press Play Now for a live
+    game against whoever else is playing right now, no account needed. Or play
+    the computer at your own pace, or challenge a friend.
   </p>
+  <div class="mb-6">
+    <%= button_to "Play Now", live_seeks_path, class: "btn btn-primary btn-lg text-xl px-10", form: { class: "inline-block" } %>
+  </div>
   <div class="flex flex-wrap justify-center gap-3 mb-6">
-    <%= link_to "Play the computer", play_path, class: "btn btn-primary btn-lg" %>
+    <%= link_to "Play the computer", play_path, class: "btn btn-secondary btn-lg" %>
     <%= link_to "Play a friend", matches_path, class: "btn btn-secondary btn-lg" %>
     <% unless logged_in? %>
       <%= link_to "Sign in", signin_path, class: "btn btn-secondary btn-lg" %>

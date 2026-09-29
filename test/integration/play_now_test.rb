@@ -1,0 +1,48 @@
+require "test_helper"
+
+# [integration] Play Now through real requests: a signed-out visitor becomes a
+# guest with a session and a search; a second player is paired with them; the
+# searching page's JSON reports the match with both names.
+class PlayNowTest < ActionDispatch::IntegrationTest
+  test "the landing page's main button starts a live search" do
+    get root_path
+    assert_select "form[action='#{live_seeks_path}'] button", text: "Play Now"
+  end
+
+  test "a signed-out visitor plays as a guest and waits in the search" do
+    post live_seeks_path
+    seek = LiveSeek.last
+    assert_redirected_to live_seek_path(seek)
+    assert seek.user.guest?
+
+    get live_seek_path(seek, format: :json)
+    body = response.parsed_body
+    assert_equal "searching", body["status"]
+    assert body["ends_at"].present?
+  end
+
+  test "two visitors pressing Play Now are paired, each seeing the other" do
+    arya = open_session
+    arya.post live_seeks_path
+    brienne = open_session
+    brienne.post live_seeks_path
+
+    arya_seek, brienne_seek = LiveSeek.order(:id).to_a
+    arya.get live_seek_path(arya_seek, format: :json)
+    brienne.get live_seek_path(brienne_seek, format: :json)
+
+    assert_equal "matched", arya.response.parsed_body["status"]
+    assert_equal brienne_seek.user.username, arya.response.parsed_body["opponent"]
+    assert_equal arya_seek.user.username, brienne.response.parsed_body["opponent"]
+    assert_equal false, arya.response.parsed_body["computer"]
+    assert_equal arya.response.parsed_body["match_url"], brienne.response.parsed_body["match_url"]
+  end
+
+  test "you cannot read someone else's search" do
+    other = open_session
+    other.post live_seeks_path
+    post live_seeks_path
+    get live_seek_path(LiveSeek.order(:id).first, format: :json)
+    assert_response :not_found
+  end
+end
