@@ -107,6 +107,26 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='91']"
   end
 
+  test "on a touch screen the hint is a Start over button" do
+    page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: true, maxTouchPoints: 5)
+    page.current_window.resize_to(390, 844)
+    visit play_path
+    start_game
+    assert page.evaluate_script("matchMedia('(hover: none) and (pointer: coarse)').matches"), "touch is emulated"
+    stage("1-8" => 80, "1-17" => 91, "0-17" => 1, "0-15" => 46, "0-1" => 45)
+    find("svg.cyvasse-board g.hex[data-hex='80']").click
+    assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='80']"
+    assert_selector ".cyvasse-hint", text: "Start over"
+    assert_no_text "Press Esc"
+    page.execute_script("document.querySelector('.cyvasse-board-bar').scrollIntoView(); window.scrollBy(0, -130)")
+    screenshot("phone")
+    find(".cyvasse-hint").click
+    assert_no_selector "svg.cyvasse-board g.hex.is-selected"
+  ensure
+    page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: false)
+    page.current_window.resize_to(1400, 1100)
+  end
+
   private
 
   def start_game
