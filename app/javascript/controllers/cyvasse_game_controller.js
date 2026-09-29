@@ -6,7 +6,7 @@ import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
 import { UNIT_TYPES, THREAT_GROUPS } from "cyvasse/units"
 import { Banner, passNotice } from "cyvasse/banner"
 import { threats } from "cyvasse/threats"
-import { EDGES, perimeter, hexClaim, resolveEdges } from "cyvasse/edges"
+import { EDGES, hexClaim, resolveEdges, threatRims, PERIMETER_STYLE } from "cyvasse/edges"
 import { playIntent, setupIntent } from "cyvasse/selection"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
@@ -691,8 +691,8 @@ export default class extends Controller {
 
   // Where the opponent could strike next turn (cyvasse/threats, from the
   // rules' own legal actions): each hex in reach gets .is-threatened, and
-  // renderEdges outlines each threat group's area (its units counted in, so it
-  // is one shape) in red, melee solid and ranged dashed; each unit of yours
+  // renderEdges outlines the switched-on groups' area (their units counted in,
+  // so it is one shape) in red, by cyvasse/edges PERIMETER_STYLE; each unit of yours
   // they could actually kill gets .is-danger (the orange edge pulse). Play
   // only; the ranged and melee switches each turn off their own group.
   renderThreats() {
@@ -721,7 +721,7 @@ export default class extends Controller {
       }
       this.threatRegions[group] = region
     }
-    this.threatRims = { melee: perimeter(this.threatRegions.melee), ranged: perimeter(this.threatRegions.ranged) }
+    this.threatRims = threatRims(this.threatRegions, this.perimeterStyle ?? PERIMETER_STYLE)
     for (const [index, node] of this.hexNodes) {
       const unit = game.pieceAt(index)
       const danger = kills.has(index) && unit?.team === PLAYER
@@ -749,7 +749,7 @@ export default class extends Controller {
       const kind = hexClaim(new Set(group.classList), { team, ghost: group.dataset.ghost })
       if (kind) claims.set(index, kind)
     }
-    const owners = resolveEdges(claims, this.threatRims?.melee, this.threatRims?.ranged)
+    const owners = resolveEdges(claims, this.threatRims?.solid, this.threatRims?.dashed)
     for (const [key, line] of this.edgeLines) {
       const kind = owners.get(key)
       // Only on a change, so the danger pulse is not restarted.

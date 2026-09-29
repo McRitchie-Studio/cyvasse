@@ -192,7 +192,7 @@
  * line two hexes share, wide enough to cover both hexes' own edges, in the
  * colour of the highest highlight on either side. Highest first:
  *   selection > move rings > last move > danger > threat perimeter
- *   (melee solid over ranged dashed) > team
+ *   (solid over dashed) > team
  * A plain move ring ("ring") draws nothing: its hexes keep their thin edges
  * and nothing beneath crosses them. The last move is orange; a unit standing
  * on it gets its team's edge instead (both armies share the art). */
@@ -709,9 +709,10 @@
 }
 
 /* The opponent's reach (.is-threatened, from renderThreats) is outlined only
- * round its rim, one outline per threat group: a solid red "perimeter" edge
- * (melee) and a dashed red "perimeter-ranged" edge (above) where that group's
- * area meets the rest of the board or the board's edge. */
+ * round its rim: a solid red "perimeter" edge (above) where the area meets
+ * the rest of the board or the board's edge. In cyvasse/edges' "dual"
+ * PERIMETER_STYLE, melee's rim is solid and ranged's a dashed
+ * "perimeter-ranged" edge. */
 
 /* A unit of yours the opponent could kill next turn: an orange glow from its
  * hex's edges in, like the team shade, and an orange edge, both breathing

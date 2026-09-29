@@ -6,7 +6,8 @@
 //
 //   perimeter(region)          the edges round a set of hexes: in the set on
 //                              one side, off it (or off the board) on the other
-//   resolveEdges(claims, rim, rangedRim)
+//   threatRims(regions)        the threat outline's edges, by PERIMETER_STYLE
+//   resolveEdges(claims, rim, dashedRim)
 //                              one owner per edge, by EDGE_PRIORITY
 
 import { HEXES, cube } from "cyvasse/board";
@@ -58,6 +59,18 @@ export function perimeter(region) {
   return keys;
 }
 
+// How the threat outline is drawn: "single", one solid rim round every
+// switched-on group's area together; "dual", a solid rim round melee's area
+// and a dashed one round ranged's, solid where they share an edge.
+export const PERIMETER_STYLE = "single";
+
+// `regions` maps a threat group (cyvasse/units THREAT_GROUPS) to its area, a
+// Set of hexes. Returns the solid and the dashed rim, for resolveEdges.
+export function threatRims(regions, style = PERIMETER_STYLE) {
+  if (style === "dual") return { solid: perimeter(regions.melee), dashed: perimeter(regions.ranged) };
+  return { solid: perimeter(new Set([...regions.melee, ...regions.ranged])), dashed: new Set() };
+}
+
 // Who owns a shared edge, highest first. "ring" (a plain move ring) draws
 // nothing: its hexes keep their own thin edges, and nothing beneath crosses.
 export const EDGE_PRIORITY = Object.freeze([
@@ -96,15 +109,15 @@ export function hexClaim(classes, { team = null, ghost = null } = {}) {
 }
 
 // Map of edge key -> owning kind, for every edge anything claims. `claims`
-// maps a hex index to its hexClaim; `rim` (melee, solid) and `rangedRim`
-// (dashed) are perimeter() key sets, drawn where no hex claim outranks them.
-// An edge on both rims is melee's.
-export function resolveEdges(claims, rim = new Set(), rangedRim = new Set()) {
+// maps a hex index to its hexClaim; `rim` (solid) and `dashedRim` are
+// perimeter() key sets (threatRims), drawn where no hex claim outranks them.
+// An edge on both rims is solid.
+export function resolveEdges(claims, rim = new Set(), dashedRim = new Set()) {
   const owners = new Map();
   for (const { key, hex, other } of EDGES) {
     const owner = best([
       claims.get(hex), other === null ? null : claims.get(other),
-      rim.has(key) ? "perimeter" : null, rangedRim.has(key) ? "perimeter-ranged" : null
+      rim.has(key) ? "perimeter" : null, dashedRim.has(key) ? "perimeter-ranged" : null
     ]);
     if (owner) owners.set(key, owner);
   }
