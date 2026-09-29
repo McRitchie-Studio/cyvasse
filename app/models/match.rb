@@ -140,8 +140,8 @@ class Match < ApplicationRecord
 
     change_on_clock(user) do
       raise Refused, "This match is not in play." unless in_progress?
-      raise Refused, "It is #{user_to_move.username}'s turn." unless your_turn?(user)
       raise Refused, "A computer player has taken your seat for this match." if live? && bot_seat?(seat(user))
+      raise Refused, "It is #{user_to_move.username}'s turn." unless your_turn?(user)
 
       apply_turn(steps)
     end
@@ -207,8 +207,10 @@ class Match < ApplicationRecord
     whos_turn == HOME ? home_user : away_user
   end
 
+  # Never true for a live seat a computer has taken over: its moves are the
+  # computer's now.
   def your_turn?(user)
-    in_progress? && whos_turn == team(user)
+    in_progress? && whos_turn == team(user) && !(live? && bot_seat?(seat(user)))
   end
 
   def ready?(user)

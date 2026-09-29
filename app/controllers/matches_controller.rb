@@ -117,6 +117,7 @@ class MatchesController < ApplicationController
 
     rescue_and_log(target: @match) { @match.tick! }
   rescue StandardError
-    nil
+    # Draw what was saved, not the half-applied change the failure left behind.
+    @match.reload
   end
 end

@@ -25,7 +25,7 @@ const REASON_TEXT = {
 }
 
 export default class extends GameController {
-  static targets = ["error", "deadline"]
+  static targets = ["error", "deadline", "clock", "clockLabel", "clockSeconds", "clockBar", "notice"]
   static values = {
     state: Object,
     stateUrl: String,
@@ -43,6 +43,7 @@ export default class extends GameController {
   disconnect() {
     super.disconnect()
     clearTimeout(this.pollTimer)
+    clearInterval(this.clockTimer)
   }
 
   // /play's "New game" and the computer's turn have no place here.
@@ -52,6 +53,9 @@ export default class extends GameController {
   // ---- The server's state ----------------------------------------------------
 
   load(state, { announce = false } = {}) {
+    // A live setup that ran out: the army the server placed arrives piece by
+    // piece rather than all at once.
+    const arriving = this.state?.can_set_up && !state.can_set_up && state.live?.auto_set_up?.you
     this.state = state
     this.steps = []
     this.holding = false
@@ -71,6 +75,8 @@ export default class extends GameController {
     this.opponentTarget.textContent = state.opponent.username
     this.renderDeadline()
     this.render()
+    if (arriving) this.animateArrival()
+    this.startLiveClock()
 
     if (state.phase === "over") {
       this.banner(this.outcomeText(), null, { stay: true })
@@ -86,18 +92,32 @@ export default class extends GameController {
   }
 
   // Only while waiting on the opponent, and never over a turn or an army
-  // this player is still putting together.
+  // this player is still putting together. A live match polls in every
+  // phase: its clocks only move when a board asks (LiveMatch#tick!).
   poll() {
     clearTimeout(this.pollTimer)
     const waiting = this.state.phase !== "over" && !this.state.your_turn && !this.state.can_set_up && !this.state.can_accept
-    if (!waiting || !this.stateUrlValue) return
+    const live = this.state.live && this.state.phase !== "over"
+    if (!(waiting || live) || !this.stateUrlValue) return
 
     this.pollTimer = setTimeout(async () => {
       try {
         const response = await fetch(this.stateUrlValue, { headers: { Accept: "application/json" }, credentials: "same-origin" })
         if (response.ok) {
           const state = await response.json()
-          if (state.version !== this.state.version) return this.load(state, { announce: true })
+          if (state.version !== this.state.version) {
+            // Mid-setup, keep the army being placed: only the clock and the
+            // opponent move on. Everything else redraws from the server.
+            if (this.state.can_set_up && state.can_set_up && state.phase === "setup") {
+              this.state = { ...this.state, live: state.live, opponent: state.opponent, version: state.version }
+              this.startLiveClock()
+            } else {
+              return this.load(state, { announce: true })
+            }
+          } else if (state.live) {
+            this.state = { ...this.state, live: state.live }
+            this.syncClock()
+          }
         }
       } catch {
         // Offline for a moment: look again next time.
@@ -218,7 +238,8 @@ export default class extends GameController {
   renderDeadline() {
     if (!this.hasDeadlineTarget) return
     const { deadline, phase, your_turn: yourTurn } = this.state
-    if (!deadline || phase === "over") {
+    // A live match runs on its own clock (renderClock), not the seven days.
+    if (!deadline || phase === "over" || this.state.live) {
       this.deadlineTarget.hidden = true
       return
     }
@@ -226,6 +247,89 @@ export default class extends GameController {
     const who = phase === "play" ? (yourTurn ? "Move by" : "Their move is due by") : "Open until"
     this.deadlineTarget.textContent = `${who} ${when}`
     this.deadlineTarget.hidden = false
+  }
+
+  // ---- The live clock (LiveMatch) ---------------------------------------------
+
+  startLiveClock() {
+    clearInterval(this.clockTimer)
+    this.syncClock()
+    this.renderLiveNotice()
+    if (!this.hasClockTarget) return
+    this.renderClock()
+    if (this.state.live && this.state.phase !== "over") this.clockTimer = setInterval(() => this.renderClock(), 200)
+  }
+
+  // The server's clock, so a fast or slow laptop does not skew the countdown.
+  syncClock() {
+    if (this.state.live?.server_time) this.clockOffset = Date.parse(this.state.live.server_time) - Date.now()
+  }
+
+  renderClock() {
+    const live = this.state.live
+    const clock = live?.clock
+    const them = this.state.opponent.username
+    this.clockTarget.hidden = !live || this.state.phase === "over" || (!clock && !live.thinking)
+    if (this.clockTarget.hidden) return
+
+    this.clockTarget.classList.toggle("is-thinking", !!live.thinking)
+    if (live.thinking) {
+      this.clockTarget.classList.remove("is-warning")
+      this.clockLabelTarget.textContent = `${them} is thinking…`
+      this.clockSecondsTarget.textContent = ""
+      this.clockBarTarget.style.width = "100%"
+      return
+    }
+
+    const remaining = Math.max(0, (Date.parse(clock.ends_at) - (Date.now() + (this.clockOffset || 0))) / 1000)
+    const mine = clock.kind === "setup" ? this.state.can_set_up : this.state.your_turn
+    const warning = remaining <= clock.warning
+    let label
+    if (clock.kind === "setup") label = mine ? "Set up your army" : `Waiting for ${them} to set up`
+    else label = mine ? "Your move" : `${them}'s move`
+    if (warning && mine) label = clock.kind === "setup" ? "Hurry: set up your board!" : "Hurry: make your move!"
+
+    this.clockTarget.classList.toggle("is-warning", warning)
+    this.clockTarget.dataset.clockKind = clock.kind
+    this.clockLabelTarget.textContent = label
+    this.clockSecondsTarget.textContent = `${Math.ceil(remaining)}s`
+    this.clockBarTarget.style.width = `${Math.min(100, (remaining / clock.seconds) * 100)}%`
+
+    // Out of time: ask the server now rather than at the next poll.
+    if (remaining === 0 && this.firedFor !== clock.ends_at) {
+      this.firedFor = clock.ends_at
+      clearTimeout(this.pollTimer)
+      this.pollTimer = setTimeout(() => this.poll(), 300)
+    }
+  }
+
+  renderLiveNotice() {
+    if (!this.hasNoticeTarget) return
+    const live = this.state.live
+    const them = this.state.opponent.username
+    let text = ""
+    if (live) {
+      if (live.taken_over.you) text = "You missed two clocks, so a computer player has taken your seat for the rest of this game."
+      else if (live.taken_over.opponent) text = `${them} missed two clocks, so a computer player has taken their seat.`
+      else if (live.auto_set_up.you && live.strikes.you === 1) text = "Time ran out, so your army was placed for you. Miss one more clock and a computer player takes your seat."
+      else if (live.strikes.you === 1) text = "You missed a clock and a move was made for you. Miss one more and a computer player takes your seat."
+      else if (live.strikes.opponent === 1) text = `${them} missed a clock.`
+    }
+    this.noticeTarget.textContent = text
+    this.noticeTarget.hidden = !text
+  }
+
+  // Each of this player's units fades in, one after another, in board order.
+  animateArrival() {
+    const nodes = [...this.hexNodes.entries()]
+      .filter(([, node]) => node.group.dataset.team === "1")
+      .sort(([a], [b]) => a - b)
+      .map(([, node]) => node.group)
+    this.boardTarget.classList.add("is-arrival")
+    for (const group of nodes) group.classList.add("is-arriving")
+    const step = this.paceValue === 0 ? 0 : 70
+    nodes.forEach((group, i) => setTimeout(() => group.classList.remove("is-arriving"), 120 + i * step))
+    setTimeout(() => this.boardTarget.classList.remove("is-arrival"), 120 + nodes.length * step + 400)
   }
 
   outcomeText() {

@@ -269,3 +269,98 @@
   background: color-mix(in srgb, var(--color-danger, #EF4444) 12%, transparent);
   color: var(--color-danger-ink, var(--color-danger, #EF4444));
 }
+
+/* ---- Live matches (LiveMatch, cyvasse_match_controller renderClock) ---- */
+
+/* The clock both players see: a bar that empties, red for the last seconds,
+ * and a shimmer while a computer player "thinks". */
+.live-clock {
+  max-width: 26rem;
+}
+
+.live-clock-track {
+  height: 6px;
+  margin-top: 0.35rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-cta, #8E82FE) 18%, transparent);
+  overflow: hidden;
+}
+
+.live-clock-track span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 9999px;
+  background: var(--color-cta, #8E82FE);
+  transition: width 0.2s linear, background-color 0.3s;
+}
+
+.live-clock-seconds {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--color-text-heading, inherit);
+}
+
+.live-clock.is-warning .live-clock-track span {
+  background: #ef4444;
+}
+
+.live-clock.is-warning .live-clock-seconds,
+.live-clock.is-warning [data-cyvasse-match-target="clockLabel"] {
+  color: #f87171;
+}
+
+.live-clock.is-thinking .live-clock-track span {
+  background: linear-gradient(90deg, transparent, var(--color-cta, #8E82FE), transparent);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: live-clock-think 1.2s ease-in-out infinite;
+}
+
+@keyframes live-clock-think {
+  from { background-position: -50% 0; }
+  to { background-position: 150% 0; }
+}
+
+.live-notice {
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--color-cta, #8E82FE) 40%, transparent);
+  background: color-mix(in srgb, var(--color-cta, #8E82FE) 12%, transparent);
+  color: var(--color-text-heading, inherit);
+}
+
+.live-computer-tag {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--color-cta, #8E82FE) 22%, transparent);
+  color: var(--color-cta, #8E82FE);
+}
+
+/* An army the clock placed arrives one piece at a time. The fade applies only
+ * while it arrives (.is-arrival on the board), so other shade changes stay
+ * instant. */
+.cyvasse-board.is-arrival .hex .unit-image,
+.cyvasse-board.is-arrival .hex .unit-shade {
+  transition: opacity 0.25s ease-out;
+}
+
+.cyvasse-board .hex.is-arriving .unit-image,
+.cyvasse-board .hex.is-arriving .unit-shade {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-clock.is-thinking .live-clock-track span { animation: none; background: var(--color-cta, #8E82FE); }
+  .live-clock-track span,
+  .cyvasse-board.is-arrival .hex .unit-image,
+  .cyvasse-board.is-arrival .hex .unit-shade { transition: none; }
+}
