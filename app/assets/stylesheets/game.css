@@ -901,7 +901,21 @@ html.dark [data-skin="pencil"] .dock-unit img {
     white-space: nowrap;
   }
 
-  .cyvasse-legend-panel {
+  /* The switches wrap on a phone and the "?" can land at the left of its
+   * own row, so the panel hangs from the strip's right edge, not the "?". */
+  .cyvasse-board-bar,
+  .match-actions {
+    position: relative;
+  }
+
+  .cyvasse-legend {
+    position: static;
+  }
+
+  .cyvasse-legend-panel,
+  .match-actions .cyvasse-legend-panel {
+    left: auto;
+    right: 0;
     grid-template-columns: minmax(0, 1fr);
     width: min(15rem, calc(100vw - 2rem));
   }
