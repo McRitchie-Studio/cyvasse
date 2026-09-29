@@ -164,6 +164,12 @@
   stroke-width: 2;
 }
 
+/* A hex the picked unit cannot stop on: sunken, a gray dish with a dim edge,
+ * no hatch and no hue, so it never reads as a move, a capture or a threat. */
+.cyvasse-board .hex.is-sunken:not(:focus-visible) .hex-poly {
+  stroke: hsl(220 4% 34%);
+}
+
 .cyvasse-board .hex.is-blocked:not(:focus-visible) .hex-poly {
   stroke: hsl(214 16% 58%);
   stroke-dasharray: 3 3;

@@ -125,7 +125,7 @@ export function hexClaim(classes, { team = null, ghost = null } = {}) {
   if (classes.has("is-ghost") && ghost) kinds.push(`ghost-${ghost}`);
   if (classes.has("is-field")) kinds.push("field");
   if (classes.has("is-blocked")) kinds.push("blocked");
-  if (classes.has("is-lit") || classes.has("is-move") || classes.has("is-attack")) kinds.push("ring");
+  if (classes.has("is-lit") || classes.has("is-sunken") || classes.has("is-move") || classes.has("is-attack")) kinds.push("ring");
   if (classes.has("is-last-move")) kinds.push(team === null ? "last-move" : `team-${team}`);
   if (classes.has("is-danger")) kinds.push("danger");
   return best(kinds);

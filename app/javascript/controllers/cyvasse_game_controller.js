@@ -38,8 +38,11 @@ const RIPPLE_MS = 120
 const HSL_SHORT = ["40%,30%", "42%,39%", "44%,47%", "46%,50%", "48%,55%", "50%,60%"]
 const HSL_LONG = ["40%,30%", "41%,34%", "42%,38%", "43%,42%", "44%,45%", "45%,48%", "46%,51%", "47%,54%", "48%,57%", "50%,60%"]
 const HSL_TABLES = { short: HSL_SHORT, long: HSL_LONG }
-// Move ring code -> hue (animation.js updateRing).
-const MOVE_HUE = { 1: 240, 2: 290, 3: 10, 4: 10, 5: 280 }
+// Move ring code -> hue (animation.js updateRing). A hex the unit cannot stop
+// on (2x, flown over; 5x, blocked) is not a hue: it is sunken, a desaturated
+// gray dish, darker at the centre, with no hatch (SUNKEN_STOPS, .is-sunken).
+const MOVE_HUE = { 1: 240, 3: 10, 4: 10 }
+const SUNKEN_CODES = new Set([2, 5])
 
 // Each lit hex is filled with a radial gradient rather than the flat legacy
 // colour: the ring's own hsl() sits at the middle stop, the centre is lighter
@@ -48,7 +51,7 @@ const MOVE_HUE = { 1: 240, 2: 290, 3: 10, 4: 10, 5: 280 }
 // the capture red drifts towards crimson, never towards the selection orange.
 // One gradient per hue, table and ripple step, so the outward brightening of
 // the ripple still reads. [centre, edge] hue offsets:
-const RING_DRIFT = { 240: [-16, 14], 290: [-14, 12], 10: [-4, -18], 280: [-10, 8] }
+const RING_DRIFT = { 240: [-16, 14], 10: [-4, -18], 280: [-10, 8] }
 
 function ringStops(hue, entry) {
   const [s, l] = entry.split(",").map((part) => parseFloat(part))
@@ -58,6 +61,15 @@ function ringStops(hue, entry) {
     ["0%", `hsl(${hue + inner}, ${clamp(s + 14, 0, 100)}%, ${clamp(l + 20, 0, 80)}%)`],
     ["55%", `hsl(${hue}, ${s}%, ${l}%)`],
     ["100%", `hsl(${hue + outer}, ${clamp(s + 10, 0, 100)}%, ${clamp(l - 14, 12, 100)}%)`]
+  ]
+}
+
+function sunkenStops(entry) {
+  const l = parseFloat(entry.split(",")[1])
+  return [
+    ["0%", `hsl(220, 3%, ${(7 + l * 0.04).toFixed(1)}%)`],
+    ["70%", `hsl(220, 4%, ${(11 + l * 0.06).toFixed(1)}%)`],
+    ["100%", `hsl(220, 5%, ${(17 + l * 0.1).toFixed(1)}%)`]
   ]
 }
 
@@ -139,7 +151,7 @@ function overBoard(color, alpha) {
 
 // Every class a ripple may leave on a hex; render() and each repaint clear
 // the lot, so a hex never carries two looks.
-const RING_CLASSES = ["is-lit", "is-ghost", "is-field", "is-target", "is-blocked"]
+const RING_CLASSES = ["is-lit", "is-sunken", "is-ghost", "is-field", "is-target", "is-blocked"]
 // Each threat group's outline (renderThreats) is on unless the player turned
 // it off; a player who turned off the old single switch starts with both off.
 const THREATS_KEY = "cyvasse.showThreats"
@@ -480,6 +492,7 @@ export default class extends Controller {
     for (const [table, entries] of Object.entries(HSL_TABLES)) {
       entries.forEach((entry, step) => {
         for (const hue of Object.values(PREVIEW_HUE)) gradientOf(`ghost-${hue}-${table}-${step}`, ghostStops(hue, entry))
+        gradientOf(`sunken-${table}-${step}`, sunkenStops(entry))
         const [s, l] = entry.split(",").map((part) => parseFloat(part))
         for (const [kind, stops] of Object.entries(RANGE_STOPS)) gradientOf(`${kind}-${table}-${step}`, stops(s, l))
       })
@@ -902,6 +915,8 @@ export default class extends Controller {
         const code = Math.floor(ring / 10)
         if (MOVE_HUE[code] !== undefined) {
           light(index, ringFill(MOVE_HUE[code], table, step), "is-lit")
+        } else if (SUNKEN_CODES.has(code)) {
+          light(index, `url(#sunken-${table}-${step})`, "is-sunken")
         } else if (PREVIEW_HUE[code] !== undefined) {
           light(index, `url(#ghost-${PREVIEW_HUE[code]}-${table}-${step})`, "is-ghost").dataset.ghost = code
         }
