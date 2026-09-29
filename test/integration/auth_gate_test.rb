@@ -5,7 +5,17 @@ require "test_helper"
 class AuthGateTest < ActionDispatch::IntegrationTest
   # Controllers that deliberately skip require_authentication. Adding one is a
   # product decision, not a convenience — say why in the controller.
-  PUBLIC_CONTROLLERS = %w[PagesController GamesController SkinsController].freeze
+  # LeaderboardsController: the boards are public like the landing page that
+  # carries the top ten, and a guest's sign-in page must open signed out.
+  PUBLIC_CONTROLLERS = %w[PagesController GamesController SkinsController LeaderboardsController].freeze
+
+  test "the leaderboard and its sign-in page render publicly" do
+    get leaderboard_path
+    assert_response :success
+    get join_leaderboard_path(result: "win")
+    assert_response :success
+    assert_select "form[action=?]", magic_link_request_path
+  end
 
   test "landing renders publicly and offers sign-in" do
     get root_path
