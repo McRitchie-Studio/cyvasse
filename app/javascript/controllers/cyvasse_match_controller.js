@@ -203,7 +203,9 @@ export default class extends GameController {
 
   playClick(hex) {
     if (!this.state.your_turn || this.holding) return
-    if (this.actions && (this.actions.moves.includes(hex) || this.actions.attacks.includes(hex))) {
+    const intent = this.intentFor(hex)
+    if (intent === "deselect") return this.deselect()
+    if (intent === "act") {
       const from = this.selectedHex
       const before = this.game.jump === 1 ? this.game.snapshot() : null
       const result = this.game.act(from, hex)
@@ -221,7 +223,7 @@ export default class extends GameController {
       this.send(this.moveUrlValue, { steps: this.steps })
       return
     }
-    if (this.game.selectableHexes().includes(hex)) this.select(hex)
+    if (intent === "select") this.select(hex)
   }
 
   // "Take back my seat": the computer's hold on this player's seat ends.
