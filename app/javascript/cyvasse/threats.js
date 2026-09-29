@@ -1,4 +1,4 @@
-// What one side could do on its next turn, for the board's threat outline.
+// What one side could do on its next turn, for the board's threat highlights.
 //
 // Built only from the rules' own legalActions (cyvasse/rules), so it follows
 // whatever the rules decide, trumps and all:
@@ -60,26 +60,4 @@ function landedAt(position, unit, landing) {
       return position.pieceAt(hex);
     }
   };
-}
-
-// The edges to outline round `region` (a Set of hex indexes): only those
-// between a hex in it and a board hex outside it. An edge on the board's own
-// rim faces nothing, so it is never drawn, and the outline marks where the
-// reach ends rather than framing the board.
-//
-// polygons: every board hex's six corners ([x, y] pairs, index => corners),
-// drawn at full size so two neighbours share each corner exactly.
-export function outlineEdges(region, polygons) {
-  const edges = new Map();
-  for (const [index, corners] of polygons) {
-    corners.forEach((a, i) => {
-      const b = corners[(i + 1) % corners.length];
-      const key = [a, b].map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).sort().join(" ");
-      const edge = edges.get(key) ?? { ends: [a, b], sides: 0, inside: 0 };
-      edge.sides += 1;
-      if (region.has(index)) edge.inside += 1;
-      edges.set(key, edge);
-    });
-  }
-  return [...edges.values()].filter((edge) => edge.sides === 2 && edge.inside === 1).map((edge) => edge.ends);
 }

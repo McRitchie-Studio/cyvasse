@@ -15,6 +15,20 @@ class HomePageTest < ActionView::TestCase
     assert_select "a.btn-secondary", 0, "no filled secondaries"
   end
 
+  # The green label was ~3:1 over the scrimmed art; white clears WCAG AA.
+  test "the outlined secondaries carry a white label, not the green" do
+    render_home(user: nil)
+
+    assert_select "a.home-secondary-btn", 3
+    assert_select "a.home-secondary-btn:not(.text-white)", 0, "every secondary label is white"
+
+    # An unlayered colour on the class would outrank the text-white utility.
+    css = Rails.root.join("app/assets/tailwind/application.css").read
+    rules = css.scan(/^\.home-secondary-btn[^{]*\{[^}]*\}/)
+    assert_not_empty rules
+    rules.each { |rule| assert_no_match(/(?<![-\w])color\s*:/, rule, "no label colour in: #{rule}") }
+  end
+
   test "no Play the computer button, and the copy does not offer one" do
     render_home(user: nil)
 
