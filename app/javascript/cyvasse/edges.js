@@ -6,7 +6,8 @@
 //
 //   perimeter(region)          the edges round a set of hexes: in the set on
 //                              one side, off it (or off the board) on the other
-//   resolveEdges(claims, rim)  one owner per edge, by EDGE_PRIORITY
+//   resolveEdges(claims, rim, rangedRim)
+//                              one owner per edge, by EDGE_PRIORITY
 
 import { HEXES, cube } from "cyvasse/board";
 
@@ -64,7 +65,7 @@ export const EDGE_PRIORITY = Object.freeze([
   "target", "ghost-7", "ghost-6", "ghost-8", "field", "blocked", "ring",
   "last-move",
   "danger",
-  "perimeter",
+  "perimeter", "perimeter-ranged",
   "team-1", "team-0"
 ]);
 
@@ -95,12 +96,16 @@ export function hexClaim(classes, { team = null, ghost = null } = {}) {
 }
 
 // Map of edge key -> owning kind, for every edge anything claims. `claims`
-// maps a hex index to its hexClaim; `rim` is a perimeter() key set, drawn
-// as "perimeter" where no hex claim outranks it.
-export function resolveEdges(claims, rim = new Set()) {
+// maps a hex index to its hexClaim; `rim` (melee, solid) and `rangedRim`
+// (dashed) are perimeter() key sets, drawn where no hex claim outranks them.
+// An edge on both rims is melee's.
+export function resolveEdges(claims, rim = new Set(), rangedRim = new Set()) {
   const owners = new Map();
   for (const { key, hex, other } of EDGES) {
-    const owner = best([claims.get(hex), other === null ? null : claims.get(other), rim.has(key) ? "perimeter" : null]);
+    const owner = best([
+      claims.get(hex), other === null ? null : claims.get(other),
+      rim.has(key) ? "perimeter" : null, rangedRim.has(key) ? "perimeter-ranged" : null
+    ]);
     if (owner) owners.set(key, owner);
   }
   return owners;

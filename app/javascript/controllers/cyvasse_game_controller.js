@@ -690,11 +690,11 @@ export default class extends Controller {
   }
 
   // Where the opponent could strike next turn (cyvasse/threats, from the
-  // rules' own legal actions): each hex in reach gets .is-threatened, and the
-  // edge round that area (their own units counted in, so it is one shape) is
-  // outlined red by renderEdges; each unit of yours they could actually kill
-  // gets .is-danger (the orange edge pulse). Play only; the ranged and melee
-  // switches each turn off their own units' share.
+  // rules' own legal actions): each hex in reach gets .is-threatened, and
+  // renderEdges outlines each threat group's area (its units counted in, so it
+  // is one shape) in red, melee solid and ranged dashed; each unit of yours
+  // they could actually kill gets .is-danger (the orange edge pulse). Play
+  // only; the ranged and melee switches each turn off their own group.
   renderThreats() {
     const game = this.game
     // Read once per page, by /play and the match board alike.
@@ -705,9 +705,23 @@ export default class extends Controller {
       input.checked = this.showThreats[input.dataset.threatGroup]
       input.closest(".cyvasse-threat-toggles").hidden = game.phase !== "play"
     }
-    const { reach, kills, units } = live ? threats(game, 1 - PLAYER, { groups }) : { reach: new Set(), kills: new Set(), units: new Set() }
-    const region = new Set([...reach, ...units])
-    this.threatRim = perimeter(region)
+    const reach = new Set()
+    const kills = new Set()
+    this.threatRegions = {}
+    for (const group of THREAT_GROUPS) {
+      const region = new Set()
+      if (live && this.showThreats[group]) {
+        const found = threats(game, 1 - PLAYER, { groups: [group] })
+        for (const hex of found.reach) {
+          reach.add(hex)
+          region.add(hex)
+        }
+        for (const hex of found.kills) kills.add(hex)
+        for (const hex of found.units) region.add(hex)
+      }
+      this.threatRegions[group] = region
+    }
+    this.threatRims = { melee: perimeter(this.threatRegions.melee), ranged: perimeter(this.threatRegions.ranged) }
     for (const [index, node] of this.hexNodes) {
       const unit = game.pieceAt(index)
       const danger = kills.has(index) && unit?.team === PLAYER
@@ -735,7 +749,7 @@ export default class extends Controller {
       const kind = hexClaim(new Set(group.classList), { team, ghost: group.dataset.ghost })
       if (kind) claims.set(index, kind)
     }
-    const owners = resolveEdges(claims, this.threatRim)
+    const owners = resolveEdges(claims, this.threatRims?.melee, this.threatRims?.ranged)
     for (const [key, line] of this.edgeLines) {
       const kind = owners.get(key)
       // Only on a change, so the danger pulse is not restarted.
