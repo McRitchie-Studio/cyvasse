@@ -111,6 +111,42 @@
   display: inline;
 }
 
+/* The second-jump preview and the shooter's range (fills built in the
+ * controller). A ghost takes a dashed edge in the colour of the live ring it
+ * previews; the range field a thin crimson edge; a target a heavy bright red
+ * one; a blocked hex a dashed slate edge. Each yields to the keyboard's
+ * yellow focus edge. */
+.cyvasse-board .hex.is-ghost:not(:focus-visible) .hex-poly {
+  stroke-width: 1.75;
+  stroke-dasharray: 5 3;
+}
+
+.cyvasse-board .hex.is-ghost[data-ghost="6"]:not(:focus-visible) .hex-poly {
+  stroke: hsl(226 95% 70%);
+}
+
+.cyvasse-board .hex.is-ghost[data-ghost="7"]:not(:focus-visible) .hex-poly {
+  stroke: hsl(0 90% 66%);
+}
+
+.cyvasse-board .hex.is-ghost[data-ghost="8"]:not(:focus-visible) .hex-poly {
+  stroke: hsl(285 75% 72%);
+}
+
+.cyvasse-board .hex.is-field:not(:focus-visible) .hex-poly {
+  stroke: hsl(354 60% 44%);
+}
+
+.cyvasse-board .hex.is-target:not(:focus-visible) .hex-poly {
+  stroke: hsl(0 100% 66%);
+  stroke-width: 3.5;
+}
+
+.cyvasse-board .hex.is-blocked:not(:focus-visible) .hex-poly {
+  stroke: hsl(214 16% 58%);
+  stroke-dasharray: 3 3;
+}
+
 /* A unit's hex is shaded in its team's colour from the edge in, deeper the
  * more the piece is worth (the gradients are built in the controller). */
 .cyvasse-board .unit-shade {

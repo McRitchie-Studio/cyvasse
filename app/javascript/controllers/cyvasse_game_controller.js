@@ -36,8 +36,6 @@ const HSL_LONG = ["40%,30%", "41%,34%", "42%,38%", "43%,42%", "44%,45%", "45%,48
 const HSL_TABLES = { short: HSL_SHORT, long: HSL_LONG }
 // Move ring code -> hue (animation.js updateRing).
 const MOVE_HUE = { 1: 240, 2: 290, 3: 10, 4: 10, 5: 280 }
-// The range ripple's attack rings (code 2 of rangeRings) are the capture red.
-const RANGE_HUE = 10
 
 // Each lit hex is filled with a radial gradient rather than the flat legacy
 // colour: the ring's own hsl() sits at the middle stop, the centre is lighter
@@ -62,8 +60,51 @@ function ringStops(hue, entry) {
 function ringFill(hue, table, step) {
   return `url(#ring-${hue}-${table}-${step})`
 }
-const PREVIEW_STROKE = { 6: "blue", 7: "red", 8: "purple" }
-const RANGE_STROKE = { 1: "red", 2: "red", 3: "blue", 4: "blue" }
+
+// A cavalry unit's second-jump preview (move codes 6x/7x/8x) is a "ghost" of
+// the live ring it previews: move blue, capture red, blocked purple. Its
+// gradient is faint and weighted to the rim, the centre nearly clear, and the
+// hex takes a dashed edge (game.css .is-ghost) and no hatch, so "possible on
+// the second jump" never reads as "move here now".
+const PREVIEW_HUE = { 6: 240, 7: 10, 8: 280 }
+
+function ghostStops(hue, entry) {
+  const [s, l] = entry.split(",").map((part) => parseFloat(part))
+  const [inner, outer] = RING_DRIFT[hue]
+  return [
+    ["0%", `hsl(${hue + inner}, ${s}%, ${l}%)`, 0.05],
+    ["55%", `hsl(${hue}, ${s}%, ${l}%)`, 0.16],
+    ["100%", `hsl(${hue + outer}, ${Math.min(100, s + 12)}%, ${l + 4}%)`, 0.46]
+  ]
+}
+
+// A shooter's range (rangeRings) reads as a zone. Each kind has its own
+// gradient, one per ripple step, brightening outward like the move rings:
+//   field    1x  the line of fire: a soft red wash, hatched (.is-field)
+//   target   2x  an enemy it can hit: a strong crimson, heavy red edge
+//   blocked  3x 4x  a mountain in the line and its shadow: dim slate, dashed
+// The reds lean to crimson, away from the selection and last-move orange.
+const RANGE_KIND = { 1: "field", 2: "target", 3: "blocked", 4: "blocked" }
+const RANGE_STOPS = {
+  field: (s, l) => [
+    ["0%", `hsl(12, ${s + 8}%, ${l * 0.9}%)`, 0.2],
+    ["60%", `hsl(4, ${s + 10}%, ${l * 0.85}%)`, 0.3],
+    ["100%", `hsl(356, ${s + 14}%, ${l * 0.8}%)`, 0.52]
+  ],
+  target: (s, l) => [
+    ["0%", `hsl(6, 95%, ${Math.min(80, l + 22)}%)`, 1],
+    ["45%", `hsl(356, 90%, ${l + 4}%)`, 1],
+    ["100%", `hsl(342, 85%, ${Math.max(18, l - 10)}%)`, 1]
+  ],
+  blocked: (s, l) => [
+    ["0%", `hsl(212, 12%, ${l * 0.55}%)`, 0.9],
+    ["100%", `hsl(222, 18%, ${l * 0.32}%)`, 0.95]
+  ]
+}
+
+// Every class a ripple may leave on a hex; render() and each repaint clear
+// the lot, so a hex never carries two looks.
+const RING_CLASSES = ["is-lit", "is-ghost", "is-field", "is-target", "is-blocked"]
 
 const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", unique: "Unique", mountain: "Mountain" }
 
@@ -304,7 +345,7 @@ export default class extends Controller {
         defs.append(gradient)
       })
     }
-    for (const hue of new Set([...Object.values(MOVE_HUE), RANGE_HUE])) {
+    for (const hue of new Set(Object.values(MOVE_HUE))) {
       for (const [table, entries] of Object.entries(HSL_TABLES)) {
         entries.forEach((entry, step) => {
           const gradient = el("radialGradient", { id: `ring-${hue}-${table}-${step}`, cx: "50%", cy: "46%", r: "62%", fx: "42%", fy: "34%" })
@@ -312,6 +353,20 @@ export default class extends Controller {
           defs.append(gradient)
         })
       }
+    }
+    const gradientOf = (id, stops) => {
+      const gradient = el("radialGradient", { id, cx: "50%", cy: "46%", r: "62%", fx: "42%", fy: "34%" })
+      for (const [offset, color, opacity = 1] of stops) {
+        gradient.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
+      }
+      defs.append(gradient)
+    }
+    for (const [table, entries] of Object.entries(HSL_TABLES)) {
+      entries.forEach((entry, step) => {
+        for (const hue of Object.values(PREVIEW_HUE)) gradientOf(`ghost-${hue}-${table}-${step}`, ghostStops(hue, entry))
+        const [s, l] = entry.split(",").map((part) => parseFloat(part))
+        for (const [kind, stops] of Object.entries(RANGE_STOPS)) gradientOf(`${kind}-${table}-${step}`, stops(s, l))
+      })
     }
     // The texture over a lit hex: a fine diagonal hatch, light and faint.
     const texture = el("pattern", { id: "ring-texture", patternUnits: "userSpaceOnUse", width: 5, height: 5, patternTransform: "rotate(40)" })
@@ -412,7 +467,8 @@ export default class extends Controller {
     for (const [index, node] of this.hexNodes) {
       const unit = game.pieceAt(index)
       node.group.classList.toggle("has-unit", !!unit)
-      node.group.classList.remove("is-move", "is-attack", "is-selected", "is-deploy", "is-last-move", "is-lit")
+      node.group.classList.remove("is-move", "is-attack", "is-selected", "is-deploy", "is-last-move", ...RING_CLASSES)
+      delete node.group.dataset.ghost
       node.group.dataset.unitId = unit?.id ?? ""
       node.group.dataset.team = unit ? unit.team : ""
       if (unit) {
@@ -430,7 +486,6 @@ export default class extends Controller {
         node.image.removeAttribute("href")
       }
       node.polygon.style.fill = ""
-      node.polygon.style.stroke = ""
     }
 
     if (game.phase === "setup") {
@@ -556,38 +611,47 @@ export default class extends Controller {
   ripple(unit) {
     const type = unit.type
     const table = type.moveRange > 5 ? "long" : "short"
-    const { rings, rangeRings } = this.actions
-    const reach = type.rank === "range" ? type.attackRange : type.rank === "cavalry" ? type.moveRange * 2 : type.moveRange
+    const { rings, rangeRings, moves } = this.actions
+    const shooter = type.rank === "range"
+    const reach = shooter ? type.attackRange : type.rank === "cavalry" ? type.moveRange * 2 : type.moveRange
     let distance = 1
+
+    const light = (index, fill, ...classes) => {
+      const { group, polygon } = this.hexNodes.get(index)
+      polygon.style.fill = fill
+      group.classList.remove(...RING_CLASSES)
+      group.classList.add(...classes)
+      return group
+    }
 
     const paint = () => {
       const step = distance - 1
       for (const [index, ring] of rings) {
         if (ring % 10 !== step || ring < 10) continue
+        // A shooter's range owns every hex it cannot move to.
+        if (shooter && !moves.includes(index)) continue
         const code = Math.floor(ring / 10)
-        const { group, polygon } = this.hexNodes.get(index)
         if (MOVE_HUE[code] !== undefined) {
-          polygon.style.fill = ringFill(MOVE_HUE[code], table, step)
-          group.classList.add("is-lit")
+          light(index, ringFill(MOVE_HUE[code], table, step), "is-lit")
+        } else if (PREVIEW_HUE[code] !== undefined) {
+          light(index, `url(#ghost-${PREVIEW_HUE[code]}-${table}-${step})`, "is-ghost").dataset.ghost = code
         }
-        if (PREVIEW_STROKE[code]) polygon.style.stroke = PREVIEW_STROKE[code]
       }
-      if (type.rank === "range") {
+      if (shooter) {
         for (const [index, ring] of rangeRings) {
-          if (ring % 10 !== step || ring < 10) continue
-          const code = Math.floor(ring / 10)
-          const { group, polygon } = this.hexNodes.get(index)
-          if (code === 2) {
-            polygon.style.fill = ringFill(RANGE_HUE, table, step)
-            group.classList.add("is-lit")
-          }
-          if (RANGE_STROKE[code]) polygon.style.stroke = RANGE_STROKE[code]
+          if (ring % 10 !== step || ring < 10 || moves.includes(index)) continue
+          const kind = RANGE_KIND[Math.floor(ring / 10)]
+          if (!kind) continue
+          const classes = kind === "field" ? ["is-field", "is-lit"] : [`is-${kind}`]
+          light(index, `url(#${kind}-${table}-${step})`, ...classes)
         }
       }
       distance += 1
     }
 
-    if (this.paceValue === 0) {
+    // No ripple for a player who asked for less motion: the rings land at once.
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    if (this.paceValue === 0 || still) {
       while (distance <= reach) paint()
       return
     }
