@@ -30,8 +30,8 @@ class GuestClaimTest < ActiveSupport::TestCase
     assert_equal @arya, message.reload.sender
     assert_equal [ 6, 3 ], [ @arya.reload.wins, @arya.losses ]
     assert_nil User.find_by(id: @guest.id), "the guest is deleted"
-    board = Leaderboard.live.to_h { |r| [ r.user.username, [ r.wins, r.losses ] ] }
-    assert_equal({ "brienne" => [ 1, 0 ], "arya" => [ 1, 1 ] }, board, "the guest's win and loss are arya's now")
+    board = Leaderboard.live.to_h { |r| [ r.user.username, [ r.points, r.wins, r.losses ] ] }
+    assert_equal({ "brienne" => [ 3, 1, 0 ], "arya" => [ 4, 1, 1 ] }, board, "the guest's win and loss are arya's now")
   end
 
   test "a match between the guest and the account stays, and the guest is kept retired" do
