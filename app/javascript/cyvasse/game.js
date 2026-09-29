@@ -147,7 +147,7 @@ export class Game {
     return this.phase === "setup" && this.teamUnits(PLAYER, "unplaced").length === 0;
   }
 
-  // "Start Game": the computer's lineup takes the board and the side whose
+  // "Ready": the computer's lineup takes the board and the side whose
   // king stands nearer the middle row moves first (Game.whoGoesFirst).
   start() {
     if (!this.readyToStart) throw new Error("place every unit before starting");

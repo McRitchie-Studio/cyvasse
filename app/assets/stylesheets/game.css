@@ -35,8 +35,10 @@
   -webkit-user-select: none;
 }
 
+/* A hex's resting fill is a gradient the controller sets as its fill
+ * attribute (paintGround): slate board, dark setup rows, lit drop targets.
+ * Every rule below that sets a fill draws over it. */
 .cyvasse-board .hex-poly {
-  fill: black;
   stroke: white;
   stroke-width: 1.5;
   transition: fill 0.25s, stroke 0.25s;
@@ -50,14 +52,15 @@
   stroke: yellow;
 }
 
-/* Setup: your five rows lit blue, occupied ones darker (pregame.js). */
+/* Setup: your five rows are near-black and hatched (the texture rule below),
+ * darker than the slate board; a picked unit lights the empty ones (.is-drop)
+ * with a brighter edge. */
 .cyvasse-board .is-deploy .hex-poly {
-  fill: blue;
   cursor: pointer;
 }
 
-.cyvasse-board .is-deploy.has-unit .hex-poly {
-  fill: darkblue;
+.cyvasse-board .hex.is-drop:not(:focus-visible):not(:hover) .hex-poly {
+  stroke: hsl(226 90% 76%);
 }
 
 /* The selection outranks the setup rows above (`.hex` adds the weight), so a
@@ -107,7 +110,8 @@
   pointer-events: none;
 }
 
-.cyvasse-board .is-lit:not(.is-selected) .ring-texture {
+.cyvasse-board .is-lit:not(.is-selected) .ring-texture,
+.cyvasse-board .is-deploy:not(.is-selected) .ring-texture {
   display: inline;
 }
 
@@ -304,4 +308,33 @@
   border: 1px solid color-mix(in srgb, var(--color-danger, #EF4444) 45%, transparent);
   background: color-mix(in srgb, var(--color-danger, #EF4444) 12%, transparent);
   color: var(--color-danger-ink, var(--color-danger, #EF4444));
+}
+
+/* The "Your army" panel: Ready is the main call to action, a filled violet
+ * button that stays muted until every unit is on the board; Random Setup is
+ * the hollow secondary beside it. */
+.cyvasse-ready {
+  flex: 1 1 auto;
+  color: #fff;
+  background-color: #7c3aed;
+  box-shadow: 0 0 0 1px rgb(167 139 250 / 0.5), 0 6px 18px -6px rgb(124 58 237 / 0.7);
+}
+
+.cyvasse-ready:hover:not(:disabled) {
+  background-color: #6d28d9;
+}
+
+.cyvasse-ready:disabled {
+  opacity: 0.4;
+  box-shadow: none;
+  filter: saturate(0.5);
+}
+
+.cyvasse-outline {
+  border-color: #8b5cf6;
+}
+
+.cyvasse-outline:hover {
+  background-color: rgb(139 92 246 / 0.15);
+  color: inherit;
 }

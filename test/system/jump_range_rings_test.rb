@@ -23,7 +23,7 @@ class JumpRangeRingsTest < ApplicationSystemTestCase
     select "Crown Forward", from: "Opening"
     within("[data-controller=cyvasse-openings]") { click_on "Load opening" }
     assert_text "Loaded Crown Forward."
-    click_on "Start Game"
+    click_on "Ready"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
     page.execute_script("document.querySelector('[data-controller=cyvasse-game]').dataset.cyvasseGamePaceValue = '0'")
     assert_selector "[data-controller=cyvasse-game][data-phase=play][data-offense='1'][data-holding=false]", wait: 15

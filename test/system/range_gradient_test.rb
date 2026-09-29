@@ -13,7 +13,7 @@ class RangeGradientTest < ApplicationSystemTestCase
     select "Crown Forward", from: "Opening"
     within("[data-controller=cyvasse-openings]") { click_on "Load opening" }
     assert_text "Loaded Crown Forward."
-    click_on "Start Game"
+    click_on "Ready"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
     page.execute_script("document.querySelector('[data-controller=cyvasse-game]').dataset.cyvasseGamePaceValue = '0'")
     assert_selector "[data-controller=cyvasse-game][data-phase=play][data-offense='1'][data-holding=false]", wait: 15
@@ -52,9 +52,9 @@ class RangeGradientTest < ApplicationSystemTestCase
     # The selected hex keeps its flat orange and is not textured.
     assert_equal ORANGE, fill_of(hex)
     assert_equal "none", page.evaluate_script("getComputedStyle(document.querySelector(\"g.hex[data-hex='#{hex}'] .ring-texture\")).display")
-    # An unlit hex stays black and bare.
+    # An unlit hex keeps the slate board gradient and no hatch.
     dark = page.evaluate_script("[...document.querySelectorAll('g.hex:not(.is-lit):not(.is-selected):not(.is-move):not(.is-attack) .hex-poly')].map((p) => getComputedStyle(p).fill)").uniq
-    assert_equal [ "rgb(0, 0, 0)" ], dark
+    assert_equal [ %(url("#hex-base")) ], dark
     screenshot("dragon")
 
     # The pencil skin redraws only the art: the gradients stay on the rings.
@@ -83,7 +83,7 @@ class RangeGradientTest < ApplicationSystemTestCase
     left = before - settled { lit_hexes } - [ king_hex ]
     assert_operator left.size, :>, 3
     left.each do |index|
-      assert_equal "rgb(0, 0, 0)", fill_of(index), "hex #{index} is dark again"
+      assert_equal %(url("#hex-base")), fill_of(index), "hex #{index} is back to the slate board"
       assert_equal "none", page.evaluate_script("getComputedStyle(document.querySelector(\"g.hex[data-hex='#{index}'] .ring-texture\")).display")
     end
     screenshot("king")

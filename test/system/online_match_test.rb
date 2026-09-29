@@ -22,7 +22,7 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
     assert_selector "svg.cyvasse-board g.hex", count: 91
     assert_selector ".cyvasse-dock .dock-unit", count: 19
     click_on "Random Setup"
-    click_on "Submit army"
+    click_on "Ready"
     assert_selector "[role=status]", text: "Waiting for brienne to accept"
     match = Match.last
 
@@ -36,7 +36,7 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
       assert_text "Challenge accepted"
       assert_no_selector "svg.cyvasse-board g.hex.has-unit[data-team='0']", wait: 0.5
       click_on "Random Setup"
-      click_on "Submit army"
+      click_on "Ready"
       assert_selector "#{BOARD}[data-phase=play]"
       assert_selector "svg.cyvasse-board g.hex.has-unit[data-team='1']", count: 19
       assert_selector "svg.cyvasse-board g.hex.has-unit[data-team='0']", count: 19

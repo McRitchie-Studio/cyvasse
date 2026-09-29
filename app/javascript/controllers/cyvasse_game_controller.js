@@ -102,6 +102,16 @@ const RANGE_STOPS = {
   ]
 }
 
+// The ground under every hex, before any ring lights it: the plain board is a
+// cool slate, your setup rows near-black with a faint indigo cast (and the
+// hatch, game.css), and once a unit is picked in setup the empty hexes it may
+// go to light up. Centre, middle and edge stops; paintGround() applies them.
+const GROUND = {
+  "hex-base": [["0%", "hsl(218, 10%, 25%)"], ["60%", "hsl(220, 11%, 17%)"], ["100%", "hsl(222, 13%, 10%)"]],
+  "hex-deploy": [["0%", "hsl(232, 20%, 12%)"], ["65%", "hsl(236, 24%, 7%)"], ["100%", "hsl(240, 28%, 4%)"]],
+  "hex-drop": [["0%", "hsl(226, 72%, 50%)"], ["55%", "hsl(233, 64%, 34%)"], ["100%", "hsl(240, 58%, 20%)"]]
+}
+
 // Every class a ripple may leave on a hex; render() and each repaint clear
 // the lot, so a hex never carries two looks.
 const RING_CLASSES = ["is-lit", "is-ghost", "is-field", "is-target", "is-blocked"]
@@ -361,6 +371,7 @@ export default class extends Controller {
       }
       defs.append(gradient)
     }
+    for (const [id, stops] of Object.entries(GROUND)) gradientOf(id, stops)
     for (const [table, entries] of Object.entries(HSL_TABLES)) {
       entries.forEach((entry, step) => {
         for (const hue of Object.values(PREVIEW_HUE)) gradientOf(`ghost-${hue}-${table}-${step}`, ghostStops(hue, entry))
@@ -467,7 +478,7 @@ export default class extends Controller {
     for (const [index, node] of this.hexNodes) {
       const unit = game.pieceAt(index)
       node.group.classList.toggle("has-unit", !!unit)
-      node.group.classList.remove("is-move", "is-attack", "is-selected", "is-deploy", "is-last-move", ...RING_CLASSES)
+      node.group.classList.remove("is-move", "is-attack", "is-selected", "is-deploy", "is-drop", "is-last-move", ...RING_CLASSES)
       delete node.group.dataset.ghost
       node.group.dataset.unitId = unit?.id ?? ""
       node.group.dataset.team = unit ? unit.team : ""
@@ -494,16 +505,33 @@ export default class extends Controller {
       }
       const selected = this.selectedUnitId && game.unit(this.selectedUnitId)
       if (selected?.hex) this.hexNodes.get(selected.hex).group.classList.add("is-selected")
+      // A picked unit lights the empty hexes of your rows it may go to.
+      if (selected) {
+        for (const [index, node] of this.hexNodes) {
+          if (inPlayerZone(index) && !game.pieceAt(index)) node.group.classList.add("is-drop")
+        }
+      }
     } else {
       for (const hex of [...game.lastMove, game.utilMove]) {
         if (hex) this.hexNodes.get(hex).group.classList.add("is-last-move")
       }
     }
 
+    this.paintGround()
     this.renderDock()
     this.renderStatus()
     this.renderGraveyards()
     this.renderInfo(this.selectedUnitId ? game.unit(this.selectedUnitId) : null)
+  }
+
+  // Each hex's resting fill, from the classes render() just set. It is the
+  // polygon's fill attribute, so the stylesheet's orange (the selection and
+  // the last move) and a ring's inline gradient both draw over it.
+  paintGround() {
+    for (const { group, polygon } of this.hexNodes.values()) {
+      const ground = group.classList.contains("is-drop") ? "hex-drop" : group.classList.contains("is-deploy") ? "hex-deploy" : "hex-base"
+      polygon.setAttribute("fill", `url(#${ground})`)
+    }
   }
 
   renderDock() {
@@ -519,7 +547,7 @@ export default class extends Controller {
       button.append(img(this.imagesValue[unit.type.codename], unit.type.name))
       return button
     }))
-    this.startButtonTarget.hidden = !this.game.readyToStart
+    this.startButtonTarget.disabled = !this.game.readyToStart
   }
 
   renderStatus() {
