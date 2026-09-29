@@ -98,8 +98,22 @@
   fill: #f7f4ec;
 }
 
+/* The art fills about four fifths of its hex (the box is 56 x 60 around the
+ * centre; the vector art carries its own margin). The pencil art runs to the
+ * edge of its canvas, so it is drawn smaller, inside its parchment disc.
+ * An SVG element scales about the user-space origin, the hex centre. */
 .cyvasse-board .unit-image {
   pointer-events: none;
+}
+
+[data-skin="pencil"] .cyvasse-board .unit-image {
+  transform: scale(0.84);
+}
+
+/* A mountain's art runs to the foot of its canvas; drawn a little smaller
+ * it sits inside the hex's lower edge in both skins (rank 0 is a mountain). */
+.cyvasse-board .hex[data-rank="0"] .unit-image {
+  transform: scale(0.86);
 }
 
 /* A hex the ripple has lit (.is-lit) carries a faint diagonal hatch over its

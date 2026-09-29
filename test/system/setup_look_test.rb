@@ -58,6 +58,17 @@ class SetupLookTest < ApplicationSystemTestCase
     assert_no_selector "svg.cyvasse-board g.hex.is-drop"
     assert_button "Ready", disabled: true
 
+    # The piece art fills most of its hex without spilling over the edge:
+    # its box is about as wide as the hex (the vector art carries a margin).
+    art, hex = page.evaluate_script(<<~JS)
+      (() => {
+        const g = document.querySelector("svg.cyvasse-board g.hex[data-hex='56']")
+        return [g.querySelector(".unit-image"), g.querySelector(".hex-poly")].map((e) => e.getBoundingClientRect().width)
+      })()
+    JS
+    assert_operator art / hex, :>, 0.9, "the art box spans most of the hex"
+    assert_operator art, :<=, hex, "the art box stays inside the hex"
+
     # A full army enables Ready: a solid violet fill at full strength.
     click_on "Random Setup"
     ready = find_button("Ready")
