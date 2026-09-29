@@ -29,6 +29,28 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     assert_empty missing
   end
 
+  # Runs the block with the browser's Math.random seeded (mulberry32) on
+  # every page it loads, so /play's army, the computer's lineup, who moves
+  # first and the computer's moves are one fixed game rather than a random
+  # one that can end before the test's steps run. The browser outlives the
+  # test, so the seeding is always removed.
+  def with_seeded_random(seed)
+    script = page.driver.browser.execute_cdp("Page.addScriptToEvaluateOnNewDocument", source: <<~JS)
+      (() => {
+        let a = #{Integer(seed)} >>> 0
+        Math.random = () => {
+          a = (a + 0x6D2B79F5) >>> 0
+          let t = Math.imul(a ^ (a >>> 15), a | 1)
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+        }
+      })()
+    JS
+    yield
+  ensure
+    page.driver.browser.execute_cdp("Page.removeScriptToEvaluateOnNewDocument", identifier: script["identifier"]) if script
+  end
+
   # [scrollWidth, clientWidth] of the page once any view transition has
   # finished. Studio.smooth_load wraps each Turbo visit in one, and mid-flight
   # its overlay spans the whole window, scrollbar gutter included, so a width
