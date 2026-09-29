@@ -1,16 +1,18 @@
-<%# The match's versus line: [avatar] you  vs  them [avatar]. Locals: me, opponent, opponent_name. %>
-<% avatar_size = "w-10 h-10 text-base sm:w-14 sm:h-14 sm:text-xl" %>
-<h1 class="match-versus text-heading">
-  <span class="match-versus-side" data-side="me">
-    <%= render "players/avatar", user: me, name: me.username, size: avatar_size %>
-    <span class="match-versus-name"><%= me.username %></span>
-  </span>
-  <span class="match-versus-vs text-muted">vs</span>
-  <span class="match-versus-side match-versus-side-them" data-side="them">
-    <span class="match-versus-name">
-      <span data-cyvasse-match-target="opponent"><%= opponent_name %></span>
-      <% if opponent.computer? %><span class="live-computer-tag">computer</span><% end %>
+<%# The match's versus card: you over them, each an avatar beside a name. Locals: me, opponent, opponent_name. %>
+<% avatar_size = "w-11 h-11 text-base" %>
+<div class="card match-versus-card">
+  <h1 class="match-versus text-heading">
+    <span class="match-versus-side" data-side="me">
+      <%= render "players/avatar", user: me, name: me.username, size: avatar_size %>
+      <span class="match-versus-name"><%= me.username %></span>
     </span>
-    <%= render "players/avatar", user: opponent, name: opponent_name, size: avatar_size %>
-  </span>
-</h1>
+    <span class="match-versus-vs text-muted">vs</span>
+    <span class="match-versus-side" data-side="them">
+      <%= render "players/avatar", user: opponent, name: opponent_name, size: avatar_size %>
+      <span class="match-versus-who">
+        <span class="match-versus-name" data-cyvasse-match-target="opponent"><%= opponent_name %></span>
+        <% if opponent.computer? %><span class="match-versus-bot text-muted">Computer</span><% end %>
+      </span>
+    </span>
+  </h1>
+</div>
