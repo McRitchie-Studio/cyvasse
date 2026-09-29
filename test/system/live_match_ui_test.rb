@@ -32,7 +32,7 @@ class LiveMatchUiTest < ApplicationSystemTestCase
   test "[e2e] the header puts an avatar at each edge, the computer's piece art on the right, and fits a phone" do
     visit match_path(@match)
     them = @match.display_name_of(@match.away_user)
-    assert_selector "h1.match-versus [data-side=me] [data-avatar=initials]", text: "A"
+    assert_selector "h1.match-versus [data-side=me] [data-avatar=piece] img[src*='pieces/vector/']"
     assert_selector "h1.match-versus [data-side=them] [data-avatar=bot-fallback][aria-label='#{them}'] img[src*='pieces/vector/']"
     assert_selector "h1.match-versus [data-side=them]", text: them
     me, vs, bot = %w[[data-side=me]\ [data-avatar] .match-versus-vs [data-side=them]\ [data-avatar]].map do |css|

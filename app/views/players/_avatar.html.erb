@@ -15,6 +15,8 @@
 <% elsif user.avatar.attached? %>
   <%= image_tag user.avatar, alt: name, class: "#{shape} object-cover", data: { avatar: "photo" } %>
 <% else %>
-  <span class="<%= shape %> inline-flex items-center justify-center font-bold text-white" role="img" aria-label="<%= name %>"
-        style="background-color: <%= user.avatar_color %>" data-avatar="initials"><%= user.avatar_initials %></span>
+  <span class="<%= shape %> inline-flex items-center justify-center p-0.5 ring-2 bg-[#f4ecd8]" role="img" aria-label="<%= name %>"
+        style="--tw-ring-color: <%= user.avatar_color %>" data-avatar="piece">
+    <%= image_tag user_piece(user).image(:vector), alt: "", class: "h-full w-full object-contain", aria: { hidden: true } %>
+  </span>
 <% end %>
