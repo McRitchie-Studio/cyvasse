@@ -26,9 +26,12 @@ class HomeGalleryCapture < ApplicationSystemTestCase
   OUT = Rails.root.join("app/assets/images", HomeGallery::DIRECTORY)
   PREVIEWS = Rails.root.join("tmp/home_gallery")
 
-  # Crops, in board units (a hex is 60 wide). The board is 668 x 597.
-  DESKTOP = { width: 440, height: 275, pixels: 1800 }.freeze
-  MOBILE = { width: 300, height: 480, pixels: 720 }.freeze
+  # Crops, in board units (a hex is 60 wide). The board is 668 x 597, a
+  # hexagon, so a crop centred far from the middle catches the empty corners:
+  # `reach` keeps each crop's centre that close to the board's centre, and the
+  # hero may sit off the crop's centre instead.
+  DESKTOP = { width: 440, height: 275, pixels: 1800, reach: { x: 44, y: 62 } }.freeze
+  MOBILE = { width: 300, height: 480, pixels: 720, reach: { x: 134, y: 60 } }.freeze
   QUALITY = 72
   MAX_BYTES = 150 * 1024
 
@@ -52,7 +55,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
       units: [
         [ 1, "trebuchet", 76 ], [ 1, "king", 86 ], [ 1, "crossbowman", 84 ], [ 1, "elephant", 67 ], [ 1, "spearman", 65 ],
         [ 1, "rabble", 58 ], [ 1, "lighthorse", 70 ], [ 1, "catapult", 81 ],
-        [ 0, "lighthorse", 47 ], [ 0, "mountain", 57 ], [ 0, "spearman", 44 ], [ 0, "dragon", 37 ], [ 0, "rabble", 36 ],
+        [ 0, "lighthorse", 47 ], [ 1, "mountain", 57 ], [ 0, "spearman", 44 ], [ 0, "dragon", 37 ], [ 0, "rabble", 36 ],
         [ 0, "elephant", 34 ], [ 0, "king", 5 ], [ 0, "crossbowman", 26 ], [ 0, "heavyhorse", 29 ]
       ]
     },
@@ -71,7 +74,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
         [ 1, "elephant", 56 ], [ 1, "elephant", 58 ], [ 1, "spearman", 55 ], [ 1, "spearman", 59 ], [ 1, "rabble", 57 ],
         [ 1, "heavyhorse", 65 ], [ 1, "crossbowman", 67 ], [ 1, "king", 76 ], [ 1, "catapult", 75 ], [ 1, "trebuchet", 85 ],
         [ 0, "rabble", 45 ], [ 0, "spearman", 35 ], [ 0, "elephant", 36 ], [ 0, "rabble", 37 ], [ 0, "spearman", 26 ],
-        [ 0, "lighthorse", 48 ], [ 0, "crossbowman", 27 ], [ 0, "king", 4 ], [ 0, "catapult", 16 ]
+        [ 0, "crossbowman", 27 ], [ 0, "king", 4 ], [ 0, "catapult", 16 ]
       ]
     },
     "catapult" => {
@@ -80,24 +83,24 @@ class HomeGalleryCapture < ApplicationSystemTestCase
         [ 1, "catapult", 66 ], [ 1, "spearman", 56 ], [ 1, "elephant", 58 ], [ 1, "king", 78 ], [ 1, "crossbowman", 73 ],
         [ 1, "heavyhorse", 63 ], [ 1, "rabble", 69 ], [ 1, "mountain", 83 ],
         [ 0, "heavyhorse", 36 ], [ 0, "rabble", 46 ], [ 0, "spearman", 34 ], [ 0, "lighthorse", 38 ], [ 0, "elephant", 25 ],
-        [ 0, "dragon", 18 ], [ 0, "king", 2 ], [ 0, "mountain", 45 ]
+        [ 0, "dragon", 18 ], [ 0, "king", 2 ], [ 0, "mountain", 35 ]
       ]
     },
     "king" => {
       select: 76, last: [ 12, 39 ], turn: 16,
       units: [
-        [ 1, "king", 76 ], [ 1, "spearman", 67 ], [ 1, "spearman", 66 ], [ 1, "crossbowman", 75 ], [ 1, "crossbowman", 77 ],
-        [ 1, "elephant", 68 ], [ 1, "catapult", 84 ], [ 1, "trebuchet", 83 ], [ 1, "rabble", 58 ], [ 1, "heavyhorse", 70 ],
+        [ 1, "king", 76 ], [ 1, "spearman", 67 ], [ 1, "spearman", 66 ], [ 1, "crossbowman", 75 ], [ 1, "crossbowman", 78 ],
+        [ 1, "elephant", 68 ], [ 1, "catapult", 85 ], [ 1, "trebuchet", 83 ], [ 1, "rabble", 58 ], [ 1, "heavyhorse", 70 ],
         [ 0, "dragon", 39 ], [ 0, "lighthorse", 47 ], [ 0, "heavyhorse", 50 ], [ 0, "rabble", 36 ], [ 0, "elephant", 26 ],
         [ 0, "king", 5 ], [ 0, "crossbowman", 28 ]
       ]
     },
     "mountain" => {
-      select: 45, last: [ 34, 44 ], turn: 6,
+      select: 55, focus: 56, last: [ 36, 46 ], turn: 6,
       units: [
-        [ 1, "mountain", 45 ], [ 1, "mountain", 48 ], [ 1, "crossbowman", 56 ], [ 1, "spearman", 55 ], [ 1, "elephant", 58 ],
-        [ 1, "king", 77 ], [ 1, "catapult", 66 ], [ 1, "heavyhorse", 64 ], [ 1, "rabble", 60 ], [ 1, "trebuchet", 85 ],
-        [ 0, "rabble", 44 ], [ 0, "elephant", 35 ], [ 0, "heavyhorse", 36 ], [ 0, "spearman", 38 ], [ 0, "lighthorse", 49 ],
+        [ 1, "mountain", 55 ], [ 1, "mountain", 58 ], [ 1, "spearman", 56 ], [ 1, "elephant", 57 ], [ 1, "crossbowman", 64 ],
+        [ 1, "catapult", 67 ], [ 1, "heavyhorse", 69 ], [ 1, "king", 77 ], [ 1, "rabble", 60 ], [ 1, "trebuchet", 85 ],
+        [ 0, "rabble", 44 ], [ 0, "heavyhorse", 46 ], [ 0, "lighthorse", 50 ], [ 0, "spearman", 47 ], [ 0, "elephant", 35 ],
         [ 0, "rabble", 26 ], [ 0, "king", 4 ], [ 0, "crossbowman", 27 ], [ 0, "catapult", 17 ]
       ]
     },
@@ -107,7 +110,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
         [ 1, "crossbowman", 65 ], [ 1, "spearman", 55 ], [ 1, "rabble", 56 ], [ 1, "king", 85 ], [ 1, "heavyhorse", 64 ],
         [ 1, "elephant", 67 ], [ 1, "catapult", 74 ], [ 1, "crossbowman", 77 ],
         [ 0, "elephant", 45 ], [ 0, "rabble", 44 ], [ 0, "spearman", 34 ], [ 0, "lighthorse", 36 ], [ 0, "king", 3 ],
-        [ 0, "dragon", 15 ], [ 0, "mountain", 47 ], [ 0, "trebuchet", 8 ]
+        [ 0, "dragon", 15 ], [ 0, "mountain", 37 ], [ 0, "trebuchet", 8 ]
       ]
     },
     "rabble" => {
@@ -116,7 +119,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
         [ 1, "rabble", 56 ], [ 1, "rabble", 54 ], [ 1, "rabble", 58 ], [ 1, "spearman", 65 ], [ 1, "spearman", 66 ],
         [ 1, "elephant", 64 ], [ 1, "king", 77 ], [ 1, "crossbowman", 74 ], [ 1, "lighthorse", 69 ], [ 1, "mountain", 60 ],
         [ 0, "rabble", 36 ], [ 0, "rabble", 45 ], [ 0, "spearman", 35 ], [ 0, "elephant", 26 ], [ 0, "heavyhorse", 38 ],
-        [ 0, "king", 4 ], [ 0, "crossbowman", 16 ], [ 0, "mountain", 47 ]
+        [ 0, "king", 4 ], [ 0, "crossbowman", 16 ], [ 0, "mountain", 37 ]
       ]
     },
     "spearman" => {
@@ -241,10 +244,14 @@ class HomeGalleryCapture < ApplicationSystemTestCase
     end
   end
 
-  # A crop of the given size centred on the focus, kept inside the board.
+  # A crop of the given size centred as near the focus as its reach allows.
   def crop_around(board, crop)
-    x = (board["cx"] - crop[:width] / 2.0).clamp(0, board["width"] - crop[:width])
-    y = (board["cy"] - crop[:height] / 2.0).clamp(0, board["height"] - crop[:height])
+    mid_x = board["width"] / 2.0
+    mid_y = board["height"] / 2.0
+    cx = board["cx"].clamp(mid_x - crop[:reach][:x], mid_x + crop[:reach][:x])
+    cy = board["cy"].clamp(mid_y - crop[:reach][:y], mid_y + crop[:reach][:y])
+    x = (cx - crop[:width] / 2.0).clamp(0, board["width"] - crop[:width])
+    y = (cy - crop[:height] / 2.0).clamp(0, board["height"] - crop[:height])
     { x:, y:, width: crop[:width], height: crop[:height] }
   end
 
