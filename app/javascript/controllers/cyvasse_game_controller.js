@@ -635,8 +635,9 @@ export default class extends Controller {
       const danger = kills.has(index) && unit?.team === PLAYER
       node.group.classList.toggle("is-danger", danger)
       node.group.classList.toggle("is-threatened", reach.has(index))
-      const label = node.group.getAttribute("aria-label").replace(/, in danger$/, "")
-      node.group.setAttribute("aria-label", danger ? `${label}, in danger` : label)
+      // Said after the unit's name, which stays as it is.
+      if (danger) node.group.setAttribute("aria-description", "In danger: the opponent can take it next turn")
+      else node.group.removeAttribute("aria-description")
     }
     if (!live) return this.threatPath.setAttribute("d", "")
 

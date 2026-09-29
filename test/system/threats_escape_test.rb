@@ -39,7 +39,7 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     assert_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='48']"
     assert_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='44']"
     assert_no_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='91']"
-    assert_selector "svg.cyvasse-board g.hex.is-danger[data-hex='44'][aria-label$='in danger']"
+    assert_selector "svg.cyvasse-board g.hex.is-danger[data-hex='44'][aria-description^='In danger']"
     assert_no_selector "svg.cyvasse-board g.hex.is-danger[data-hex='48']"
     assert_no_selector "svg.cyvasse-board g.hex.is-danger[data-hex='91']"
     assert_equal [ "44" ], danger_hexes
