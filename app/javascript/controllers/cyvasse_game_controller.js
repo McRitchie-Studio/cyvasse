@@ -4,7 +4,7 @@ import { chooseAction, KILL_PRIORITY } from "cyvasse/ai"
 import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
 import { UNIT_TYPES } from "cyvasse/units"
 import { Banner, passNotice } from "cyvasse/banner"
-import { threats, outlineEdges } from "cyvasse/threats"
+import { threats } from "cyvasse/threats"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -137,10 +137,6 @@ function overBoard(color, alpha) {
 // Every class a ripple may leave on a hex; render() and each repaint clear
 // the lot, so a hex never carries two looks.
 const RING_CLASSES = ["is-lit", "is-ghost", "is-field", "is-target", "is-blocked"]
-// The selection, the rings it lights and the last move's orange: the threat
-// outline paints beneath these (maskThreats), as it hides nothing a player reads.
-const HIGHLIGHTS = ["is-selected", "is-move", "is-attack", "is-last-move", ...RING_CLASSES]
-
 // The threat outline (renderThreats) is on unless the player turned it off.
 const THREATS_KEY = "cyvasse.showThreats"
 
@@ -151,10 +147,6 @@ function threatsWanted() {
     return true
   }
 }
-
-// The six corners of a hex at full size, shared exactly with its neighbours,
-// so an edge two threatened hexes share can be found and left undrawn.
-const FULL_CORNERS = [[0, -H / 2], [W / 2, -H / 4], [W / 2, H / 4], [0, H / 2], [-W / 2, H / 4], [-W / 2, -H / 4]]
 
 const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", unique: "Unique", mountain: "Mountain" }
 
@@ -457,6 +449,12 @@ export default class extends Controller {
         for (const [kind, stops] of Object.entries(RANGE_STOPS)) gradientOf(`${kind}-${table}-${step}`, stops(s, l))
       })
     }
+    // A unit in danger: orange from the hex's edges in, like the team shade.
+    const danger = el("radialGradient", { id: "danger-edge", r: "60%" })
+    for (const [offset, opacity] of [["45%", 0], ["100%", 0.95]]) {
+      danger.append(el("stop", { offset, "stop-color": "#fb923c", "stop-opacity": opacity }))
+    }
+    defs.append(danger)
     // The texture over a lit hex: a fine diagonal hatch, light and faint.
     const texture = el("pattern", { id: "ring-texture", patternUnits: "userSpaceOnUse", width: 5, height: 5, patternTransform: "rotate(40)" })
     texture.append(el("line", { x1: 0, y1: 0, x2: 0, y2: 5, stroke: "white", "stroke-opacity": 0.14, "stroke-width": 1.2 }))
@@ -465,10 +463,12 @@ export default class extends Controller {
     svg.append(defs)
     this.hexNodes = new Map()
     this.hexCentres = new Map()
-    this.hexPolygons = new Map()
 
-    const corners = [[0, -H / 2], [W / 2, -H / 4], [W / 2, H / 4], [0, H / 2], [-W / 2, H / 4], [-W / 2, -H / 4]]
-      .map(([x, y]) => `${(x * 0.97).toFixed(2)},${(y * 0.97).toFixed(2)}`).join(" ")
+    const cornersAt = (scale) => [[0, -H / 2], [W / 2, -H / 4], [W / 2, H / 4], [0, H / 2], [-W / 2, H / 4], [-W / 2, -H / 4]]
+      .map(([x, y]) => `${(x * scale).toFixed(2)},${(y * scale).toFixed(2)}`).join(" ")
+    const corners = cornersAt(0.97)
+    // Inset, so the pulse never tints the hex's red range edge.
+    const dangerCorners = cornersAt(0.9)
 
     for (const hex of HEXES) {
       const cx = PAD + (11 - hex.size) * W / 2 + (hex.x - 0.5) * W
@@ -480,26 +480,14 @@ export default class extends Controller {
       const polygon = el("polygon", { class: "hex-poly", points: corners })
       const texture = el("polygon", { class: "ring-texture", points: corners, fill: "url(#ring-texture)" })
       const shade = el("polygon", { class: "unit-shade", points: corners })
-      const danger = el("circle", { class: "danger-ring", r: 28.5 })
+      const danger = el("polygon", { class: "danger-edge", points: dangerCorners, fill: "url(#danger-edge)" })
       const disc = el("circle", { class: "unit-disc", r: 27 })
       const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
       group.append(polygon, texture, shade, danger, disc, image)
       svg.append(group)
       this.hexNodes.set(hex.index, { group, polygon, shade, disc, image })
       this.hexCentres.set(hex.index, { x: cx, y: cy, row: hex.y })
-      this.hexPolygons.set(hex.index, FULL_CORNERS.map(([dx, dy]) => [cx + dx, cy + dy]))
     }
-    // The opponent's reach, drawn as one outline over the board (renderThreats).
-    // It lies over the resting board but beneath the selection and the move
-    // rings: the mask cuts it away over every hex that carries one of those
-    // (maskThreats), so they read clean wherever the outline runs.
-    const mask = el("mask", { id: `${this.identifier}-threat-mask`, maskUnits: "userSpaceOnUse", x: 0, y: 0, width, height })
-    mask.append(el("rect", { x: 0, y: 0, width, height, fill: "white" }))
-    this.threatHoles = el("g", { fill: "black" })
-    mask.append(this.threatHoles)
-    defs.append(mask)
-    this.threatPath = el("path", { class: "threat-outline", mask: `url(#${this.identifier}-threat-mask)` })
-    svg.append(this.threatPath)
 
     // What a screen reader says after a threatened unit's name (renderThreats).
     // Hidden text, joined to the name with aria-labelledby (which reads hidden
@@ -640,10 +628,9 @@ export default class extends Controller {
   }
 
   // Where the opponent could strike next turn (cyvasse/threats, from the
-  // rules' own legal actions): the outer edge of that region is outlined, the
-  // opponent's own units counted in so the outline is one shape rather than
-  // a ring round each of them, and every unit of yours they could actually
-  // kill wears the danger ring. Play only; the switch turns it off.
+  // rules' own legal actions): each hex in reach gets .is-threatened (a full
+  // red outline in game.css) and each unit of yours they could actually kill
+  // .is-danger (the orange edge pulse). Play only; the switch turns it off.
   renderThreats() {
     const game = this.game
     // Read once per page, by /play and the match board alike.
@@ -668,26 +655,6 @@ export default class extends Controller {
         node.group.removeAttribute("aria-labelledby")
       }
     }
-    if (!live) return this.threatPath.setAttribute("d", "")
-
-    const region = new Set(reach)
-    for (const unit of game.teamUnits(1 - PLAYER, "alive")) region.add(unit.hex)
-    const d = outlineEdges(region, this.hexPolygons)
-      .map(([[ax, ay], [bx, by]]) => `M${ax.toFixed(1)} ${ay.toFixed(1)}L${bx.toFixed(1)} ${by.toFixed(1)}`).join("")
-    this.threatPath.setAttribute("d", d)
-    this.maskThreats()
-  }
-
-  // Cut the threat outline away over the hexes the selection and its rings
-  // light, so the outline paints beneath them (see buildBoard's mask).
-  maskThreats() {
-    if (!this.threatHoles) return
-    const holes = []
-    for (const [index, { group }] of this.hexNodes) {
-      if (!HIGHLIGHTS.some((name) => group.classList.contains(name))) continue
-      holes.push(el("polygon", { points: this.hexPolygons.get(index).map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(" ") }))
-    }
-    this.threatHoles.replaceChildren(...holes)
   }
 
   // The "start over" hint shows while there is something to start over from.
@@ -790,7 +757,6 @@ export default class extends Controller {
     node.polygon.style.fill = "orange"
     for (const i of this.actions.moves) this.hexNodes.get(i).group.classList.add("is-move")
     for (const i of this.actions.attacks) this.hexNodes.get(i).group.classList.add("is-attack")
-    this.maskThreats()
     this.ripple(unit)
     this.renderHint()
   }
@@ -842,8 +808,7 @@ export default class extends Controller {
         }
       }
       distance += 1
-      this.maskThreats()
-    }
+      }
 
     // No ripple for a player who asked for less motion: the rings land at once.
     const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches

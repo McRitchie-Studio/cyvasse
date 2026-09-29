@@ -3,10 +3,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { HEXES, hexAt, distance, neighbors } from "cyvasse/board";
+import { HEXES, hexAt, distance } from "cyvasse/board";
 import { UNIT_TYPES } from "cyvasse/units";
 import { legalActions } from "cyvasse/rules";
-import { threats, outlineEdges } from "cyvasse/threats";
+import { threats } from "cyvasse/threats";
 
 const ME = 1;
 const THEM = 0;
@@ -71,36 +71,4 @@ test("a horse that takes the king does not jump on", () => {
   const { kills } = threats(position, THEM);
   assert.ok(kills.has(47), "the king can be taken");
   assert.ok(!kills.has(49), "nothing is taken after the king falls");
-});
-
-// The board's hexes laid out as the board controller draws them (W = 60,
-// pointy-top, rows offset by half a hex), at full size so neighbours share
-// their corners exactly.
-const W = 60;
-const H = W * 2 / Math.sqrt(3);
-const POLYGONS = new Map(HEXES.map((hex) => {
-  const cx = (11 - hex.size) * W / 2 + (hex.x - 0.5) * W;
-  const cy = H / 2 + (hex.y - 1) * H * 0.75;
-  const corners = [[0, -H / 2], [W / 2, -H / 4], [W / 2, H / 4], [0, H / 2], [-W / 2, H / 4], [-W / 2, -H / 4]];
-  return [hex.index, corners.map(([dx, dy]) => [cx + dx, cy + dy])];
-}));
-// The pairs (inside, board hex outside) across the region's boundary, by
-// the board's own neighbour table: one outline edge each, and no more.
-const boundaryPairs = (region) => [...region].flatMap((i) => neighbors(hexAt(i)).filter((n) => !region.has(n.index)));
-
-test("the outline runs only between a region hex and a board hex outside it", () => {
-  assert.deepEqual(outlineEdges(new Set(), POLYGONS), [], "no region, no outline");
-  assert.deepEqual(outlineEdges(new Set(HEXES.map((h) => h.index)), POLYGONS), [], "the whole board has no outline: its rim is never drawn");
-  assert.equal(outlineEdges(new Set([46]), POLYGONS).length, 6, "a lone hex in the middle is ringed");
-
-  // Hex 1 is a corner: only the edges facing its board neighbours are drawn.
-  const corner = outlineEdges(new Set([1]), POLYGONS);
-  assert.equal(corner.length, neighbors(hexAt(1)).length);
-  assert.ok(corner.length < 6, "the corner's rim edges are left out");
-
-  // The computer's five rows reach the rim on three sides; only the line
-  // where they meet the rest of the board is drawn.
-  for (const region of [new Set(HEXES.filter((h) => h.index <= 40).map((h) => h.index)), new Set([1, ...disc(46, 3), 91])]) {
-    assert.equal(outlineEdges(region, POLYGONS).length, boundaryPairs(region).length);
-  }
 });

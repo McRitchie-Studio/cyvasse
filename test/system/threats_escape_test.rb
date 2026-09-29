@@ -2,9 +2,9 @@ require "application_system_test_case"
 
 # [component] The threat outline and "start over", in a real browser:
 #
-# - In play, the region the opponent could strike next turn is outlined, and
-#   a unit of yours they could actually kill wears the danger ring; one that
-#   is merely within reach does not. A switch turns it off and is remembered.
+# - In play, every hex the opponent could strike next turn is outlined, and
+#   a unit of yours they could actually kill is marked in danger; one that
+#   is merely within reach is not. (The look: board_highlights_test.rb.) A switch turns it off and is remembered.
 # - While a piece is picked, "Press Esc to start over" shows. Esc lets go of
 #   the piece, puts back a picked dock unit in setup, and takes back a
 #   cavalry unit's first jump (capture and all) before the turn is played.
@@ -18,7 +18,7 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
 
   test "setup: no threats, and Esc puts a picked dock unit back" do
     assert_no_selector ".cyvasse-threat-toggle", visible: true
-    assert_equal "", outline
+    assert_equal 0, outline
     first(".cyvasse-dock .dock-unit").click
     assert_selector "svg.cyvasse-board g.hex.is-drop", count: 40
     assert_selector ".cyvasse-hint", text: "Press Esc to start over"
@@ -35,7 +35,7 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     stage("0-15" => 46, "0-17" => 1, "1-17" => 91, "1-6" => 48, "1-1" => 44)
     screenshot("threats")
 
-    assert_not_equal "", outline, "the outline is drawn"
+    assert_operator outline, :>, 0, "the reach is outlined"
     assert_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='48']"
     assert_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='44']"
     assert_no_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='91']"
@@ -48,40 +48,6 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     assert_no_selector "svg.cyvasse-board g.hex.is-danger[data-hex='48']"
     assert_no_selector "svg.cyvasse-board g.hex.is-danger[data-hex='91']"
     assert_equal [ "44" ], danger_hexes
-    assert_equal "inline", page.evaluate_script("getComputedStyle(document.querySelector(\"g.hex[data-hex='44'] .danger-ring\")).display")
-
-    # The outline runs round the region's outer edge only: a hex deep inside
-    # the catapult's range (47, between it and the elephant) has no edge on it.
-    edges = outline_segments
-    centre = hex_centre(47)
-    assert edges.none? { |(ax, ay), (bx, by)| (((ax + bx) / 2 - centre[0])**2 + ((ay + by) / 2 - centre[1])**2) < 40**2 },
-      "no outline edge runs through the middle of the region"
-
-    # The danger ring breathes by opacity and scale, never by stroke width.
-    frames = page.evaluate_script(<<~JS)
-      [...document.styleSheets].flatMap((sheet) => { try { return [...sheet.cssRules] } catch { return [] } })
-        .filter((rule) => rule.type === CSSRule.KEYFRAMES_RULE && rule.name === "cyvasse-danger")
-        .flatMap((rule) => [...rule.cssRules].map((frame) => frame.style.cssText))
-    JS
-    assert_not_empty frames
-    assert frames.none? { |frame| frame.include?("stroke") }, "no stroke property animates: #{frames}"
-    assert frames.any? { |frame| frame.include?("opacity") }
-
-    # Pick the rabble: the outline is cut away over the selection and its
-    # rings, so it paints beneath them.
-    find("svg.cyvasse-board g.hex[data-hex='44']").click
-    assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='44']"
-    lit = page.evaluate_script("[...document.querySelectorAll('svg.cyvasse-board g.hex')].filter((g) => ['is-selected', 'is-move', 'is-attack', 'is-lit'].some((c) => g.classList.contains(c))).length")
-    assert_operator lit, :>, 1
-    assert_equal lit, page.evaluate_script("document.querySelectorAll('#cyvasse-game-threat-mask g polygon').length")
-    assert_equal "url(\"#cyvasse-game-threat-mask\")", page.evaluate_script("getComputedStyle(document.querySelector('path.threat-outline')).mask")
-    press_escape
-    assert_equal 0, page.evaluate_script("document.querySelectorAll('#cyvasse-game-threat-mask g polygon').length")
-
-    # The last move's orange is read too: the outline is cut away over it.
-    page.execute_script("const ctrl = #{CONTROLLER}; ctrl.game.lastMove = [43, 44]; ctrl.render()")
-    assert_selector "svg.cyvasse-board g.hex.is-last-move", count: 2
-    assert_equal 2, page.evaluate_script("document.querySelectorAll('#cyvasse-game-threat-mask g polygon').length")
 
     # Move the rabble out of range: the danger follows the position.
     stage("0-15" => 46, "0-17" => 1, "1-17" => 91, "1-6" => 48, "1-1" => 90)
@@ -89,28 +55,14 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
 
     # The switch hides it all, and the choice survives a reload.
     uncheck "Show threats"
-    assert_equal "", outline
+    assert_equal 0, outline
     assert_no_selector "svg.cyvasse-board g.hex.is-danger"
     visit play_path
     start_game
     assert_no_checked_field "Show threats"
-    assert_equal "", outline
+    assert_equal 0, outline
     check "Show threats"
-    assert_not_equal "", outline
-  end
-
-  test "at the opening the outline draws no edge along the board's own rim" do
-    start_game
-    segments = outline_segments
-    assert_not_empty segments, "the outline is drawn at the opening"
-
-    # An edge between two board hexes has a hex centre half a hex (W / 2 = 30)
-    # from its midpoint on each side; an edge on the rim has only one. The
-    # outline marks where the reach ends inside the board, never the board's
-    # own edge, so the opening board does not wear a frame.
-    rim = segments.select { |edge| hexes_beside(edge) == 1 }
-    assert_empty rim, "#{rim.size} of #{segments.size} outline edges lie on the board's rim"
-    assert segments.all? { |edge| hexes_beside(edge) == 2 }, "every outline edge lies between two board hexes"
+    assert_operator outline, :>, 0
   end
 
   test "Esc lets go of a piece and takes back a cavalry unit's first jump" do
@@ -204,20 +156,9 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     find("body").send_keys(:escape)
   end
 
+  # How many hexes wear the opponent's-reach outline.
   def outline
-    page.evaluate_script("document.querySelector('svg.cyvasse-board path.threat-outline').getAttribute('d') || ''")
-  end
-
-  def outline_segments
-    outline.scan(/M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)/).map { |a| a.map(&:to_f).each_slice(2).to_a }
-  end
-
-  # How many board hexes an outline edge lies against: 2 inside the board, 1 on its rim.
-  def hexes_beside(((ax, ay), (bx, by)))
-    @centres ||= page.evaluate_script("[...#{CONTROLLER}.hexCentres.values()].map((c) => [c.x, c.y])")
-    mx = (ax + bx) / 2
-    my = (ay + by) / 2
-    @centres.count { |x, y| Math.hypot(x - mx, y - my) < 31 }
+    page.evaluate_script("document.querySelectorAll('svg.cyvasse-board g.hex.is-threatened').length")
   end
 
   # The name Chrome's accessibility tree computes for the element (what a
@@ -228,10 +169,6 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     node = browser.execute_cdp("DOM.querySelector", nodeId: root, selector: selector)["nodeId"]
     tree = browser.execute_cdp("Accessibility.getPartialAXTree", nodeId: node, fetchRelatives: false)
     tree["nodes"].first.dig("name", "value")
-  end
-
-  def hex_centre(hex)
-    page.evaluate_script("(() => { const c = #{CONTROLLER}.hexCentres.get(#{hex}); return [c.x, c.y] })()")
   end
 
   def danger_hexes

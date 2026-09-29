@@ -545,50 +545,40 @@
   accent-color: #e25c3c;
 }
 
-/* The opponent's reach: one thin, soft warm line round the region they could
- * strike next turn, drawn only where it meets board they cannot reach (never
- * along the board's own rim). Context, not a cue: it lies over the resting
- * board but beneath the selection and its move rings, which a mask cuts it
- * away from (maskThreats in the controller), so it hides nothing a player has
- * to read. */
-.cyvasse-board .threat-outline {
-  fill: none;
-  stroke: hsl(14 95% 62%);
-  stroke-opacity: 0.75;
+/* The opponent's reach: every hex they could strike next turn wears a full
+ * red outline (.is-threatened, from renderThreats), so the region reads as
+ * clearly outlined cells. It lies beneath the selection, its move rings and
+ * the last move (those hexes keep their own edges), and yields to hover and
+ * the keyboard's yellow focus edge. Class-driven: nothing runs per frame. */
+.cyvasse-board .hex.is-threatened:not(.is-selected, .is-move, .is-attack, .is-last-move, .is-lit, .is-ghost, .is-field, .is-target, .is-blocked, :hover, :focus-visible) .hex-poly {
+  stroke: #ef4444;
   stroke-width: 2.5;
-  stroke-linecap: round;
-  pointer-events: none;
 }
 
-/* A unit of yours the opponent could kill next turn: a red ring that breathes
- * behind the art (steady for a player who asked for less motion). It breathes
- * by opacity and scale, not stroke width, so no frame rebuilds its stroke
- * geometry (the ring is still repainted: SVG children get no layer of their
- * own). Scaled about the hex centre (the group's origin), its outer edge
- * swells from 30 to 31 units, where the old stroke-width 3 to 5 took it. */
-.cyvasse-board .danger-ring {
+/* A unit of yours the opponent could kill next turn: an orange glow from its
+ * hex's edges in, like the team shade, that breathes (steady for a player who
+ * asked for less motion). Inset inside the red range edge, so both read. It
+ * breathes by opacity alone, so no frame rebuilds its geometry (it is still
+ * repainted: SVG children get no layer of their own). */
+.cyvasse-board .danger-edge {
   display: none;
-  fill: none;
-  stroke: hsl(0 95% 60%);
-  stroke-width: 3;
   pointer-events: none;
 }
 
-.cyvasse-board .is-danger .danger-ring {
+.cyvasse-board .is-danger .danger-edge {
   display: inline;
-  animation: cyvasse-danger 1.6s ease-in-out infinite;
-  will-change: opacity, transform;
+  animation: cyvasse-danger 1.8s ease-in-out infinite;
+  will-change: opacity;
 }
 
 @keyframes cyvasse-danger {
-  0%, 100% { opacity: 0.95; transform: scale(1); }
-  50% { opacity: 0.35; transform: scale(1.035); }
+  0%, 100% { opacity: 0.95; }
+  50% { opacity: 0.4; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cyvasse-board .is-danger .danger-ring {
+  .cyvasse-board .is-danger .danger-edge {
     animation: none;
-    stroke-opacity: 0.9;
+    opacity: 0.85;
   }
 }
-

@@ -78,6 +78,7 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     # hexes drop the red edge and read clean; the rest of the reach keeps it.
     find("svg.cyvasse-board g.hex[data-hex='44']").click
     assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='44']"
+    mouse_away
     screenshot("selected")
     selected = style("g.hex[data-hex='44'] .hex-poly")
     assert_equal "rgb(255, 165, 0)", selected["fill"]
@@ -90,11 +91,19 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     assert_not_empty lit
     assert_not_includes lit, RED
     assert_equal RED, style("g.hex[data-hex='47'] .hex-poly")["stroke"], "47 is not lit by the rabble, so it keeps its outline"
+
+    # The last move's team edge reads over the outline too.
+    find("body").send_keys(:escape)
+    page.execute_script("const ctrl = #{CONTROLLER}; ctrl.game.lastMove = [43, 44]; ctrl.render()")
+    assert_selector "svg.cyvasse-board g.hex.is-last-move", count: 2
+    assert_equal "rgb(59, 130, 246)", style("g.hex[data-hex='44'] .hex-poly")["stroke"]
   end
 
   private
 
   def start_game
+    # Colours read at once, not partway through the edge's 0.25s fade.
+    page.execute_script("document.head.insertAdjacentHTML('beforeend', '<style>.cyvasse-board .hex-poly { transition: none !important }</style>')")
     select "Crown Forward", from: "Opening"
     within("[data-controller=cyvasse-openings]") { click_on "Load opening" }
     assert_text "Loaded Crown Forward."
@@ -117,6 +126,11 @@ class BoardHighlightsTest < ApplicationSystemTestCase
       ctrl.clearSelection()
       ctrl.render()
     JS
+  end
+
+  # Off the board, so no hex wears the hover edge.
+  def mouse_away
+    page.driver.browser.action.move_to_location(1, 1).perform
   end
 
   def style(selector)
