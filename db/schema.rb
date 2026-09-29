@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_230000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_30_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -51,6 +51,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_230000) do
     t.index ["created_at", "id"], name: "index_board_posts_on_created_at_and_id"
     t.index ["legacy_id"], name: "index_board_posts_on_legacy_id", unique: true
     t.index ["user_id"], name: "index_board_posts_on_user_id"
+  end
+
+  create_table "bot_tokens", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "last_used_at"
+    t.string "name"
+    t.datetime "revoked_at"
+    t.string "token_digest", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["token_digest"], name: "index_bot_tokens_on_token_digest", unique: true
+    t.index ["user_id"], name: "index_bot_tokens_on_user_id"
   end
 
   create_table "email_handoff_attempts", force: :cascade do |t|
@@ -335,6 +347,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_230000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "board_posts", "users"
+  add_foreign_key "bot_tokens", "users"
   add_foreign_key "email_handoff_attempts", "users", on_delete: :nullify
   add_foreign_key "live_seeks", "matches"
   add_foreign_key "live_seeks", "users"
