@@ -6,6 +6,29 @@ require "test_helper"
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   driven_by :selenium, using: :headless_chrome, screen_size: [ 1400, 1100 ]
 
+  # Waits until every element carrying each Stimulus identifier has its
+  # controller connected. stimulus-loading's eagerLoadControllersFrom imports
+  # each controller module on its own, so one can connect well after another,
+  # and a click on a server-rendered button before its controller connects is
+  # lost without a trace (task cyvasse-system-test-flakes). Wait on this, not
+  # on the button, before the first click a controller must answer.
+  def assert_controllers_connected(*identifiers)
+    missing = page.document.synchronize do
+      unconnected = page.evaluate_script(<<~JS, identifiers)
+        ((ids) => ids.flatMap((id) => {
+          const nodes = [...document.querySelectorAll(`[data-controller~="${id}"]`)]
+          const live = nodes.length > 0 && window.Stimulus &&
+            nodes.every((node) => Stimulus.getControllerForElementAndIdentifier(node, id))
+          return live ? [] : [id]
+        }))(arguments[0])
+      JS
+      raise Capybara::ExpectationNotMet, "not connected: #{unconnected.join(", ")}" if unconnected.any?
+
+      unconnected
+    end
+    assert_empty missing
+  end
+
   # [scrollWidth, clientWidth] of the page once any view transition has
   # finished. Studio.smooth_load wraps each Turbo visit in one, and mid-flight
   # its overlay spans the whole window, scrollbar gutter included, so a width
