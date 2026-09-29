@@ -66,6 +66,70 @@ class GuestClaimTest < ActiveSupport::TestCase
     assert_equal 1, Match.involving(@arya).count
   end
 
+  test "a brand-new account takes the guest's games, lineups and piece art whole" do
+    newcomer = User.create!(email: "newcomer@example.com")
+    won = live_result(@guest, @qavo, winner: @guest)
+    lineup = Setup.create!(user: @guest, button_position: 2, name: "Wall", units_position: army)
+    @guest.update_columns(wins: 1, piece_skin: "pencil")
+
+    assert GuestClaim.call(guest: @guest, user: newcomer)
+
+    assert_equal newcomer, won.reload.winner
+    assert_equal newcomer, lineup.reload.user
+    assert_equal [ 1, 0, "pencil" ], [ newcomer.reload.wins, newcomer.losses, newcomer.piece_skin ]
+  end
+
+  test "an account with games of its own keeps them, its lineups and its art" do
+    own = live_result(@arya, @qavo, winner: @arya)
+    guests = live_result(@guest, @qavo, winner: @qavo)
+    kept = Setup.create!(user: @arya, button_position: 1, name: "Mine", units_position: army)
+    clash = Setup.create!(user: @guest, button_position: 1, name: "Theirs", units_position: army)
+    free = Setup.create!(user: @guest, button_position: 3, name: "Spare", units_position: army)
+    @arya.update_columns(wins: 4, losses: 1, piece_skin: "vector")
+    @guest.update_columns(losses: 1, piece_skin: "pencil")
+
+    assert GuestClaim.call(guest: @guest, user: @arya)
+
+    assert_equal [ @arya, @arya ], [ own.reload.home_user, guests.reload.home_user ]
+    assert_equal [ 4, 2, "vector" ], [ @arya.reload.wins, @arya.losses, @arya.piece_skin ]
+    assert_equal({ 1 => "Mine", 2 => nil, 3 => "Spare" }, Setup.slots_for(@arya).transform_values { _1&.name })
+    assert_equal @arya, kept.reload.user
+    assert_not Setup.exists?(clash.id), "a slot the account holds is not overwritten"
+    assert_equal @arya, free.reload.user
+    board = Leaderboard.live.to_h { |r| [ r.user.username, [ r.wins, r.losses ] ] }
+    assert_equal [ 1, 1 ], board["arya"], "the live board recounts from the moved matches"
+  end
+
+  test "a guest with no games is simply retired" do
+    assert GuestClaim.call(guest: @guest, user: @arya)
+    assert_nil User.find_by(id: @guest.id)
+    assert_equal [ 0, 0 ], [ @arya.reload.wins, @arya.losses ]
+  end
+
+  test "a guest kept for a match against the account is marked merged and never claimed again" do
+    live_result(@guest, @arya, winner: @guest)
+    assert GuestClaim.call(guest: @guest, user: @arya)
+    assert_equal @arya, @guest.reload.merged_into
+
+    live_result(@guest, @qavo, winner: @guest)
+    @guest.update_columns(wins: 1)
+    assert_not GuestClaim.call(guest: @guest, user: @arya), "the same sign-in twice changes nothing"
+    assert_not GuestClaim.call(guest: @guest, user: @brienne), "nor may another account take it"
+    assert_equal 0, @brienne.reload.wins
+    assert_nil GuestClaim.guest_from_token(GuestClaim.token_for(@guest)), "its old claim token is spent"
+  end
+
+  test "a failure moves nothing" do
+    won = live_result(@guest, @qavo, winner: @guest)
+    @guest.update_columns(wins: 1)
+    claim = GuestClaim.new(guest: @guest, user: @arya)
+    claim.define_singleton_method(:retire) { |_guest| raise ActiveRecord::StatementInvalid, "boom" }
+
+    assert_raises(ActiveRecord::StatementInvalid) { claim.call }
+    assert_equal @guest, won.reload.winner
+    assert_equal 0, @arya.reload.wins
+  end
+
   test "a claim token names its guest; a forged, expired or spent one names nobody" do
     token = GuestClaim.token_for(@guest)
 
@@ -76,5 +140,12 @@ class GuestClaimTest < ActiveSupport::TestCase
     travel(GuestClaim::TOKEN_LIFE + 1.minute) { assert_nil GuestClaim.guest_from_token(token) }
     GuestClaim.call(guest: @guest, user: @arya)
     assert_nil GuestClaim.guest_from_token(token)
+  end
+
+  private
+
+  # A whole army on the owner's rows (Setup validates one on create).
+  def army
+    CyvasseRules::Bot.lineup(rng: Random.new(3))
   end
 end

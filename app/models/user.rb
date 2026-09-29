@@ -25,6 +25,11 @@ class User < ApplicationRecord
   # Saved army lineups (piece 10b), three slots; they go with the player.
   has_many :setups, dependent: :delete_all
   has_many :live_seeks, dependent: :delete_all
+  # The account that absorbed this guest (GuestClaim), when the guest was kept.
+  belongs_to :merged_into, class_name: "User", optional: true
+
+  # Guests GuestClaim may still absorb: not yet merged into an account.
+  scope :claimable_guests, -> { where(guest: true, merged_into_id: nil) }
 
   # The piece art this player chose (PieceSkinPreference); nil until they do.
   validates :piece_skin, inclusion: { in: Piece::SKINS.keys.map(&:to_s) }, allow_nil: true

@@ -47,7 +47,7 @@ class ApplicationController < ActionController::Base
   def signed_in_guest
     return current_user if current_user&.guest?
 
-    User.find_by(id: session[:guest_user_id], guest: true) if session[:guest_user_id]
+    User.claimable_guests.find_by(id: session[:guest_user_id]) if session[:guest_user_id]
   end
 
   def claim_guest(guest, user)
