@@ -48,6 +48,10 @@ class HomePageSystemTest < ApplicationSystemTestCase
       assert_selector ".home-slide.is-active[data-piece='#{first}'] img[data-home-background]", visible: :all
       assert_selector ".home-slide-caption.is-active", count: 1, visible: :all
       box = hero_box
+      assert_equal "1.6s", page.evaluate_script("getComputedStyle(document.querySelector('.home-slide')).transitionDuration"), "a slow crossfade"
+      # The art sits under the scrim, edge to edge, and the caption over it.
+      assert_equal hero_box, page.evaluate_script("(r => [r.x, r.y, r.width, r.height].map(Math.round))(document.querySelector('.home-slide.is-active img').getBoundingClientRect())")
+      assert_equal box[3], page.evaluate_script("Math.round(document.querySelector('.home-hero-scrim').getBoundingClientRect().height)"), "the scrim covers the whole hero"
 
       page.execute_script("document.querySelector('.home-hero').dataset.homeGalleryIntervalValue = '400'")
       assert_no_selector "section.home-hero[data-home-gallery-piece='#{first}']", wait: 10

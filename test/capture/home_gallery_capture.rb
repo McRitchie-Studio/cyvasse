@@ -26,23 +26,30 @@ class HomeGalleryCapture < ApplicationSystemTestCase
   OUT = Rails.root.join("app/assets/images", HomeGallery::DIRECTORY)
   PREVIEWS = Rails.root.join("tmp/home_gallery")
 
-  # Crops, in board units (a hex is 60 wide). The board is 668 x 597, a
-  # hexagon, so a crop centred far from the middle catches the empty corners:
-  # `reach` keeps each crop's centre that close to the board's centre, and the
-  # hero may sit off the crop's centre instead.
-  DESKTOP = { width: 440, height: 275, pixels: 1800, reach: { x: 60, y: 120 } }.freeze
-  MOBILE = { width: 300, height: 480, pixels: 720, reach: { x: 134, y: 120 } }.freeze
-  QUALITY = 72
+  # Crops, in board units (a hex is 60 wide). The board is 668 x 597.
+  #
+  # The wide crop is 2:1 and puts the hero a quarter of the way in from one
+  # side (the scene's `side`), so the hero's centred type and buttons never
+  # sit on top of it; a wider hero only trims its top and bottom. The
+  # portrait crop centres the hero. The board is a hexagon, so a crop centred
+  # far from the middle catches its empty corners: `reach` keeps each crop's
+  # centre that close to the board's centre.
+  DESKTOP = { width: 460, height: 230, pixels: 1800, side: 0.25, reach: { x: 160, y: 190 } }.freeze
+  MOBILE = { width: 300, height: 480, pixels: 720, side: 0.5, reach: { x: 134, y: 120 } }.freeze
+  QUALITY = 80
   MAX_BYTES = 150 * 1024
 
   # [team, codename, hex]: team 1 is the player (blue, bottom rows 52-91),
   # team 0 the opponent (red, top rows 1-40); row 6 (41-51) is no man's land.
   # `select` is the hero's hex; `jump` [from, to] plays a cavalry first jump
-  # and selects the horse where it lands; `focus` centres the crops (the hero
-  # by default); `last` is the opponent's last move, marked orange.
+  # and selects the horse where it lands; `focus` is the hex the crops frame
+  # (the hero by default) and `side` which side of the wide crop it stands on
+  # (:left unless given); `last` is the opponent's last move, marked orange.
+  # `mirror` flips the whole scene left to right (the rules are symmetric that
+  # way), so heroes alternate sides as the slides turn.
   SCENES = {
     "dragon" => {
-      select: 75, last: [ 16, 35 ], turn: 14,
+      side: :left, mirror: true, select: 75, last: [ 16, 35 ], turn: 14,
       units: [
         [ 1, "dragon", 75 ], [ 1, "mountain", 66 ], [ 1, "king", 88 ], [ 1, "crossbowman", 80 ], [ 1, "spearman", 74 ],
         [ 1, "elephant", 57 ], [ 1, "rabble", 55 ], [ 1, "catapult", 82 ], [ 1, "heavyhorse", 60 ],
@@ -51,7 +58,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
       ]
     },
     "trebuchet" => {
-      select: 76, last: [ 27, 47 ], turn: 11,
+      side: :right, select: 76, last: [ 27, 47 ], turn: 11,
       units: [
         [ 1, "trebuchet", 76 ], [ 1, "king", 86 ], [ 1, "crossbowman", 84 ], [ 1, "elephant", 67 ], [ 1, "spearman", 65 ],
         [ 1, "rabble", 58 ], [ 1, "lighthorse", 70 ], [ 1, "catapult", 81 ],
@@ -60,7 +67,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
       ]
     },
     "lighthorse" => {
-      jump: [ 64, 55 ], last: [ 25, 35 ], turn: 9,
+      side: :right, mirror: true, jump: [ 64, 55 ], last: [ 25, 35 ], turn: 9,
       units: [
         [ 1, "lighthorse", 64 ], [ 1, "lighthorse", 68 ], [ 1, "spearman", 56 ], [ 1, "elephant", 66 ], [ 1, "king", 87 ],
         [ 1, "crossbowman", 74 ], [ 1, "mountain", 53 ], [ 1, "catapult", 81 ], [ 1, "trebuchet", 83 ],
@@ -69,7 +76,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
       ]
     },
     "elephant" => {
-      select: 56, last: [ 25, 45 ], turn: 7,
+      side: :right, mirror: true, select: 56, last: [ 25, 45 ], turn: 7,
       units: [
         [ 1, "elephant", 56 ], [ 1, "elephant", 58 ], [ 1, "spearman", 55 ], [ 1, "spearman", 59 ], [ 1, "rabble", 57 ],
         [ 1, "heavyhorse", 65 ], [ 1, "crossbowman", 67 ], [ 1, "king", 76 ], [ 1, "catapult", 75 ], [ 1, "trebuchet", 85 ],
@@ -87,7 +94,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
       ]
     },
     "king" => {
-      select: 76, last: [ 12, 39 ], turn: 16,
+      side: :right, select: 76, last: [ 12, 39 ], turn: 16,
       units: [
         [ 1, "king", 76 ], [ 1, "spearman", 67 ], [ 1, "spearman", 66 ], [ 1, "crossbowman", 75 ], [ 1, "crossbowman", 78 ],
         [ 1, "elephant", 68 ], [ 1, "catapult", 85 ], [ 1, "trebuchet", 83 ], [ 1, "rabble", 58 ], [ 1, "heavyhorse", 70 ],
@@ -96,7 +103,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
       ]
     },
     "mountain" => {
-      select: 55, focus: 56, last: [ 36, 46 ], turn: 6,
+      side: :right, mirror: true, select: 55, focus: 56, last: [ 36, 46 ], turn: 6,
       units: [
         [ 1, "mountain", 55 ], [ 1, "mountain", 58 ], [ 1, "spearman", 56 ], [ 1, "elephant", 57 ], [ 1, "crossbowman", 64 ],
         [ 1, "catapult", 67 ], [ 1, "heavyhorse", 69 ], [ 1, "king", 77 ], [ 1, "rabble", 60 ], [ 1, "trebuchet", 85 ],
@@ -123,7 +130,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
       ]
     },
     "spearman" => {
-      select: 57, last: [ 36, 47 ], turn: 8,
+      side: :right, select: 57, last: [ 36, 47 ], turn: 8,
       units: [
         [ 1, "spearman", 57 ], [ 1, "spearman", 55 ], [ 1, "rabble", 56 ], [ 1, "elephant", 59 ], [ 1, "heavyhorse", 66 ],
         [ 1, "king", 76 ], [ 1, "crossbowman", 67 ], [ 1, "catapult", 74 ], [ 1, "mountain", 61 ],
@@ -159,6 +166,12 @@ class HomeGalleryCapture < ApplicationSystemTestCase
     page.execute_script("document.querySelector('[data-controller=cyvasse-game]').dataset.cyvasseGamePaceValue = '0'")
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
     assert_equal "vector", find("[data-controller=cyvasse-game]")["data-skin"]
+    # A crop near the board's edge shows the ground past its hexagon: make it
+    # the near-black of the board's gaps rather than the page's navy.
+    page.execute_script(<<~JS)
+      document.body.style.background = "#0b0c10"
+      for (const el of document.querySelectorAll(".cyvasse-board-wrap, .cyvasse-layout, .cyvasse-game")) el.style.background = "transparent"
+    JS
   end
 
   test "capture one action shot per piece" do
@@ -178,6 +191,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
   # Put every unit of the scene on the board (the rest of both armies fall),
   # hand the move to the player and select the hero as a click would.
   def stage(slug, scene)
+    scene = mirrored(scene) if scene[:mirror]
     hero = page.evaluate_script(<<~JS)
       (() => {
         const ctrl = #{CONTROLLER}
@@ -220,6 +234,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
   end
 
   def capture(slug, scene)
+    scene = mirrored(scene) if scene[:mirror]
     focus = scene[:focus] || page.evaluate_script("#{CONTROLLER}.selectedHex")
     board = page.evaluate_script(<<~JS)
       (() => {
@@ -237,7 +252,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
 
     shot(board, { x: 0, y: 0, width: board["width"], height: board["height"] }, 1600, PREVIEWS.join("#{slug}-board.png")) if ENV["PREVIEW"]
     { "" => DESKTOP, "-mobile" => MOBILE }.each do |suffix, crop|
-      rect = crop_around(board, crop)
+      rect = crop_around(board, crop, scene.fetch(:side, :left))
       png = PREVIEWS.join("#{slug}#{suffix}.png")
       FileUtils.mkdir_p(PREVIEWS)
       shot(board, rect, crop[:pixels], png)
@@ -246,13 +261,34 @@ class HomeGalleryCapture < ApplicationSystemTestCase
     end
   end
 
-  # A crop of the given size centred as near the focus as its reach allows.
-  def crop_around(board, crop)
+  # The scene flipped left to right: each hex to the one across its row.
+  def mirrored(scene)
+    flip = ->(hex) { hex && ROW_OF.fetch(hex).then { |first, size| first + size - 1 - (hex - first) } }
+    scene.merge(
+      units: scene[:units].map { |team, codename, hex| [ team, codename, flip.(hex) ] },
+      select: flip.(scene[:select]), focus: flip.(scene[:focus]),
+      jump: scene[:jump]&.map(&flip), last: scene[:last].map(&flip)
+    )
+  end
+
+  # hex -> [the first hex of its row, the row's width] (cyvasse/board.js).
+  ROW_OF = (1..11).each_with_object({}) do |y, rows|
+    size = y < 7 ? y + 5 : 17 - y
+    first = rows.size + 1
+    (first...first + size).each { |hex| rows[hex] = [ first, size ] }
+  end.freeze
+
+  # A crop of the given size with the focus at its `side` fraction across
+  # (mirrored for a hero on the right) and centred down, as near as its reach
+  # allows.
+  def crop_around(board, crop, side)
     mid_x = board["width"] / 2.0
     mid_y = board["height"] / 2.0
-    cx = board["cx"].clamp(mid_x - crop[:reach][:x], mid_x + crop[:reach][:x])
+    across = side == :right ? 1 - crop[:side] : crop[:side]
+    left = board["cx"] - across * crop[:width]
+    x = (left + crop[:width] / 2.0).clamp(mid_x - crop[:reach][:x], mid_x + crop[:reach][:x]) - crop[:width] / 2.0
     cy = board["cy"].clamp(mid_y - crop[:reach][:y], mid_y + crop[:reach][:y])
-    x = (cx - crop[:width] / 2.0).clamp(0, board["width"] - crop[:width])
+    x = x.clamp(0, board["width"] - crop[:width])
     y = (cy - crop[:height] / 2.0).clamp(0, board["height"] - crop[:height])
     { x:, y:, width: crop[:width], height: crop[:height] }
   end
@@ -269,7 +305,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
 
   # The smallest file under the cap, stepping the quality down from QUALITY.
   def encode(png, webp)
-    QUALITY.step(40, -4) do |quality|
+    QUALITY.step(48, -4) do |quality|
       system(@cwebp, "-quiet", "-q", quality.to_s, "-m", "6", "-metadata", "none", png.to_s, "-o", webp.to_s, exception: true)
       break if File.size(webp) <= MAX_BYTES
     end

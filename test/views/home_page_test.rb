@@ -75,7 +75,7 @@ class HomePageTest < ActionView::TestCase
       assert_match %r{backgrounds/home/#{slug}-mobile-\h+\.webp\z}, source["data-srcset"]
     end
     # Every slide holds the same box, so none can shift the page as it lands.
-    slides.each { |slide| assert_equal [ "1800", "1125" ], slide.at_css("img").then { [ _1["width"], _1["height"] ] } }
+    slides.each { |slide| assert_equal [ "1800", "900" ], slide.at_css("img").then { [ _1["width"], _1["height"] ] } }
   end
 
   test "each slide names its piece in a quiet caption, only the first on show" do
