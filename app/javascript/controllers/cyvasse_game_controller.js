@@ -177,7 +177,6 @@ export default class extends Controller {
 
   connect() {
     this.timers = new Set()
-    this.showThreats = threatsWanted()
     this.buildBoard()
     this.newGame()
   }
@@ -623,6 +622,8 @@ export default class extends Controller {
   // kill wears the danger ring. Play only; the switch turns it off.
   renderThreats() {
     const game = this.game
+    // Read once per page, by /play and the match board alike.
+    this.showThreats ??= threatsWanted()
     const live = game.phase === "play" && this.showThreats
     if (this.hasThreatToggleTarget) {
       this.threatToggleTarget.checked = this.showThreats

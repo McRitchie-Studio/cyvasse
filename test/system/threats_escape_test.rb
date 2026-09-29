@@ -70,8 +70,14 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
 
   test "Esc lets go of a piece and takes back a cavalry unit's first jump" do
     start_game
-    # A light horse of yours on 80 with an enemy rabble on 69 beside it.
-    stage("1-8" => 80, "1-17" => 91, "0-17" => 1, "0-1" => 69)
+    # A light horse of yours on 80 with an enemy rabble two hexes away.
+    prey = page.evaluate_async_script(<<~JS)
+      const done = arguments[arguments.length - 1]
+      import("cyvasse/board").then((board) => {
+        done(board.HEXES.find((h) => board.distance(board.hexAt(80), h) === 2 && h.index < 80).index)
+      })
+    JS
+    stage("1-8" => 80, "1-17" => 91, "0-17" => 1, "0-1" => prey)
     horse = find("svg.cyvasse-board g.hex[data-hex='80']")
     assert_equal "Your light horse", horse["aria-label"]
 
@@ -84,8 +90,8 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
 
     # The first jump captures the rabble; the horse must jump again.
     horse.click
-    find("svg.cyvasse-board g.hex[data-hex='69']").click
-    assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='69']"
+    find("svg.cyvasse-board g.hex[data-hex='#{prey}']").click
+    assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='#{prey}']"
     assert_equal [ 2, "dead" ], page.evaluate_script("[#{CONTROLLER}.game.jump, #{CONTROLLER}.game.unit('0-1').status]")
     assert_selector ".cyvasse-hint", text: "Press Esc to start over"
     screenshot("second-jump")
@@ -93,7 +99,7 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
 
     # Taken back: the horse home, the rabble standing, the turn still ours.
     assert_selector "svg.cyvasse-board g.hex[data-hex='80'][aria-label='Your light horse']"
-    assert_selector "svg.cyvasse-board g.hex[data-hex='69'][aria-label='Enemy rabble']"
+    assert_selector "svg.cyvasse-board g.hex[data-hex='#{prey}'][aria-label='Enemy rabble']"
     assert_no_selector "svg.cyvasse-board g.hex.is-selected"
     assert_equal [ 1, 1, "alive" ], page.evaluate_script("[#{CONTROLLER}.game.jump, #{CONTROLLER}.game.offense, #{CONTROLLER}.game.unit('0-1').status]")
     # Any unit may move again, not just the horse.
