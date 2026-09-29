@@ -155,7 +155,7 @@ export default class extends GameController {
     super.loadLineup(event)
   }
 
-  // "Submit army": the lineup is locked in on the server.
+  // "Ready": the lineup is locked in on the server.
   start() {
     if (!this.state.can_set_up || !this.game.readyToStart || this.holding) return
     this.send(this.setupUrlValue, { lineup: this.game.playerLineup() }).then((ok) => {
@@ -189,8 +189,11 @@ export default class extends GameController {
   render() {
     super.render()
     if (this.game.phase === "setup" && !this.state.can_set_up) {
-      for (const { group } of this.hexNodes.values()) group.classList.remove("is-deploy")
+      for (const { group } of this.hexNodes.values()) group.classList.remove("is-deploy", "is-drop")
+      this.paintGround()
     }
+    // "Ready" waits for a full army, and for a setup the server still takes.
+    this.startButtonTarget.disabled = !this.state.can_set_up || !this.game.readyToStart
   }
 
   renderStatus() {
@@ -206,7 +209,7 @@ export default class extends GameController {
       text = `${them} challenged you. Accept to set up your army.`
     } else if (state.can_set_up) {
       const left = this.game.teamUnits(PLAYER, "unplaced").length
-      text = left > 0 ? `Place your army: ${left} unit${left === 1 ? "" : "s"} left.` : "Your army is ready. Submit it."
+      text = left > 0 ? `Place your army: ${left} unit${left === 1 ? "" : "s"} left.` : "Your army is in place. Press Ready to lock it in."
     } else if (state.status === "pending") {
       text = `Your army is in place. Waiting for ${them} to accept.`
     } else {

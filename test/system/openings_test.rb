@@ -57,7 +57,7 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     unmark(79)
     assert_edge 79, "rgb(255, 255, 255)"
 
-    click_on "Start Game"
+    click_on "Ready"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
     assert_selector "g.hex[data-rank]", count: 38
     assert_selector "g.hex[data-team='0'][data-rank='10'] .unit-shade[fill='url(#shade-0-10)']"
@@ -75,7 +75,7 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     visit play_path(ref: "AbCdEfGhIjKlMnOpQrSt12")
     assert_selector "[data-controller=cyvasse-game][data-phase=setup]"
     click_on "Random Setup"
-    click_on "Start Game"
+    click_on "Ready"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
 
     src = page.evaluate_script(<<~JS)
@@ -87,7 +87,7 @@ class OpeningsSystemTest < ApplicationSystemTestCase
   test "a player with no ref fires no beacon" do
     visit play_path
     click_on "Random Setup"
-    click_on "Start Game"
+    click_on "Ready"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
     assert_nil page.evaluate_script(<<~JS)
       Stimulus.getControllerForElementAndIdentifier(document.querySelector("[data-controller=cyvasse-game]"), "cyvasse-game").emailBeacon?.src ?? null
