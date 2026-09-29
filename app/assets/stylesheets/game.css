@@ -425,26 +425,23 @@
   color: var(--color-text-heading, inherit);
 }
 
-.live-computer-tag {
-  display: inline-block;
-  vertical-align: middle;
-  margin-left: 0.4rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 0.4rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  background: color-mix(in srgb, var(--color-cta, #8E82FE) 22%, transparent);
-  color: var(--color-cta, #8E82FE);
+/* The match page (matches/show): the board (about two thirds) beside a
+ * sidebar of the versus card over the panel. A phone stacks versus, board,
+ * then panel. */
+.match-layout {
+  grid-template-areas: "versus" "board" "panel";
 }
 
-/* The match page (matches/show): the versus row across the top, then the
- * board (about two thirds) beside a panel holding the clock, the status, the
- * notices and the controls. A phone stacks them. */
+.match-layout > .match-versus-card { grid-area: versus; }
+.match-layout > .cyvasse-board-wrap { grid-area: board; }
+.match-layout > .match-panel { grid-area: panel; }
+
 @media (min-width: 1024px) {
   .match-layout {
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "board versus" "board panel";
+    row-gap: 1rem;
   }
 }
 
@@ -479,71 +476,66 @@
   display: inline-flex;
 }
 
-/* The match header's versus line (matches/_versus): each avatar at its own
- * outer edge, long names wrap rather than push the page sideways. */
+/* The versus card (matches/_versus): you over them, each an avatar beside a
+ * name, a quiet "vs" rule between. Long names wrap, never push sideways. */
+.match-versus-card {
+  padding: 0.875rem 1rem;
+}
+
 .match-versus {
-  display: grid;
-  grid-template-columns: minmax(0, auto) auto minmax(0, auto);
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin: 0.25rem 0;
-  font-size: 1.875rem;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.15;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 .match-versus-side {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.75rem;
   min-width: 0;
 }
 
-.match-versus-side-them {
-  justify-content: flex-end;
-  text-align: right;
+.match-versus-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .match-versus-name {
   min-width: 0;
   overflow-wrap: anywhere;
-  text-wrap: balance;
 }
 
-.match-versus-name .live-computer-tag {
-  margin-left: 0.3rem;
+.match-versus-bot {
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  opacity: 0.8;
 }
 
 .match-versus-vs {
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-left: 3.5rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.12em;
 }
 
-/* A phone: each side stacks its avatar over its name. */
-@media (max-width: 34rem) {
-  .match-versus {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    font-size: 1.125rem;
-    gap: 0.5rem;
-  }
-
-  .match-versus-side {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.3rem;
-  }
-
-  .match-versus-side-them {
-    flex-direction: column-reverse;
-    align-items: flex-end;
-  }
-
-  .match-versus-name {
-    max-width: 100%;
-  }
+.match-versus-vs::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid currentColor;
+  opacity: 0.35;
 }
 
 /* An army the clock placed arrives one piece at a time. The fade applies only

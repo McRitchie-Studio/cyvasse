@@ -20,12 +20,10 @@
          data-cyvasse-match-move-url-value="<%= moves_match_path(@match) %>"
          <% if @match.live? %>data-cyvasse-match-poll-ms-value="1000" data-live="true"<% end %>
          <% if current_user.guest? %>data-cyvasse-match-return-to-value="<%= match_path(@match, claim: GuestClaim.token_for(current_user)) %>"<% end %>>
-  <%# The versus row takes the whole top; everything else lives in the panel. %>
-  <header class="match-top mb-4">
-    <%= render "matches/versus", me: current_user, opponent: @opponent, opponent_name: them %>
-  </header>
-
+  <%# The versus card heads the sidebar; on a phone it sits above the board. %>
   <div class="cyvasse-layout match-layout">
+    <%= render "matches/versus", me: current_user, opponent: @opponent, opponent_name: them %>
+
     <div class="cyvasse-board-wrap">
       <%= render "games/board_bar", board: "cyvasse-match", threats: false %>
       <svg class="cyvasse-board" role="group" aria-label="The Cyvasse board. Arrow keys move between hexes; Enter selects."
