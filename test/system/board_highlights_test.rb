@@ -57,7 +57,7 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     motion("no-preference")
   end
 
-  test "only the rim of the opponent's reach is outlined, each edge whole and in one colour" do
+  test "only the rim of each threat group's reach is outlined, melee solid and ranged dashed, each edge whole" do
     start_game
     # A catapult on 46; a rabble of yours (44) it can kill, an elephant (48) it cannot.
     stage("0-15" => 46, "0-17" => 1, "1-17" => 91, "1-6" => 48, "1-1" => 44)
@@ -65,25 +65,34 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     screenshot("perimeter")
     assert_no_selector "svg.cyvasse-board .range-edge", visible: :all
 
-    # The area: every hex in reach, the opponent's own units counted in.
+    # Each group's area: its units' reach, its units counted in. Melee is
+    # their king (1); ranged is the catapult (46).
     edges = edge_table
-    region = page.evaluate_script(<<~JS).to_set
+    regions = page.evaluate_script("Object.fromEntries(Object.entries(#{CONTROLLER}.threatRegions).map(([g, r]) => [g, [...r]]))").transform_values(&:to_set)
+    assert_operator regions["melee"].size, :>, 3
+    assert_operator regions["ranged"].size, :>, 10
+    assert_equal regions.values.reduce(:|), page.evaluate_script(<<~JS).to_set, "together they are the whole reach"
       [...document.querySelectorAll("g.hex.is-threatened, g.hex.has-unit[data-team='0']")].map((g) => Number(g.dataset.hex))
     JS
-    assert_operator region.size, :>, 10
-    inside = ->(edge) { edge["between"].count { |hex| region.include?(hex) } }
-    rim = edges.select { |e| inside.(e) == 1 }
-    interior = edges.select { |e| inside.(e) == 2 }
+    inside = ->(edge, group) { edge["between"].count { |hex| regions[group].include?(hex) } }
+    on_rim = ->(edge, group) { inside.(edge, group) == 1 }
+    interior = edges.select { |e| %w[melee ranged].none? { |g| on_rim.(e, g) } && %w[melee ranged].any? { |g| inside.(e, g) == 2 } }
     assert_not_empty interior
-    # Every edge round the area is red unless a higher highlight owns it;
-    # no edge inside it or off it is.
-    perimeter = edges.select { |e| e["kind"] == "perimeter" }
-    assert_not_empty perimeter
-    assert perimeter.all? { |e| inside.(e) == 1 }, "a perimeter edge has the area on one side only"
-    assert_equal rim.reject { |e| e["kind"] }.size, 0, "no edge round the area is left undrawn"
-    assert_equal [ [ "inline", RED ] ], perimeter.map { |e| e.values_at("display", "stroke") }.uniq
-    assert rim.any? { |e| e["between"].include?("rim") }, "the board's edge counts as outside"
-    # Inside the area, edges between two plain hexes stay undrawn.
+    # Melee's rim is solid red; ranged's is dashed red where melee's is not;
+    # a higher highlight may own either. No other edge is red.
+    solid = edges.select { |e| e["kind"] == "perimeter" }
+    dashed = edges.select { |e| e["kind"] == "perimeter-ranged" }
+    assert_not_empty solid
+    assert_not_empty dashed
+    assert solid.all? { |e| on_rim.(e, "melee") }, "a solid edge is on melee's rim"
+    assert dashed.all? { |e| on_rim.(e, "ranged") && !on_rim.(e, "melee") }, "a dashed edge is on ranged's rim alone"
+    assert_equal 0, edges.count { |e| (on_rim.(e, "melee") || on_rim.(e, "ranged")) && e["kind"].nil? }, "no edge round either area is left undrawn"
+    assert_equal [ [ "inline", RED, "none" ] ], solid.map { |e| e.values_at("display", "stroke", "dash") }.uniq
+    assert_equal [ [ "inline", RED ] ], dashed.map { |e| e.values_at("display", "stroke") }.uniq
+    assert_equal [ solid.first["width"] ], dashed.map { |e| e["width"] }.uniq, "the same weight"
+    assert dashed.none? { |e| e["dash"] == "none" }, "ranged is broken"
+    assert solid.any? { |e| e["between"].include?("rim") }, "the board's edge counts as outside"
+    # Inside the areas, edges between two plain hexes stay undrawn.
     plain = interior.select { |e| e["kind"].nil? }
     assert_not_empty plain
     assert_equal [ "none" ], plain.map { |e| e["display"] }.uniq
@@ -117,8 +126,8 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     assert edges.select { |e| e["between"].include?(44) }.all? { |e| e["kind"] == "selected" && e["stroke"] == ORANGE }
     lit = page.evaluate_script("[...document.querySelectorAll('g.hex.is-move, g.hex.is-attack, g.hex.is-lit')].map((g) => Number(g.dataset.hex))")
     assert_not_empty lit
-    assert_empty edges.select { |e| e["kind"] == "perimeter" && (e["between"] & lit).any? }, "the perimeter never crosses a ring"
-    assert edges.any? { |e| e["kind"] == "perimeter" }
+    assert_empty edges.select { |e| e["kind"].to_s.start_with?("perimeter") && (e["between"] & lit).any? }, "no perimeter crosses a ring"
+    assert edges.any? { |e| e["kind"] == "perimeter-ranged" }
 
     # The last move beside a unit of yours just moved (the elephant, not in
     # danger, so its team edge shows): their shared edge is
@@ -153,7 +162,7 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     # Both threat switches off: no perimeter at all.
     uncheck "Ranged threats"
     uncheck "Melee threats"
-    assert_empty edge_table.select { |e| e["kind"] == "perimeter" }
+    assert_empty edge_table.select { |e| e["kind"].to_s.start_with?("perimeter") }
   ensure
     page.execute_script("try { localStorage.clear() } catch {}")
   end
@@ -202,7 +211,7 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     page.evaluate_script(<<~JS)
       [...document.querySelectorAll("svg.cyvasse-board line.hex-edge")].map((l) => {
         const s = getComputedStyle(l)
-        return { between: l.dataset.between.split(" ").map((h) => h === "rim" ? "rim" : Number(h)), kind: l.dataset.kind ?? null, display: s.display, stroke: s.stroke }
+        return { between: l.dataset.between.split(" ").map((h) => h === "rim" ? "rim" : Number(h)), kind: l.dataset.kind ?? null, display: s.display, stroke: s.stroke, dash: s.strokeDasharray, width: s.strokeWidth }
       })
     JS
   end

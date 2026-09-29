@@ -77,7 +77,7 @@ test("every perimeter edge has the region on exactly one side", () => {
 });
 
 test("the priority runs selection, rings, last move, danger, perimeter, team", () => {
-  const order = ["selected", "target", "ring", "last-move", "danger", "perimeter", "team-1"].map((k) => EDGE_PRIORITY.indexOf(k));
+  const order = ["selected", "target", "ring", "last-move", "danger", "perimeter", "perimeter-ranged", "team-1"].map((k) => EDGE_PRIORITY.indexOf(k));
   assert.ok(order.every((rank, i) => rank >= 0 && (i === 0 || rank > order[i - 1])), `${EDGE_PRIORITY}`);
 });
 
@@ -129,4 +129,24 @@ test("one owner per edge, the highest claim on either side or the perimeter", ()
   for (const key of teamOnRim) assert.equal(owners.get(key), "perimeter");
   assert.ok(sidesOf(25).some((k) => owners.get(k) === "team-0"));
   for (const key of sidesOf(68)) assert.equal(owners.get(key), "team-1");
+});
+
+test("two outlines: melee-only edges solid, ranged-only dashed, shared edges solid", () => {
+  // Two overlapping discs share a stretch of outer rim along the board's edge.
+  const melee = perimeter(disc(46, 1));
+  const ranged = perimeter(disc(47, 1));
+  const shared = [...melee].filter((k) => ranged.has(k));
+  const meleeOnly = [...melee].filter((k) => !ranged.has(k));
+  const rangedOnly = [...ranged].filter((k) => !melee.has(k));
+  assert.ok(shared.length > 0 && meleeOnly.length > 0 && rangedOnly.length > 0);
+
+  const owners = resolveEdges(new Map(), melee, ranged);
+  for (const key of meleeOnly) assert.equal(owners.get(key), "perimeter", `melee edge ${key}`);
+  for (const key of rangedOnly) assert.equal(owners.get(key), "perimeter-ranged", `ranged edge ${key}`);
+  for (const key of shared) assert.equal(owners.get(key), "perimeter", `shared edge ${key}`);
+  assert.equal(owners.size, new Set([...melee, ...ranged]).size, "nothing else is drawn");
+
+  assert.ok([...resolveEdges(new Map(), new Set(), ranged).values()].every((k) => k === "perimeter-ranged"), "ranged alone is all dashed");
+  const edge = [...disc(47, 1)].flatMap((hex) => sidesOf(hex).filter((k) => ranged.has(k)).map((key) => ({ hex, key })))[0];
+  assert.equal(resolveEdges(new Map([[edge.hex, "danger"]]), new Set(), ranged).get(edge.key), "danger", "danger still outranks a ranged edge");
 });
