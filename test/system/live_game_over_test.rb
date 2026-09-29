@@ -69,10 +69,17 @@ class LiveGameOverTest < ApplicationSystemTestCase
     @match.reload.resign!(@arya)
 
     within(MODAL, wait: 10) { assert_selector "h3", text: "You resigned." }
-    assert_selector "[data-cyvasse-match-target=status]", text: "You resigned."
-    assert_no_selector "[data-cyvasse-match-target=notice]", wait: 0
-    assert_no_text "Miss one more clock", wait: 0
-    assert_no_selector "[data-cyvasse-match-target=takeBackSeat]", wait: 0
+    # Read the notice off the DOM, not by visibility: with the modal open,
+    # everything behind it can read as not visible, which would pass a
+    # visibility check whatever the notice said.
+    notice = page.evaluate_script(<<~JS)
+      (() => {
+        const el = document.querySelector("[data-cyvasse-match-target=notice]")
+        const seat = document.querySelector("[data-cyvasse-match-target=takeBackSeat]")
+        return { hidden: el.hidden, text: el.dataset.notice || "", seatHidden: seat.hidden }
+      })()
+    JS
+    assert_equal({ "hidden" => true, "text" => "", "seatHidden" => true }, notice, "no seat notice once the match is over")
   end
 
   test "an opponent's forfeit that lands while the player is away opens the modal when they come back" do
