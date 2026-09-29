@@ -7,13 +7,18 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   SCREEN_SIZE = [ 1400, 1100 ].freeze
   driven_by :selenium, using: :headless_chrome, screen_size: SCREEN_SIZE
 
-  # One browser serves every test, so a window a test resized (the admin
-  # phone-width tests: Chrome clamps 375px to 500px) would stay that size, and
-  # a later test that expects the desktop board would be scrolled, clicked
-  # off target, and fail (task cyvasse-system-test-flakes). Put it back.
+  # One browser serves every test, so what a test changes in it outlives the
+  # test (task cyvasse-system-test-flakes). Put back:
+  # - the window size: the admin phone-width tests resize it (Chrome clamps
+  #   375px to 500px), and a later test expecting the desktop board is then
+  #   scrolled, clicked off target, and fails;
+  # - emulated media: jump_range_rings_test turns on prefers-reduced-motion,
+  #   and a later test that watches an animation (the home gallery's slides)
+  #   then sees none.
   teardown do
     window = page.current_window
     window.resize_to(*SCREEN_SIZE) unless window.size == SCREEN_SIZE
+    page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [])
   end
 
   # Waits until every element carrying each Stimulus identifier has its
