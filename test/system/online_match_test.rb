@@ -21,11 +21,10 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
     assert_selector BOARD
     assert_selector "svg.cyvasse-board g.hex", count: 91
     assert_selector ".cyvasse-dock .dock-unit", count: 19
-    # Ready waits for a full army; Random Setup is the hollow secondary.
+    # Ready waits for a full army; Smart Setup leads the card until then.
     assert_button "Ready", disabled: true
-    assert_selector "button.btn-outline", text: "Random Setup"
-    assert_selector ".cyvasse-setup-actions button.cyvasse-ready:first-child + button.btn-outline", text: "Random Setup"
-    click_on "Random Setup"
+    assert_selector ".cyvasse-army[data-army-mode=smart] button.cyvasse-smart", text: "✨ Smart Setup"
+    smart_setup!
     assert_button "Ready", disabled: false
     if ENV["SCREENSHOTS"]
       sleep 0.4
@@ -44,7 +43,7 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
       click_on "Accept"
       assert_text "Challenge accepted"
       assert_no_selector "svg.cyvasse-board g.hex.has-unit[data-team='0']", wait: 0.5
-      click_on "Random Setup"
+      smart_setup!
       click_on "Ready"
       assert_selector "#{BOARD}[data-phase=play]"
       assert_selector "svg.cyvasse-board g.hex.has-unit[data-team='1']", count: 19
@@ -79,7 +78,11 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
       assert_no_selector "[role=alert]:not([hidden])", wait: 0
     end
 
-    assert_equal 2, match.reload.turn
+    # The board flips to "their turn" as soon as the move is sent; the row
+    # commits a beat later on a loaded runner, so wait for it before reading.
+    deadline = 10.seconds.from_now
+    sleep 0.1 until match.reload.turn == 2 || Time.current > deadline
+    assert_equal 2, match.turn, "the move reached the server"
     next_player = match.user_to_move
     assert_not_equal first_mover, next_player
     assert Studio::EmailDelivery.exists?(email_key: "MatchMailer#your_turn", to: next_player.email)
@@ -135,7 +138,10 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
       next unless target
 
       target.click
-      if page.has_selector?("[role=status]", text: "jumps again", wait: 0.3)
+      # A cavalry unit's first jump prompts for its second; a loaded runner can
+      # take well over 0.3s to show it, and a missed prompt leaves the turn
+      # half made and never sent (turn stays 1). Other units pay the wait once.
+      if page.has_selector?("[role=status]", text: "jumps again", wait: 2)
         first("svg.cyvasse-board g.hex.is-attack, svg.cyvasse-board g.hex.is-move").click
       end
       return

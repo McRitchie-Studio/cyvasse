@@ -1,11 +1,9 @@
 # Player avatars (players/_avatar). A person shows their uploaded picture,
-# else their own piece of the vector art ringed in their colour. A computer player shows its portrait from
-# app/assets/images/bots/<username>.<ext> when one is there, else its own piece
-# of the game's vector art on the computer accent. The fallback is the game's
-# art on purpose: never a likeness of the characters the bots are named after.
+# else their own piece of the vector art ringed in their colour. A computer player shows the portrait
+# its seed set (users.portrait, an app/assets/images/bots path: the old Cyvasse
+# app's pictures), else its own piece of the game's vector art on the computer
+# accent.
 module AvatarsHelper
-  BOT_PORTRAIT_EXTENSIONS = %w[webp png jpg svg].freeze
-
   # One piece per computer player (LiveMatch::COMPUTER_NAMES keys).
   BOT_PIECES = {
     "qavo" => "trebuchet", "tyrion" => "crossbowman", "haldon" => "catapult",
@@ -16,13 +14,14 @@ module AvatarsHelper
   # A person's default: every piece but the mountain (terrain).
   USER_PIECES = Piece.all.reject { |piece| piece.slug == "mountain" }.freeze
 
-  # The logical asset path of a computer player's portrait, or nil.
+  # The logical asset path of a computer player's portrait, or nil. The seed
+  # is the source of truth (users.portrait, User.seed_computer_players!); a
+  # path whose file is missing falls back to piece art rather than a 500.
   def bot_portrait(user)
-    key = user.username.to_s.downcase
-    return nil unless key.match?(/\A[a-z0-9_]+\z/)
+    path = user.portrait.presence
+    return nil unless path&.match?(User::PORTRAIT_FORMAT)
 
-    BOT_PORTRAIT_EXTENSIONS.map { |ext| "bots/#{key}.#{ext}" }
-                           .find { |path| Rails.application.assets.load_path.find(path) }
+    path if Rails.application.assets.load_path.find(path)
   end
 
   def bot_piece(user)

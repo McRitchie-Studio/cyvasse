@@ -88,6 +88,33 @@ class User < ApplicationRecord
     legacy_id.present? && COMPUTER_LEGACY_IDS.cover?(legacy_id)
   end
 
+  # The named computer players' portraits, from the old Cyvasse app
+  # (amcritchie/Cyvasse app/assets/images, task cyvasse-bot-portraits): the
+  # logical asset path the seed writes to users.portrait, which
+  # AvatarsHelper#bot_portrait reads. A computer player missing here (legacy
+  # ids 8-10) keeps its piece art.
+  COMPUTER_PORTRAITS = LiveMatch::COMPUTER_NAMES.keys.index_with { |username| "bots/#{username}.webp" }.freeze
+  PORTRAIT_FORMAT = %r{\Abots/[a-z0-9_]+\.(webp|png|jpg|svg)\z}
+  validates :portrait, format: { with: PORTRAIT_FORMAT }, allow_nil: true
+
+  # One named computer player (LiveMatch::COMPUTER_NAMES), found by its legacy
+  # id or created (a new database has no legacy import), with its portrait set.
+  # Idempotent: a second run finds the same row and writes nothing, and an
+  # existing row (production's imported computer players) is updated in place.
+  def self.seed_computer_player!(username)
+    legacy_id = LiveMatch::COMPUTER_LEGACY_IDS.fetch(username)
+    user = find_by(legacy_id:) || create!(legacy_id:, username:, name: LiveMatch::COMPUTER_NAMES.fetch(username))
+    portrait = COMPUTER_PORTRAITS[username]
+    user.update!(portrait:) unless user.portrait == portrait
+    user
+  end
+
+  # Every named computer player, seeded (db/seeds.rb and the
+  # users:seed_computer_players post-deploy task).
+  def self.seed_computer_players!
+    transaction { LiveMatch::COMPUTER_NAMES.keys.map { |username| seed_computer_player!(username) } }
+  end
+
   # People with a name on the board (Leaderboard): never a computer player,
   # never a Play Now guest, and never an account with no public username (the
   # board shows usernames only, so it cannot leak a name or an email).

@@ -30,18 +30,12 @@
     </div>
 
     <aside class="cyvasse-panel space-y-4">
-      <div class="card p-4 space-y-3" data-cyvasse-game-target="setupControls">
-        <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">Your army</h2>
-        <p class="text-sm text-secondary">
-          Pick a unit, then a lit hex in your five rows. Click a placed unit to move it again.
-        </p>
-        <div class="cyvasse-dock" data-cyvasse-game-target="dock"></div>
-        <div class="cyvasse-setup-actions">
-          <button type="button" class="btn cyvasse-ready" disabled data-cyvasse-game-target="startButton" data-action="cyvasse-game#start">Ready</button>
-          <button type="button" class="btn btn-outline btn-sm cyvasse-outline" data-action="cyvasse-game#randomSetup">Random Setup</button>
+      <div class="space-y-4" data-cyvasse-game-target="setupControls">
+        <%= render "games/army_card", board: "cyvasse-game" %>
+        <div class="card p-4 space-y-3">
+          <%= render "setups/openings", board: "cyvasse-game" %>
+          <%= render "setups/panel", board: "cyvasse-game", slots: @setup_slots %>
         </div>
-        <%= render "setups/openings", board: "cyvasse-game" %>
-        <%= render "setups/panel", board: "cyvasse-game", slots: @setup_slots %>
       </div>
 
       <div class="card p-4" hidden data-cyvasse-game-target="info">
@@ -53,16 +47,7 @@
         <p class="cyvasse-trump text-sm text-secondary mt-2" data-info="trump">Trumps <span></span></p>
       </div>
 
-      <div class="card p-4 space-y-3">
-        <div>
-          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted mb-1">Your fallen</h2>
-          <div class="cyvasse-graveyard" data-team="1" data-cyvasse-game-target="graveyard"></div>
-        </div>
-        <div>
-          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted mb-1">Opponent's fallen</h2>
-          <div class="cyvasse-graveyard" data-team="0" data-cyvasse-game-target="graveyard"></div>
-        </div>
-      </div>
+      <%= render "games/fallen_card", board: "cyvasse-game", them: "Opponent" %>
 
       <div class="flex flex-wrap items-center gap-3">
         <button type="button" class="btn btn-secondary" data-action="cyvasse-game#newGame">New game</button>
