@@ -50,8 +50,27 @@ class User < ApplicationRecord
     { email: "alex@cyvasse.mcritchie.studio", name: "Alex McRitchie (Cyvasse)", role: "admin" }
   ].freeze
 
+  # Sluggable sets the uniquely indexed slug from this before every save. It is
+  # never empty and never another account's (task cyvasse-blank-name-slug):
+  #
+  # 1. A slug already held stands while the name it came from does, so a legacy
+  #    player's "user-<id>" and every existing slug survive an ordinary save.
+  # 2. The stem is the name, transliterated (José Núñez -> jose-nunez), else
+  #    the username, else nothing (a new magic-link account, or a name with no
+  #    Latin letters such as "Иван" or an emoji).
+  # 3. No stem: "user-" and a random token. A taken stem: the next free
+  #    numeric suffix (carl, carl-2, carl-3).
+  #
+  # The check can lose a race with a concurrent save; create_or_update below
+  # retries on the slug index rather than trusting it.
   def name_slug
-    name.present? ? name.parameterize : "user-#{id}"
+    stem = slug_stem
+    return slug if slug.present? && @slug_conflicts.to_i.zero? && slug_stands?(stem)
+    return random_slug if stem.nil? || @slug_conflicts.to_i >= SLUG_SUFFIX_TRIES
+
+    return stem unless slug_taken?(stem)
+
+    "#{stem}-#{highest_slug_suffix(stem) + 1}"
   end
 
   # A legacy player (LegacyImport) has a username and no name.
@@ -164,6 +183,58 @@ class User < ApplicationRecord
   end
 
   private
+
+  # Tries per save before giving up on the slug index: the first few take the
+  # next numeric suffix, the rest a random token no race can share.
+  SLUG_SUFFIX_TRIES = 2
+  SLUG_SAVE_TRIES = 5
+  SLUG_INDEX = "index_users_on_slug".freeze
+
+  # A save that loses the slug to a concurrent one retries with a fresh slug.
+  # The savepoint keeps a caller's outer transaction usable after the failed
+  # statement; any other unique violation is re-raised untouched.
+  def create_or_update(**options, &block)
+    @slug_conflicts = 0
+    begin
+      self.class.transaction(requires_new: true) { super(**options, &block) }
+    rescue ActiveRecord::RecordNotUnique => e
+      raise unless e.message.include?(SLUG_INDEX) && (@slug_conflicts += 1) < SLUG_SAVE_TRIES
+
+      retry
+    end
+  ensure
+    @slug_conflicts = 0
+  end
+
+  def slug_stem
+    [ name, username ].each do |source|
+      stem = source.to_s.parameterize
+      return stem if stem.present?
+    end
+    nil
+  end
+
+  # The held slug fits when the name is unchanged, or when it changed to one
+  # with the same stem ("Carl" to "CARL" keeps carl-2).
+  def slug_stands?(stem)
+    return true unless will_save_change_to_name?
+
+    stem.present? && slug.match?(/\A#{Regexp.escape(stem)}(-\d+)?\z/)
+  end
+
+  def slug_taken?(candidate)
+    User.where(slug: candidate).where.not(id: id).exists?
+  end
+
+  # parameterize leaves only [a-z0-9_-], so the stem is safe inside the pattern.
+  def highest_slug_suffix(stem)
+    User.where.not(id: id).where("slug ~ ?", "^#{stem}-[0-9]{1,9}$")
+        .maximum(Arel.sql("substring(slug from '[0-9]+$')::integer")).to_i.clamp(1..)
+  end
+
+  def random_slug
+    "user-#{SecureRandom.alphanumeric(10).downcase}"
+  end
 
   def username_free_in_any_case
     return if username.blank?
