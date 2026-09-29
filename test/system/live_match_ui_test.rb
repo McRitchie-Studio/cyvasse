@@ -205,6 +205,10 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     # The move reaches the server (the computer, paced at 0 here, may answer at once).
     Timeout.timeout(5) { sleep 0.1 until @match.reload.turn > turn || @match.finished? }
     assert @match.last_move.present?
+  ensure
+    # A dismissal is kept per match id in sessionStorage, which outlives the
+    # test in the shared browser; a later test's match can reuse the id.
+    page.execute_script("sessionStorage.clear()")
     assert_equal 2, @match.home_strikes
   end
 
