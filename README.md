@@ -286,8 +286,13 @@ engine's modal host (`modals/_game_over`, registered in
 to keep your record" (a win that counts adds that it goes on the live
 leaderboard) or to play another game; a signed-in player may play again or
 close it and look over the final board. It opens when the game ends while the
-page watches, or when a finished live match is opened; an older finished
-match keeps its result on the board. Sign in opens the sign-in modal
+page watches, however it ends (a move, a resignation, a clock, a computer
+holding a seat), or when a live match that ended in the last five minutes is
+opened (`just_ended` in the live state); an older finished match keeps its
+result on the board. A page out of sight (another tab, window or app) waits
+until the player is back before opening it, so the click that brings them
+back cannot close it unseen. Resign and Cancel match follow the phase and go
+when the match ends. Sign in opens the sign-in modal
 (`modals/_auth`, the hub's card): Google, where the app has it, then the
 engine's magic link, both bringing the player back to the match. On sign-in,
 `GuestClaim` moves the guest's match seats, wins, searches and chat to the
