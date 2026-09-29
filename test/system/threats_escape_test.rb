@@ -39,7 +39,12 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     assert_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='48']"
     assert_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='44']"
     assert_no_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='91']"
-    assert_selector "svg.cyvasse-board g.hex.is-danger[data-hex='44'][aria-description^='In danger']"
+    # VoiceOver hears the danger as part of the unit's name: its own label,
+    # then the visually hidden note (Chrome's computed name, read over CDP).
+    assert_equal "Your rabble In danger: the opponent can take it next turn", accessible_name("g.hex[data-hex='44']")
+    assert_equal "Your elephant", accessible_name("g.hex[data-hex='48']")
+    assert_equal [ 1, 1 ], page.evaluate_script("(() => { const r = document.getElementById('cyvasse-game-danger-note').getBoundingClientRect(); return [r.width, r.height] })()"),
+      "the note is visually hidden"
     assert_no_selector "svg.cyvasse-board g.hex.is-danger[data-hex='48']"
     assert_no_selector "svg.cyvasse-board g.hex.is-danger[data-hex='91']"
     assert_equal [ "44" ], danger_hexes
@@ -51,6 +56,27 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     centre = hex_centre(47)
     assert edges.none? { |(ax, ay), (bx, by)| (((ax + bx) / 2 - centre[0])**2 + ((ay + by) / 2 - centre[1])**2) < 40**2 },
       "no outline edge runs through the middle of the region"
+
+    # The danger ring breathes by opacity and scale, never by stroke width.
+    frames = page.evaluate_script(<<~JS)
+      [...document.styleSheets].flatMap((sheet) => { try { return [...sheet.cssRules] } catch { return [] } })
+        .filter((rule) => rule.type === CSSRule.KEYFRAMES_RULE && rule.name === "cyvasse-danger")
+        .flatMap((rule) => [...rule.cssRules].map((frame) => frame.style.cssText))
+    JS
+    assert_not_empty frames
+    assert frames.none? { |frame| frame.include?("stroke") }, "no stroke property animates: #{frames}"
+    assert frames.any? { |frame| frame.include?("opacity") }
+
+    # Pick the rabble: the outline is cut away over the selection and its
+    # rings, so it paints beneath them.
+    find("svg.cyvasse-board g.hex[data-hex='44']").click
+    assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='44']"
+    lit = page.evaluate_script("[...document.querySelectorAll('svg.cyvasse-board g.hex')].filter((g) => ['is-selected', 'is-move', 'is-attack', 'is-lit'].some((c) => g.classList.contains(c))).length")
+    assert_operator lit, :>, 1
+    assert_equal lit, page.evaluate_script("document.querySelectorAll('#cyvasse-game-threat-mask g polygon').length")
+    assert_equal "url(\"#cyvasse-game-threat-mask\")", page.evaluate_script("getComputedStyle(document.querySelector('path.threat-outline')).mask")
+    press_escape
+    assert_equal 0, page.evaluate_script("document.querySelectorAll('#cyvasse-game-threat-mask g polygon').length")
 
     # Move the rabble out of range: the danger follows the position.
     stage("0-15" => 46, "0-17" => 1, "1-17" => 91, "1-6" => 48, "1-1" => 90)
@@ -187,6 +213,16 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     mx = (ax + bx) / 2
     my = (ay + by) / 2
     @centres.count { |x, y| Math.hypot(x - mx, y - my) < 31 }
+  end
+
+  # The name Chrome's accessibility tree computes for the element (what a
+  # screen reader is handed), not the attribute the page set.
+  def accessible_name(selector)
+    browser = page.driver.browser
+    root = browser.execute_cdp("DOM.getDocument", depth: 0)["root"]["nodeId"]
+    node = browser.execute_cdp("DOM.querySelector", nodeId: root, selector: selector)["nodeId"]
+    tree = browser.execute_cdp("Accessibility.getPartialAXTree", nodeId: node, fetchRelatives: false)
+    tree["nodes"].first.dig("name", "value")
   end
 
   def hex_centre(hex)
