@@ -45,8 +45,10 @@ module User::Onboarding
   # Incomplete: the flow opens itself after a sign-in. Only an account with a
   # real gap counts: a legacy player not yet welcomed, no usable username, or
   # no name. A missing skin or email preference alone waits for the flow.
+  # Guests, computers and admins (operators, who can open /onboarding
+  # themselves) are never sent.
   def onboarding_due?
-    return false if guest? || computer?
+    return false if guest? || computer? || admin?
 
     missing = onboarding_missing
     missing.include?("welcome") || missing.include?("username") || (missing.include?("profile") && name.blank?)

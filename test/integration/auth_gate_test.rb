@@ -8,7 +8,8 @@ class AuthGateTest < ActionDispatch::IntegrationTest
   # product decision, not a convenience — say why in the controller.
   # LeaderboardsController: the boards are public like the landing page that
   # carries the top ten, and a guest's sign-in page must open signed out.
-  PUBLIC_CONTROLLERS = %w[PagesController GamesController SkinsController LeaderboardsController].freeze
+  # EmailHandoffsController is a sign-in door: its assertion is the credential.
+  PUBLIC_CONTROLLERS = %w[PagesController GamesController SkinsController LeaderboardsController EmailHandoffsController].freeze
 
   test "the leaderboard and its sign-in page render publicly" do
     get leaderboard_path
@@ -59,7 +60,8 @@ class AuthGateTest < ActionDispatch::IntegrationTest
   end
 
   test "consuming a magic link signs the player in" do
-    user = User.create!(email: "carl@example.com", name: "Carl Test")
+    # A complete account, so the first page is not the onboarding.
+    user = User.create!(email: "carl@example.com", name: "Carl Test", username: "carl")
 
     log_in_as(user)
     get root_path
