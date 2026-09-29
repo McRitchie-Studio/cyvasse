@@ -99,7 +99,7 @@ class SmartSetupCardTest < ApplicationSystemTestCase
     some = boxes
     assert_operator some["smart"]["top"], :>=, some["ready"]["bottom"], "Place All sits under Ready"
     assert_not filled?, "Place All has no fill"
-    assert_still start, some, %w[ready dock card]
+    assert_still start, some, %w[ready dock card status]
     shot("1-#{label}")
 
     # Place All keeps the placed unit and fills the rest: New Setup.
@@ -111,13 +111,13 @@ class SmartSetupCardTest < ApplicationSystemTestCase
     assert_selector "svg.cyvasse-board g.hex.has-unit[data-team='1']", count: 19
     assert_equal placed, find("svg.cyvasse-board g.hex[data-hex='56']")["data-unit-id"], "Place All kept the placed unit"
     all_placed = boxes
-    assert_still some, all_placed, %w[ready dock card smart]
+    assert_still some, all_placed, %w[ready dock card smart status]
     shot("2-#{label}")
 
     # New Setup replaces the army, and nothing moves.
     find(SMART).click
     assert_equal "new", mode
-    assert_still all_placed, boxes, %w[ready dock card smart]
+    assert_still all_placed, boxes, %w[ready dock card smart status]
   end
 
   def mode = find(CARD)["data-army-mode"]
@@ -127,18 +127,24 @@ class SmartSetupCardTest < ApplicationSystemTestCase
     page.evaluate_script("getComputedStyle(document.querySelector(#{SMART.to_json})).backgroundColor") !~ /rgba\(0, 0, 0, 0\)|transparent/
   end
 
-  # Each box relative to the card's top-left corner, and the card's relative
-  # to the game section (scrolling, and the engine navbar collapsing as the
-  # page scrolls, shift the whole page).
+  # Each box relative to the card's top-left corner; the card's top relative
+  # to whatever sits above it in the sidebar (scrolling, the engine navbar
+  # collapsing, and a live match's notices arriving on their own all shift
+  # the page); and the status line's height, which reserves room for its
+  # longest setup text.
   def boxes
     sleep 0.1
     page.evaluate_script(<<~JS)
       (() => {
         const card = document.querySelector(#{CARD.to_json})
         const origin = card.getBoundingClientRect()
+        const wrap = card.parentElement
+        const above = wrap.previousElementSibling ? wrap.previousElementSibling.getBoundingClientRect().bottom : wrap.parentElement.getBoundingClientRect().top
+        const status = document.querySelector("[data-cyvasse-match-target=status], [data-cyvasse-game-target=status]").getBoundingClientRect()
         const box = (el) => { const r = el.getBoundingClientRect(); return { top: r.top - origin.top, bottom: r.bottom - origin.top, left: r.left - origin.left, width: r.width, height: r.height } }
         return {
-          card: { top: origin.top - document.querySelector(".cyvasse-game").getBoundingClientRect().top, bottom: origin.height, left: 0, width: origin.width, height: origin.height },
+          card: { top: origin.top - above, bottom: origin.height, left: 0, width: origin.width, height: origin.height },
+          status: { top: 0, left: 0, width: 0, height: status.height },
           dock: box(card.querySelector(".cyvasse-dock")),
           ready: box(card.querySelector(".cyvasse-ready")),
           smart: box(card.querySelector(".cyvasse-smart"))
