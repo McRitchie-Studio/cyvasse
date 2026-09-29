@@ -370,8 +370,10 @@ class Match < ApplicationRecord
 
   # Whether a result goes on this player's won/lost record: only when a person
   # played the seat. Never a computer player's, and never a live seat a
-  # computer took over after missed clocks (its moves were the computer's, so
-  # the result is nobody's). The live leaderboard follows the same rule.
+  # computer took over after missed clocks and still held at the end (its
+  # moves were the computer's, so the result is nobody's). A seat taken back
+  # (LiveMatch#take_back_seat!) is the player's again. The live leaderboard
+  # follows the same rule.
   def on_record?(user)
     !user.computer? && !(live? && bot_seat?(seat(user)))
   end
