@@ -155,8 +155,10 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     @match.update_columns(home_bot: true, home_strikes: 2, updated_at: Time.current)
     assert_text "a computer player has taken your seat", wait: 5
     assert_no_selector "[data-cyvasse-match-target=noticeDismiss]", visible: true
+    page.save_screenshot(Rails.root.join("tmp/screenshots/take-back-seat.png")) if ENV["SCREENSHOTS"]
     click_on "Take back my seat"
     assert_text "You took back your seat"
+    page.save_screenshot(Rails.root.join("tmp/screenshots/took-back-seat.png")) if ENV["SCREENSHOTS"]
     assert_no_selector "[data-match-slot=take-back-seat]", visible: true
     assert_not @match.reload.bot_seat?(:home)
 
