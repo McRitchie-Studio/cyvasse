@@ -72,12 +72,12 @@ class OnlineMatchTest < ActionDispatch::IntegrationTest
     end
 
     assert_equal "over", body.dig("state", "phase")
-    assert_equal 1, body.dig("state", "winner"), "the away player's own view says they won"
-    assert_equal [ Match::FINISHED, "king", @away ], [ match.reload.match_status, match.finish_reason, match.winner ]
+    assert_equal 1, body.dig("state", "winner"), "the home player's own view says they won"
+    assert_equal [ Match::FINISHED, "king", @home ], [ match.reload.match_status, match.finish_reason, match.winner ]
 
-    home.get matches_path
-    home.assert_select "[data-section=finished] li", /lost \(king captured\)/
-    home.assert_select "[data-record]", "0 won, 1 lost"
+    away.get matches_path
+    away.assert_select "[data-section=finished] li", /lost \(king captured\)/
+    away.assert_select "[data-record]", "0 won, 1 lost"
   end
 
   test "an illegal or out-of-turn move answers 422 with the true state" do

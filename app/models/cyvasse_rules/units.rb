@@ -5,7 +5,9 @@ module CyvasseRules
   # browser's: test/models/cyvasse_rules/js_agreement_test.rb replays the JS
   # engine's own answers (test/fixtures/files/rules_agreement.json) against
   # this port, and test/lib/engine_rulebook_agreement_test.rb pins the table.
-  # The September 2026 trebuchet and king changes are explained in units.js.
+  # The September 2026 trebuchet, king and elephant changes are explained in
+  # units.js; test/models/cyvasse_rules/units_parity_test.rb pins every row of
+  # this table to units.js.
   module Units
     Type = Data.define(:codename, :name, :rank, :attack, :defence, :move_range, :attack_range, :trump) do
       def mountain? = codename == "mountain"
@@ -23,7 +25,7 @@ module CyvasseRules
     TYPES = [
       type("rabble", "Rabble", "vanguard", attack: 1, defence: 1, move: 3, range: 0),
       type("spearman", "Spearman", "vanguard", attack: 2, defence: 2, move: 2, range: 0, trump: [ "lighthorse" ]),
-      type("elephant", "Elephant", "vanguard", attack: 4, defence: 4, move: 3, range: 0),
+      type("elephant", "Elephant", "vanguard", attack: 4, defence: 4, move: 2, range: 0),
       type("lighthorse", "Light Horse", "cavalry", attack: 2, defence: 2, move: 3, range: 0),
       type("heavyhorse", "Heavy Horse", "cavalry", attack: 3, defence: 3, move: 2, range: 0),
       type("crossbowman", "Crossbowman", "range", attack: 2, defence: 1, move: 1, range: 2, trump: [ "elephant" ]),
