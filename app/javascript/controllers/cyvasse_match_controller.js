@@ -182,9 +182,9 @@ export default class extends GameController {
     super.pickFromDock(event)
   }
 
-  randomSetup() {
-    if (!this.state.can_set_up) return
-    super.randomSetup()
+  smartSetup() {
+    if (!this.state.can_set_up || this.holding) return
+    super.smartSetup()
   }
 
   loadLineup(event) {
