@@ -451,8 +451,8 @@ export default class extends Controller {
     }
     // A unit in danger: orange from the hex's edges in, like the team shade.
     const danger = el("radialGradient", { id: "danger-edge", r: "60%" })
-    for (const [offset, opacity] of [["45%", 0], ["100%", 0.95]]) {
-      danger.append(el("stop", { offset, "stop-color": "#fb923c", "stop-opacity": opacity }))
+    for (const [offset, opacity] of [["35%", 0], ["100%", 1]]) {
+      danger.append(el("stop", { offset, "stop-color": "#f97316", "stop-opacity": opacity }))
     }
     defs.append(danger)
     // The texture over a lit hex: a fine diagonal hatch, light and faint.
@@ -468,7 +468,7 @@ export default class extends Controller {
       .map(([x, y]) => `${(x * scale).toFixed(2)},${(y * scale).toFixed(2)}`).join(" ")
     const corners = cornersAt(0.97)
     // Inset, so the pulse never tints the hex's red range edge.
-    const dangerCorners = cornersAt(0.9)
+    const dangerCorners = cornersAt(0.935)
 
     for (const hex of HEXES) {
       const cx = PAD + (11 - hex.size) * W / 2 + (hex.x - 0.5) * W
@@ -480,10 +480,12 @@ export default class extends Controller {
       const polygon = el("polygon", { class: "hex-poly", points: corners })
       const texture = el("polygon", { class: "ring-texture", points: corners, fill: "url(#ring-texture)" })
       const shade = el("polygon", { class: "unit-shade", points: corners })
+      // Over the shade, so a unit's hex shows its whole red range edge.
+      const range = el("polygon", { class: "range-edge", points: corners })
       const danger = el("polygon", { class: "danger-edge", points: dangerCorners, fill: "url(#danger-edge)" })
       const disc = el("circle", { class: "unit-disc", r: 27 })
       const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
-      group.append(polygon, texture, shade, danger, disc, image)
+      group.append(polygon, texture, shade, range, danger, disc, image)
       svg.append(group)
       this.hexNodes.set(hex.index, { group, polygon, shade, disc, image })
       this.hexCentres.set(hex.index, { x: cx, y: cy, row: hex.y })

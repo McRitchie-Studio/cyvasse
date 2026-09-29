@@ -56,22 +56,22 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     threatened = page.evaluate_script("[...document.querySelectorAll('g.hex.is-threatened')].map((g) => g.dataset.hex)")
     assert_not_empty threatened
     outlines = page.evaluate_script(<<~JS)
-      [...document.querySelectorAll('g.hex.is-threatened:not(.is-last-move) .hex-poly')].map((p) => {
+      [...document.querySelectorAll('g.hex.is-threatened:not(.is-last-move) .range-edge')].map((p) => {
         const s = getComputedStyle(p)
-        return [s.stroke, s.strokeDasharray, parseFloat(s.strokeWidth), p.points.length]
+        return [s.display, s.stroke, s.strokeDasharray, parseFloat(s.strokeWidth), p.points.length]
       })
     JS
-    assert outlines.all? { |stroke, dash, width, corners| stroke == RED && dash == "none" && width >= 2 && corners == 6 },
+    assert outlines.all? { |display, stroke, dash, width, corners| display == "inline" && stroke == RED && dash == "none" && width >= 2 && corners == 6 },
       "every threatened hex has a solid red six-edge outline: #{outlines.uniq}"
-    calm = page.evaluate_script("[...document.querySelectorAll('g.hex:not(.is-threatened):not(.is-last-move) .hex-poly')].map((p) => getComputedStyle(p).stroke)")
-    assert_equal [ WHITE ], calm.uniq, "hexes out of reach keep their white edge"
+    calm = page.evaluate_script("[...document.querySelectorAll('g.hex:not(.is-threatened):not(.is-last-move)')].map((g) => [getComputedStyle(g.querySelector('.hex-poly')).stroke, getComputedStyle(g.querySelector('.range-edge')).display])")
+    assert_equal [ [ WHITE, "none" ] ], calm.uniq, "hexes out of reach keep their white edge"
 
     # Deep inside the reach, too: the catapult's line of fire from 46 runs
     # through 47 to 48, and 47 (between two threatened hexes) is outlined.
     stage("0-15" => 46, "0-17" => 1, "1-17" => 91, "1-6" => 48, "1-1" => 44)
     %w[47 48 44].each do |hex|
       assert_selector "svg.cyvasse-board g.hex.is-threatened[data-hex='#{hex}']"
-      assert_equal RED, style("g.hex[data-hex='#{hex}'] .hex-poly")["stroke"]
+      assert_equal [ "inline", RED ], style("g.hex[data-hex='#{hex}'] .range-edge").values_at("display", "stroke")
     end
 
     # The outline lies beneath the selection and the rings it lights: those
@@ -82,21 +82,21 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     screenshot("selected")
     selected = style("g.hex[data-hex='44'] .hex-poly")
     assert_equal "rgb(255, 165, 0)", selected["fill"]
-    assert_not_equal RED, selected["stroke"]
     lit = page.evaluate_script(<<~JS)
       [...document.querySelectorAll('g.hex.is-threatened')]
         .filter((g) => ['is-selected', 'is-move', 'is-attack', 'is-lit'].some((c) => g.classList.contains(c)))
-        .map((g) => getComputedStyle(g.querySelector('.hex-poly')).stroke)
+        .map((g) => getComputedStyle(g.querySelector('.range-edge')).display)
     JS
-    assert_not_empty lit
-    assert_not_includes lit, RED
-    assert_equal RED, style("g.hex[data-hex='47'] .hex-poly")["stroke"], "47 is not lit by the rabble, so it keeps its outline"
+    assert_includes lit, "none", "the selected rabble is threatened and lit"
+    assert_equal [ "none" ], lit.uniq, "no lit hex wears the outline"
+    assert_equal "inline", style("g.hex[data-hex='47'] .range-edge")["display"], "47 is not lit by the rabble, so it keeps its outline"
 
     # The last move's team edge reads over the outline too.
     find("body").send_keys(:escape)
     page.execute_script("const ctrl = #{CONTROLLER}; ctrl.game.lastMove = [43, 44]; ctrl.render()")
     assert_selector "svg.cyvasse-board g.hex.is-last-move", count: 2
     assert_equal "rgb(59, 130, 246)", style("g.hex[data-hex='44'] .hex-poly")["stroke"]
+    assert_equal "none", style("g.hex[data-hex='44'] .range-edge")["display"]
   end
 
   private

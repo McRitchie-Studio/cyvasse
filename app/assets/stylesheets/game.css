@@ -546,13 +546,21 @@
 }
 
 /* The opponent's reach: every hex they could strike next turn wears a full
- * red outline (.is-threatened, from renderThreats), so the region reads as
+ * red outline (.is-threatened, from renderThreats; drawn over the unit
+ * shade, so a unit's hex shows it whole), so the region reads as
  * clearly outlined cells. It lies beneath the selection, its move rings and
  * the last move (those hexes keep their own edges), and yields to hover and
  * the keyboard's yellow focus edge. Class-driven: nothing runs per frame. */
-.cyvasse-board .hex.is-threatened:not(.is-selected, .is-move, .is-attack, .is-last-move, .is-lit, .is-ghost, .is-field, .is-target, .is-blocked, :hover, :focus-visible) .hex-poly {
+.cyvasse-board .range-edge {
+  display: none;
+  fill: none;
   stroke: #ef4444;
   stroke-width: 2.5;
+  pointer-events: none;
+}
+
+.cyvasse-board .hex.is-threatened:not(.is-selected, .is-move, .is-attack, .is-last-move, .is-lit, .is-ghost, .is-field, .is-target, .is-blocked, :hover, :focus-visible) .range-edge {
+  display: inline;
 }
 
 /* A unit of yours the opponent could kill next turn: an orange glow from its
@@ -571,14 +579,19 @@
   will-change: opacity;
 }
 
+/* The team shade steps back, as for a hex under attack, so the orange reads. */
+.cyvasse-board .is-danger .unit-shade {
+  opacity: 0.3;
+}
+
 @keyframes cyvasse-danger {
-  0%, 100% { opacity: 0.95; }
-  50% { opacity: 0.4; }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .cyvasse-board .is-danger .danger-edge {
     animation: none;
-    opacity: 0.85;
+    opacity: 0.9;
   }
 }
