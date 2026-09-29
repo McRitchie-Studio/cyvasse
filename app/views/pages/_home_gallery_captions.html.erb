@@ -1,0 +1,8 @@
+<%# Each slide's piece, named small in the hero's corner, above the scrim.
+    Shown with its slide (home_gallery_controller.js); hidden from screen
+    readers, like the art it names. %>
+<div class="home-gallery-captions" aria-hidden="true">
+  <% slides.each_with_index do |slide, index| %>
+    <span class="home-slide-caption<%= ' is-active' if index.zero? %>" data-home-gallery-target="caption" data-piece="<%= slide.slug %>"><%= slide.caption %></span>
+  <% end %>
+</div>
