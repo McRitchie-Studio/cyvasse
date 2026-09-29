@@ -17,16 +17,10 @@ class ThreatTogglesTest < ApplicationSystemTestCase
   end
 
   test "on /play each switch hides only its own threats" do
-    visit play_path
-    select "Crown Forward", from: "Opening"
-    within("[data-controller=cyvasse-openings]") { click_on "Load opening" }
-    assert_text "Loaded Crown Forward."
-    click_on "Ready"
-    page.execute_script("document.querySelector('[data-controller=cyvasse-game]').dataset.cyvasseGamePaceValue = '0'")
-    assert_selector "[data-controller=cyvasse-game][data-phase=play][data-offense='1'][data-holding=false]", wait: 15
+    start_game
     assert_selector ".cyvasse-board-bar .cyvasse-threat-toggles", visible: true
 
-    exercise("cyvasse-game") { visit play_path }
+    exercise("cyvasse-game") { start_game }
   end
 
   test "on a match board each switch hides only its own threats" do
@@ -46,6 +40,16 @@ class ThreatTogglesTest < ApplicationSystemTestCase
   end
 
   private
+
+  def start_game
+    visit play_path
+    select "Crown Forward", from: "Opening"
+    within("[data-controller=cyvasse-openings]") { click_on "Load opening" }
+    assert_text "Loaded Crown Forward."
+    click_on "Ready"
+    page.execute_script("document.querySelector('[data-controller=cyvasse-game]').dataset.cyvasseGamePaceValue = '0'")
+    assert_selector "[data-controller=cyvasse-game][data-phase=play][data-offense='1'][data-holding=false]", wait: 15
+  end
 
   def exercise(board)
     stage(board)
