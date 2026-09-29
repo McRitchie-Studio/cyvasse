@@ -38,7 +38,7 @@ Imported from the legacy repo and served through Propshaft
 | `pieces/pencil/*.png` | The pencil skin, 11 pieces | `app/assets/images/pieces/` |
 | `pieces/vector/*.svg` | The coloured vector skin, 11 pieces (verbatim) | `public/images/svgs/` |
 | `backgrounds/`, `title/`, `hex.svg` | Page backgrounds, title wordmarks, the hex outline | `app/assets/images/cyvasse_*.png`, `hex.svg` |
-| `thanks/` | The gSchool thanks photos | `public/images/thanks/` |
+| `thanks/` | The gSchool thanks photos | `app/assets/images/thanks/` |
 | `backgrounds/home/*.webp` | The home page's background gallery: one action shot per piece, a 2:1 wide crop and a `-mobile` portrait crop each | New: captured from `/play` (below) |
 
 The home page's background (`HomeGallery`, `pages/_home_gallery`,
