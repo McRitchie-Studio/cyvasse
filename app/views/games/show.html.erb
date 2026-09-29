@@ -23,10 +23,10 @@
 
   <div class="cyvasse-layout">
     <div class="cyvasse-board-wrap">
+      <%= render "games/banner", board: "cyvasse-game" %>
       <%= render "games/board_bar", board: "cyvasse-game" %>
       <svg class="cyvasse-board" role="group" aria-label="The Cyvasse board. Arrow keys move between hexes; Enter selects."
            data-cyvasse-game-target="board" data-action="click->cyvasse-game#clickHex keydown->cyvasse-game#keyHex"></svg>
-      <div class="cyvasse-banner" hidden data-cyvasse-game-target="banner"></div>
     </div>
 
     <aside class="cyvasse-panel space-y-4">

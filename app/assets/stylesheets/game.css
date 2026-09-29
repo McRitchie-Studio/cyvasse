@@ -243,37 +243,48 @@
 .cyvasse-board .hex-cursor.is-on { display: inline; }
 .cyvasse-board .hex-cursor.is-focus { stroke-width: 4; }
 
-/* The rotator banner: slides in from the left, out to the right. */
+/* The rotator banner: slides in from the left, out to the right, in its
+ * own slot above the board. It never sits over the board, where it hid the
+ * computer's selected unit and its move (UX audit #2). The slot keeps its
+ * height while the banner is hidden, so the board never jumps; a line that
+ * wraps on a phone grows upward, away from the board. */
+.cyvasse-banner-slot {
+  position: relative;
+  min-height: 2.75rem;
+  margin-bottom: 0.25rem;
+}
+
 .cyvasse-banner {
   position: absolute;
-  top: 42%;
+  bottom: 0;
   left: 50%;
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1.25rem;
   border-radius: 0.5rem;
   background: rgb(0 0 0 / 0.8);
   border: 1px solid rgb(255 255 255 / 0.6);
   color: white;
   font-weight: 700;
-  font-size: 1.125rem;
-  /* One line where it fits; a long line ("Opponent passes · Turn 12 · …")
+  font-size: 1rem;
+  line-height: 1.5rem;
+  /* One line where it fits; a long line ("Opponent passes · Turn 6 · …")
    * wraps on a phone rather than running past the board. */
   width: max-content;
   max-width: calc(100% - 1rem);
   text-align: center;
   pointer-events: none;
   opacity: 0;
-  transform: translate(-150%, -50%);
+  transform: translateX(-150%);
   transition: transform 0.6s ease, opacity 0.6s ease;
 }
 
 .cyvasse-banner.is-showing {
   opacity: 1;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 
 .cyvasse-banner.is-leaving {
   opacity: 0;
-  transform: translate(50%, -50%);
+  transform: translateX(50%);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -531,25 +542,48 @@ html.dark [data-skin="pencil"] .dock-unit img {
 
 .match-actions {
   display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.match-links {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 1rem;
 }
 
-.match-actions .cyvasse-threat-toggles {
+.match-links .cyvasse-threat-toggles {
   margin-left: 0;
   font-size: 0.875rem;
 }
 
-/* One forfeit shows at a time, by the status the board keeps current. */
+/* One forfeit shows at a time, by the status the board keeps current. It
+ * ends the game, so it sits apart from the links, below a rule. */
 .match-forfeit {
   display: none;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
 }
 
 [data-match-status="pending"] .match-forfeit[data-forfeit="pregame"],
 [data-match-status="new"] .match-forfeit[data-forfeit="pregame"],
 [data-match-status="in progress"] .match-forfeit[data-forfeit="play"] {
-  display: inline-flex;
+  display: flex;
+}
+
+/* A danger outline, never the green fill of a Play button. The ink is the
+ * engine's contrast-safe text red (--color-danger-ink), not the fill red. */
+.match-forfeit-button {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-danger, #EF4444) 60%, transparent);
+  color: var(--color-danger-ink, var(--color-danger, #EF4444));
+  font-weight: 600;
+}
+
+.match-forfeit-button:hover,
+.match-forfeit-button:focus-visible {
+  background: color-mix(in srgb, var(--color-danger, #EF4444) 12%, transparent);
 }
 
 /* The versus card (matches/_versus): you over them, each an avatar beside a

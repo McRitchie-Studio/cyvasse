@@ -28,6 +28,14 @@ class MatchesHelperTest < ActionView::TestCase
     assert_match(/\Aturn 1, arya to move/, match_summary(match, @away))
   end
 
+  test "the turn counts full moves: both sides' moves are one turn" do
+    match = started_match(@home, @away)
+    match.update_columns(turn: 17)
+    assert_match(/\Aturn 9, /, match_summary(match.reload, @home))
+    match.update_columns(turn: 18)
+    assert_match(/\Aturn 9, /, match_summary(match.reload, @home))
+  end
+
   test "a finished match says who won and how" do
     match = started_match(@home, @away)
     match.resign!(@home)
