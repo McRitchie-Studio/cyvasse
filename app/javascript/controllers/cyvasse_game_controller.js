@@ -502,12 +502,13 @@ export default class extends Controller {
     svg.append(this.threatPath)
 
     // What a screen reader says after a threatened unit's name (renderThreats).
-    // Visually hidden text, joined to the name with aria-labelledby, because
-    // Safari's VoiceOver reads aria-description only in part.
+    // Hidden text, joined to the name with aria-labelledby (which reads hidden
+    // nodes), because Safari's VoiceOver reads aria-description only in part.
+    // Hidden, not just off screen, so browse mode never reads it on its own.
     const noteId = `${this.identifier}-danger-note`
     this.dangerNote = document.getElementById(noteId) ?? document.createElement("span")
     this.dangerNote.id = noteId
-    this.dangerNote.className = "cyvasse-visually-hidden"
+    this.dangerNote.hidden = true
     this.dangerNote.textContent = "In danger: the opponent can take it next turn"
     if (!this.dangerNote.isConnected) svg.after(this.dangerNote)
   }

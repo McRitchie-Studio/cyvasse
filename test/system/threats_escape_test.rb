@@ -43,8 +43,8 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     # then the visually hidden note (Chrome's computed name, read over CDP).
     assert_equal "Your rabble In danger: the opponent can take it next turn", accessible_name("g.hex[data-hex='44']")
     assert_equal "Your elephant", accessible_name("g.hex[data-hex='48']")
-    assert_equal [ 1, 1 ], page.evaluate_script("(() => { const r = document.getElementById('cyvasse-game-danger-note').getBoundingClientRect(); return [r.width, r.height] })()"),
-      "the note is visually hidden"
+    assert page.evaluate_script("document.getElementById('cyvasse-game-danger-note').hidden"),
+      "the note is hidden, so browse mode never reads it on its own"
     assert_no_selector "svg.cyvasse-board g.hex.is-danger[data-hex='48']"
     assert_no_selector "svg.cyvasse-board g.hex.is-danger[data-hex='91']"
     assert_equal [ "44" ], danger_hexes
