@@ -12,6 +12,8 @@ class PagesController < ApplicationController
 
     # The top ten under Play Now (Leaderboard: the live board's rule).
     @live_leaderboard = Leaderboard.live
+    # The background slides, from a random piece (HomeGallery).
+    @gallery = HomeGallery.slides
   end
 
   def pieces
