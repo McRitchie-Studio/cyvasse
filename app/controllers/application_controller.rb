@@ -37,11 +37,22 @@ class ApplicationController < ActionController::Base
       session[:guest_user_id] = user.id
     else
       claim_guest(guest, user) if guest
+      remember_google_return
       # Only the redirect right after this sign-in may claim by link: a
       # claim link opened later (sent by a guest to a signed-in player) must
       # not push the guest's games and chat onto that player.
       session[:claim_window_until] = CLAIM_WINDOW.from_now.to_i
     end
+  end
+
+  # Google's callback always lands on the home page; the sign-in modal names
+  # the page to come back to in the request (?return_to=, which OmniAuth keeps
+  # in omniauth.params), and PagesController#index sends the player there once.
+  AFTER_SIGN_IN = :after_sign_in_path
+
+  def remember_google_return
+    path = request.env["omniauth.params"]&.dig("return_to").to_s
+    session[AFTER_SIGN_IN] = path if path.start_with?("/") && !path.start_with?("//") && !path.include?("\\")
   end
 
   def signed_in_guest

@@ -4,6 +4,12 @@ class PagesController < ApplicationController
   skip_before_action :require_authentication
 
   def index
+    # Back from Google sign-in (ApplicationController#remember_google_return).
+    if (path = session.delete(AFTER_SIGN_IN)) && current_user && !current_user.guest?
+      flash.keep
+      return redirect_to(path)
+    end
+
     # The top ten under Play Now (Leaderboard: the live board's rule).
     @live_leaderboard = Leaderboard.live
   end

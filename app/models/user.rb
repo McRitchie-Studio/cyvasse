@@ -101,8 +101,7 @@ class User < ApplicationRecord
 
   # Play Now without an account (task play-now-matchmaking): a guest player
   # with a temporary name like Guest_4821, signed in by the session alone.
-  # Signing in later starts a separate account: nothing moves a guest's
-  # games to it yet.
+  # Signing in later moves its games to that account (GuestClaim).
   def self.create_guest!(rng: Random.new)
     5.times do
       number = rng.rand(1000..9999)
@@ -114,6 +113,32 @@ class User < ApplicationRecord
       next
     end
     raise "no free guest name"
+  end
+
+  # Google sign-in (the engine's OmniauthCallbacksController), as the hub does
+  # it: the account already linked to this Google identity, else the account
+  # with its email once Google has verified that email (an unverified one
+  # could take over someone else's account), else a new account. A name
+  # another player already slugs to is left off; Sluggable's slug is unique.
+  # Returns :email_not_verified for the refused link.
+  def self.from_omniauth(auth, email_verified: false)
+    user = find_by(provider: auth.provider, uid: auth.uid)
+    return user if user
+
+    email = auth.info.email.to_s.strip.downcase.presence
+    if email && (existing = find_by(email:))
+      return :email_not_verified unless email_verified
+
+      existing.update!(provider: auth.provider, uid: auth.uid)
+      return existing
+    end
+
+    name = auth.info.name.presence
+    name = nil if name && exists?(slug: name.parameterize)
+    create!(email:, name:, provider: auth.provider, uid: auth.uid)
+  rescue ActiveRecord::RecordNotUnique
+    # A concurrent callback created it first.
+    find_by(provider: auth.provider, uid: auth.uid) || (email && find_by(email:))
   end
 
   # The name shown beside a message: the public username, or for an account

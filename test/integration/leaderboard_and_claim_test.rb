@@ -154,19 +154,19 @@ class LeaderboardAndClaimTest < ActionDispatch::IntegrationTest
     assert_equal brienne, match.reload.winner
   end
 
-  test "the guest-win and guest-loss calls are on the live match page for a guest only" do
+  test "a guest's match page names the way back, with a claim token for this guest only" do
     guest = become_guest
     match = live_result(guest, @qavo, winner: guest)
 
     get match_path(match)
-    cta = assert_select("[data-cyvasse-match-target=claimWin][hidden] a[data-claim-cta=win]",
-                        "Sign in to put this win on the leaderboard").first
-    assert_equal join_leaderboard_path(result: "win"), cta["href"]
-    assert_select "[data-cyvasse-match-target=claimLoss][hidden] a", "Sign in to save your games"
+    return_to = css_select("[data-controller=cyvasse-match]").first["data-cyvasse-match-return-to-value"]
+    assert_match %r{\A/matches/#{match.id}\?claim=}, return_to
+    assert_equal guest, GuestClaim.guest_from_token(Rack::Utils.parse_query(URI(return_to).query)["claim"])
+    assert_select "[data-cyvasse-match-target=claimWin]", 0, "the old card is gone: the modal asks"
 
     arya = player("arya")
     consume_link(email: arya.email)
     get match_path(match)
-    assert_select "[data-cyvasse-match-target=claimWin]", 0
+    assert_nil css_select("[data-controller=cyvasse-match]").first["data-cyvasse-match-return-to-value"]
   end
 end

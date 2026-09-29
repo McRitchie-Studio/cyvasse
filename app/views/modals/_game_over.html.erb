@@ -1,0 +1,35 @@
+<%# The end of a match (cyvasse_match_controller#openGameOver). Single root.
+    props: result (the outcome line), boardWin (a guest's win that counts on
+    the live leaderboard), returnTo (a guest's way back to this match after
+    signing in). A guest is asked to sign in, which keeps their record
+    (GuestClaim); anyone may play again. Closing leaves the final board. %>
+<div x-data="{ get props() { var c = $store.modals.current(); return (c && c.props) || {}; } }"
+     class="relative text-center" data-test="game-over-modal">
+  <%= render "studio/modals/blocks/close_x" %>
+  <p class="text-xs font-semibold uppercase tracking-widest text-muted mb-2">Game over</p>
+  <h3 class="text-2xl font-extrabold text-heading mb-2" x-text="props.result" data-test="game-over-result"></h3>
+  <% if guest %>
+    <p class="text-sm text-secondary mb-5" x-show="props.boardWin">
+      Sign in and this win goes on the live leaderboard under your name.
+    </p>
+    <p class="text-sm text-secondary mb-5" x-show="!props.boardWin">
+      You played as a guest. Sign in to keep this game and your record on your account.
+    </p>
+    <div class="space-y-3">
+      <%# The link is the no-script way in; the click opens the sign-in modal. %>
+      <a href="<%= join_leaderboard_path %>" class="btn btn-primary btn-lg w-full" data-test="game-over-sign-in"
+         @click.prevent="$store.modals.swap('auth', { returnTo: props.returnTo, title: 'Keep your record', subtitle: 'Sign in or create a free account. Your games as a guest come with you.' })">
+        Sign in to keep your record
+      </a>
+      <%= button_to "Play another game", live_seeks_path, class: "btn btn-secondary btn-lg w-full",
+            form: { class: "block" }, data: { test: "game-over-play-again" } %>
+    </div>
+  <% else %>
+    <p class="text-sm text-secondary mb-5">Close this to look over the final board.</p>
+    <div class="space-y-3">
+      <%= button_to "Play another game", live_seeks_path, class: "btn btn-primary btn-lg w-full",
+            form: { class: "block" }, data: { test: "game-over-play-again" } %>
+      <button type="button" class="btn btn-secondary btn-lg w-full" @click="$store.modals.close()">Close</button>
+    </div>
+  <% end %>
+</div>
