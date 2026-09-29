@@ -820,8 +820,9 @@ export default class extends Controller {
     if (!this.hasArmyTarget) return
     const mode = smartSetupMode(placed, army.length)
     this.armyTarget.dataset.armyMode = mode
-    // Only on a change: the count is a polite live region, and a rewrite of
-    // the same words on every render would have a screen reader repeat it.
+    // Only on a change, so a render that moves nothing leaves the DOM alone.
+    // The count is for the eye: renderStatus speaks it through the one live
+    // region, so a placement is announced once.
     const label = this.smartButtonTarget.querySelector("[data-smart-label]") ?? this.smartButtonTarget
     const count = placed < army.length ? `${placed} of ${army.length} placed` : `All ${army.length} placed`
     if (label.textContent !== SMART_LABELS[mode]) label.textContent = SMART_LABELS[mode]
@@ -832,8 +833,9 @@ export default class extends Controller {
     const game = this.game
     let text
     if (game.phase === "setup") {
-      const left = game.teamUnits(PLAYER, "unplaced").length
-      text = left > 0 ? `Place your army: ${left} unit${left === 1 ? "" : "s"} left.` : "Your army is in place. Press Ready."
+      const army = game.teamUnits(PLAYER)
+      const placed = army.filter((unit) => unit.status !== "unplaced").length
+      text = placed < army.length ? `Place your army: ${placed} of ${army.length} placed.` : "Your army is in place. Press Ready."
     } else if (game.phase === "over") {
       text = game.winner === PLAYER ? "You win." : game.winner === COMPUTER ? "You were defeated." : "A draw."
     } else if (game.offense === PLAYER) {

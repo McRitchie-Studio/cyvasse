@@ -3,7 +3,8 @@ require "test_helper"
 # [component] The setup panel's army card (games/_army_card) and the fallen
 # card (games/_fallen_card), rendered alone: Smart Setup comes first under a
 # centred heading, the instructions are for screen readers only, Ready is
-# disabled, the placed count is announced, the sparkle is silent, and the
+# disabled, the placed count is for the eye only (the status line speaks it),
+# the sparkle is silent, and the
 # fallen card arrives hidden.
 class ArmyCardTest < ActionView::TestCase
   test "Smart Setup leads the card under a centred heading, with no instruction text on show" do
@@ -21,11 +22,11 @@ class ArmyCardTest < ActionView::TestCase
     assert_equal [ "✨ Smart Setup", "Ready" ], buttons, "Smart Setup comes first"
   end
 
-  test "the count is a polite live region and the sparkle is hidden from screen readers" do
+  test "the card adds no second live region and the sparkle is hidden from screen readers" do
     render partial: "games/army_card", locals: { board: "cyvasse-game" }
 
-    assert_select "p.cyvasse-army-count[data-cyvasse-game-target=armyCount][aria-live=polite][aria-atomic=true]"
-    assert_select "p.cyvasse-army-count[aria-hidden]", false, "the count is no longer hidden from screen readers"
+    assert_select "p.cyvasse-army-count[data-cyvasse-game-target=armyCount][aria-hidden=true]"
+    assert_select "[aria-live], [role=status]", false, "the board's status line announces a placement; a second region would say it twice"
     assert_select "button.cyvasse-smart" do
       assert_select "span[aria-hidden=true]", text: "✨", count: 1
       assert_select "span[data-smart-label]:not([aria-hidden])", text: "Smart Setup"
