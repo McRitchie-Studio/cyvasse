@@ -35,7 +35,7 @@ class AdminConversationThreadSystemTest < ApplicationSystemTestCase
       assert_operator (right.x + right.width).round, :>=, (left.x + left.width).round
     end
     assert_selector "[data-game=none] h2", text: "Outside any game"
-    widths = page.evaluate_script("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
+    widths = page_widths
     assert_operator widths.first, :<=, widths.last, "no sideways scroll at phone width"
 
     click_on "Match ##{@old.id}"

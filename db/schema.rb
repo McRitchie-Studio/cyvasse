@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_020000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -67,6 +67,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_010000) do
     t.string "target_type"
     t.datetime "updated_at", null: false
     t.index ["slug"], name: "index_error_logs_on_slug", unique: true
+  end
+
+  create_table "live_seeks", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "last_seen_at", null: false
+    t.bigint "match_id"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["match_id", "created_at"], name: "index_live_seeks_on_match_id_and_created_at"
+    t.index ["match_id"], name: "index_live_seeks_on_match_id"
+    t.index ["user_id"], name: "index_live_seeks_on_user_id"
   end
 
   create_table "matches", force: :cascade do |t|
@@ -275,6 +286,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_010000) do
     t.datetime "created_at", null: false
     t.string "email"
     t.string "first_name"
+    t.boolean "guest", default: false, null: false
     t.jsonb "ip_locations", default: [], null: false
     t.integer "legacy_id"
     t.integer "losses", default: 0, null: false
@@ -298,6 +310,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_010000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "board_posts", "users"
+  add_foreign_key "live_seeks", "matches"
+  add_foreign_key "live_seeks", "users"
   add_foreign_key "matches", "users", column: "away_user_id"
   add_foreign_key "matches", "users", column: "home_user_id"
   add_foreign_key "matches", "users", column: "winner_id"
