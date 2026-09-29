@@ -6,6 +6,7 @@ import { UNIT_TYPES } from "cyvasse/units"
 import { Banner, passNotice } from "cyvasse/banner"
 import { threats } from "cyvasse/threats"
 import { EDGES, perimeter, hexClaim, resolveEdges } from "cyvasse/edges"
+import { playIntent, setupIntent } from "cyvasse/selection"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -167,6 +168,8 @@ function shadeStops(rank) {
   return [[`${clear}%`, 0], ["100%", edge]]
 }
 
+const CONTROLS = "button, a, input, label, select, textarea, summary, [role=button]"
+
 export default class extends Controller {
   static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent", "hint", "threatToggle"]
   static values = { skin: { type: String, default: "vector" }, images: Object, skins: Object, pace: { type: Number, default: 1 } }
@@ -298,11 +301,21 @@ export default class extends Controller {
   // ---- Clicks --------------------------------------------------------------
 
   clickHex(event) {
+    if (this.holding) return
     const node = event.target.closest("[data-hex]")
-    if (!node || this.holding) return
-    const hex = Number(node.dataset.hex)
+    const hex = node ? Number(node.dataset.hex) : null
     if (this.game.phase === "setup") return this.setupClick(hex)
     if (this.game.phase === "play" && this.game.offense === PLAYER) this.playClick(hex)
+  }
+
+  // A click anywhere off the board lets go of the picked piece; controls
+  // (the dock, buttons, links, form fields) keep it.
+  clickAway(event) {
+    const path = event.composedPath()
+    if (!this.game || this.holding || path.includes(this.boardTarget)) return
+    if (path.some((node) => node.matches?.(CONTROLS))) return
+    if (this.game.phase === "setup") return this.setupClick(null)
+    if (this.game.phase === "play" && this.game.offense === PLAYER) this.playClick(null)
   }
 
   // Keyboard play: the board is one tab stop. Arrows move between hexes
@@ -348,18 +361,33 @@ export default class extends Controller {
   }
 
   setupClick(hex) {
-    const unit = this.game.pieceAt(hex)
-    if (unit?.team === PLAYER) {
+    const unit = hex == null ? null : this.game.pieceAt(hex)
+    const intent = setupIntent({ hex, unit, selectedUnitId: this.selectedUnitId })
+    if (intent === "none") return
+    if (intent === "select") {
       this.selectedUnitId = unit.id
-    } else if (this.selectedUnitId && !unit && inPlayerZone(hex)) {
+    } else if (intent === "place") {
       this.game.place(this.selectedUnitId, hex)
+      this.selectedUnitId = null
+    } else {
       this.selectedUnitId = null
     }
     this.render()
   }
 
+  intentFor(hex) {
+    return playIntent({ hex, selectedHex: this.selectedHex, actions: this.actions, selectable: this.game.selectableHexes() })
+  }
+
+  deselect() {
+    this.clearSelection()
+    this.render()
+  }
+
   playClick(hex) {
-    if (this.actions && (this.actions.moves.includes(hex) || this.actions.attacks.includes(hex))) {
+    const intent = this.intentFor(hex)
+    if (intent === "deselect") return this.deselect()
+    if (intent === "act") {
       const before = this.game.jump === 1 ? this.game.snapshot() : null
       const result = this.game.act(this.selectedHex, hex)
       this.pendingJump = result.secondJump ? before : null
@@ -371,7 +399,7 @@ export default class extends Controller {
       }
       return
     }
-    if (this.game.selectableHexes().includes(hex)) this.select(hex)
+    if (intent === "select") this.select(hex)
   }
 
   // "Start over" (Esc, or the hint's button on touch): let go of the picked
