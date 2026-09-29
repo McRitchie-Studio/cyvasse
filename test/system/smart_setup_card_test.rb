@@ -95,6 +95,10 @@ class SmartSetupCardTest < ApplicationSystemTestCase
     assert_selector "svg.cyvasse-board g.hex[data-hex='56'].has-unit"
     assert_equal "fill", mode
     assert_button "✨ Place All"
+    assert_selector "#{SMART} span[aria-hidden=true]", text: "✨", count: 1
+    assert_selector "#{CARD} .cyvasse-army-count[aria-hidden=true]", text: "1 of 19 placed"
+    assert_selector "[role=status][aria-live=polite]", text: "Place your army: 1 of 19 placed."
+    assert_selector "[aria-live]", text: /of 19 placed/, count: 1
     assert_button "Ready", disabled: true
     some = boxes
     assert_operator some["smart"]["top"], :>=, some["ready"]["bottom"], "Place All sits under Ready"

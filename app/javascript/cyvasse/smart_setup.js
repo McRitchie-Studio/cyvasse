@@ -27,7 +27,9 @@ export function smartSetupMode(placed, total) {
   return placed < total ? "fill" : "new";
 }
 
-export const SMART_LABELS = Object.freeze({ smart: "✨ Smart Setup", fill: "✨ Place All", new: "✨ New Setup" });
+// The words only: the button's ✨ is decoration (games/_army_card), hidden
+// from screen readers, so the button reads "Smart Setup", not "sparkles".
+export const SMART_LABELS = Object.freeze({ smart: "Smart Setup", fill: "Place All", new: "New Setup" });
 
 // The player's army ([{ index, type: { codename }, hex, status }]) as a whole
 // lineup string. Answers { opening, lineup }.

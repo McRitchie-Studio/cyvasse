@@ -307,14 +307,21 @@
   transition: background-color 120ms, border-color 120ms;
 }
 
-.dock-unit:hover,
+/* A phone has no hover: scoped, so a tapped tile does not keep the tint. */
+@media (hover: hover) {
+  .dock-unit:hover {
+    background-color: rgb(139 92 246 / 0.12);
+    border-color: rgb(139 92 246 / 0.45);
+  }
+}
+
 .dock-unit:focus-visible {
-  background: rgb(139 92 246 / 0.12);
+  background-color: rgb(139 92 246 / 0.12);
   border-color: rgb(139 92 246 / 0.45);
 }
 
 .dock-unit[aria-pressed="true"] {
-  background: rgb(255 165 0 / 0.14);
+  background-color: rgb(255 165 0 / 0.14);
   border-color: orange;
   box-shadow: 0 0 0 1px orange;
 }
@@ -323,8 +330,19 @@
   border: 1px dashed rgb(139 92 246 / 0.25);
 }
 
-/* The pencil art is dark linework: in the dark theme a soft light rim keeps
- * it off the card without a parchment tile behind it. */
+/* Both skins draw in dark ink (black horses, iron, pencil linework), which
+ * sinks into the dark card. In the dark theme the tile stays see-through,
+ * with no opaque fill: a soft light glow sits behind the art only, and the
+ * art carries a light rim. The pencil art, all linework, takes a firmer rim.
+ * The light theme keeps the bare tile. */
+html.dark .dock-unit {
+  background-image: radial-gradient(closest-side, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.07) 65%, rgb(255 255 255 / 0));
+}
+
+html.dark .dock-unit img {
+  filter: drop-shadow(0 0 1px rgb(255 255 255 / 0.45)) drop-shadow(0 0 3px rgb(255 255 255 / 0.2));
+}
+
 html.dark [data-skin="pencil"] .dock-unit img {
   filter: drop-shadow(0 0 1px rgb(255 255 255 / 0.6)) drop-shadow(0 0 4px rgb(255 255 255 / 0.25));
 }
@@ -661,9 +679,11 @@ html.dark [data-skin="pencil"] .dock-unit img {
   box-shadow: 0 0 0 1px rgb(167 139 250 / 0.5), 0 6px 18px -6px rgb(124 58 237 / 0.7);
 }
 
-.cyvasse-ready:hover:not(:disabled),
-.cyvasse-army[data-army-mode="smart"] .cyvasse-smart:hover {
-  background-color: #6d28d9;
+@media (hover: hover) {
+  .cyvasse-ready:hover:not(:disabled),
+  .cyvasse-army[data-army-mode="smart"] .cyvasse-smart:hover {
+    background-color: #6d28d9;
+  }
 }
 
 .cyvasse-ready:disabled {
@@ -679,8 +699,10 @@ html.dark [data-skin="pencil"] .dock-unit img {
   box-shadow: none;
 }
 
-.cyvasse-smart:hover {
-  background-color: rgb(139 92 246 / 0.15);
+@media (hover: hover) {
+  .cyvasse-smart:hover {
+    background-color: rgb(139 92 246 / 0.15);
+  }
 }
 
 /* The strip above the board: the start-over hint while a piece is picked,

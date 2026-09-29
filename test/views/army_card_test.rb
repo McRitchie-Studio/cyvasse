@@ -3,7 +3,9 @@ require "test_helper"
 # [component] The setup panel's army card (games/_army_card) and the fallen
 # card (games/_fallen_card), rendered alone: Smart Setup comes first under a
 # centred heading, the instructions are for screen readers only, Ready is
-# disabled, and the fallen card arrives hidden.
+# disabled, the placed count is for the eye only (the status line speaks it),
+# the sparkle is silent, and the
+# fallen card arrives hidden.
 class ArmyCardTest < ActionView::TestCase
   test "Smart Setup leads the card under a centred heading, with no instruction text on show" do
     render partial: "games/army_card", locals: { board: "cyvasse-game" }
@@ -18,6 +20,22 @@ class ArmyCardTest < ActionView::TestCase
     end
     buttons = css_select(".cyvasse-army button").map { |b| b.text.strip }
     assert_equal [ "✨ Smart Setup", "Ready" ], buttons, "Smart Setup comes first"
+  end
+
+  test "the card adds no second live region and the sparkle is hidden from screen readers" do
+    render partial: "games/army_card", locals: { board: "cyvasse-game" }
+
+    assert_select "p.cyvasse-army-count[data-cyvasse-game-target=armyCount][aria-hidden=true]"
+    assert_select "[aria-live], [role=status]", false, "the board's status line announces a placement; a second region would say it twice"
+    assert_select "button.cyvasse-smart" do
+      assert_select "span[aria-hidden=true]", text: "✨", count: 1
+      assert_select "span[data-smart-label]:not([aria-hidden])", text: "Smart Setup"
+    end
+    spoken = lambda do |node|
+      next "" if node["aria-hidden"] == "true"
+      node.text? ? node.text : node.children.map { |child| spoken.call(child) }.join
+    end
+    assert_equal "Smart Setup", spoken.call(css_select("button.cyvasse-smart").first).strip, "the button reads Smart Setup, not sparkles"
   end
 
   test "a match's lock-in note goes to screen readers with the hint" do
