@@ -29,6 +29,14 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     assert_select "#special-rules .tutorial-card[data-tutorial=range] figcaption", text: /reaches 4, not 3/
   end
 
+  test "rules states that elephants now move 2" do
+    get rules_path
+
+    assert_select "#rule-changes #changes-2026 li", text: "Elephants now move 2."
+    assert_select "#unit-elephant dd", text: "2"
+    assert_select "#unit-elephant dd", text: "3", count: 0
+  end
+
   test "rules shows every unit with its vector art and stats" do
     get rules_path
 
