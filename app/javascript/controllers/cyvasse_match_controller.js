@@ -17,6 +17,7 @@ import { Game, PLAYER } from "cyvasse/game"
 //   state     the match as Match#state_for renders it
 //   stateUrl  GET, JSON state      setupUrl  POST { lineup }
 //   moveUrl   POST { steps }       pollMs    how often to look for news
+//   seatUrl   POST, take back a seat the computer took over
 //   returnTo  a guest's way back here after signing in (the game-over modal)
 
 const REASON_TEXT = {
@@ -26,12 +27,14 @@ const REASON_TEXT = {
 }
 
 export default class extends GameController {
-  static targets = ["error", "deadline", "clock", "clockLabel", "clockSeconds", "clockBar", "notice"]
+  static targets = ["error", "deadline", "clock", "clockLabel", "clockSeconds", "clockBar", "notice", "noticeText",
+    "noticeDismiss", "takeBackSeat"]
   static values = {
     state: Object,
     stateUrl: String,
     setupUrl: String,
     moveUrl: String,
+    seatUrl: String,
     pollMs: { type: Number, default: 15000 },
     returnTo: String
   }
@@ -223,6 +226,12 @@ export default class extends GameController {
     if (intent === "select") this.select(hex)
   }
 
+  // "Take back my seat": the computer's hold on this player's seat ends.
+  takeBackSeat() {
+    if (!this.state.live?.taken_over?.you || this.holding || !this.seatUrlValue) return
+    this.send(this.seatUrlValue, {})
+  }
+
   // ---- Drawing ---------------------------------------------------------------
 
   render() {
@@ -337,20 +346,60 @@ export default class extends GameController {
     }
   }
 
+  // The strike and seat notices. Each one but the computer's hold on this
+  // player's seat can be dismissed; that one ends with "Take back my seat".
   renderLiveNotice() {
     if (!this.hasNoticeTarget) return
     const live = this.state.live
     const them = this.state.opponent.username
     let text = ""
+    let held = false
     if (live) {
-      if (live.taken_over.you) text = "You missed two clocks, so a computer player has taken your seat for the rest of this game."
-      else if (live.taken_over.opponent) text = `${them} missed two clocks, so a computer player has taken their seat.`
+      if (live.taken_over.you) {
+        text = "You missed two clocks, so a computer player has taken your seat. Take it back to play on."
+        held = true
+      } else if (live.taken_over.opponent) text = `${them} missed two clocks, so a computer player has taken their seat.`
+      else if (live.took_back?.you) text = "You took back your seat. Miss one more clock and a computer player takes it again."
+      else if (live.took_back?.opponent) text = `${them} took back their seat from the computer player.`
       else if (live.auto_set_up.you && live.strikes.you === 1) text = "Time ran out, so your army was placed for you. Miss one more clock and a computer player takes your seat."
       else if (live.strikes.you === 1) text = "You missed a clock and a move was made for you. Miss one more and a computer player takes your seat."
       else if (live.strikes.opponent === 1) text = `${them} missed a clock.`
     }
-    this.noticeTarget.textContent = text
-    this.noticeTarget.hidden = !text
+    const shown = text && (held || !this.dismissedNotices().includes(text))
+    if (this.hasNoticeTextTarget) this.noticeTextTarget.textContent = text
+    else this.noticeTarget.textContent = text
+    if (this.hasNoticeDismissTarget) this.noticeDismissTarget.hidden = held
+    this.noticeTarget.hidden = !shown
+    this.noticeTarget.dataset.notice = text
+    if (this.hasTakeBackSeatTarget) this.takeBackSeatTarget.hidden = !(held && this.state.phase === "play")
+  }
+
+  // Hides this notice for the rest of the match; a new one still shows.
+  dismissNotice() {
+    const text = this.noticeTarget.dataset.notice
+    if (!text) return
+    const dismissed = [...new Set([...this.dismissedNotices(), text])]
+    this.dismissed = dismissed
+    try {
+      sessionStorage.setItem(this.dismissedKey(), JSON.stringify(dismissed))
+    } catch {
+      // Storage blocked: dismissed for this page only.
+    }
+    this.noticeTarget.hidden = true
+  }
+
+  dismissedNotices() {
+    if (this.dismissed) return this.dismissed
+    try {
+      this.dismissed = JSON.parse(sessionStorage.getItem(this.dismissedKey()) || "[]")
+    } catch {
+      this.dismissed = []
+    }
+    return this.dismissed
+  }
+
+  dismissedKey() {
+    return `cyvasse:dismissed-notices:${this.state.id}`
   }
 
   // Each of this player's units fades in, one after another, in board order.

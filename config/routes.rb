@@ -43,6 +43,7 @@ Rails.application.routes.draw do
       post :setup, action: :set_up
       post :moves, action: :move
       post :resign
+      post :seat, action: :take_back_seat
     end
     # The match's chat (piece 12): its two players only.
     resources :messages, only: %i[index create], controller: "match_messages"
