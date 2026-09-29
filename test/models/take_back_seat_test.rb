@@ -64,9 +64,10 @@ class TakeBackSeatTest < ActiveSupport::TestCase
 
   test "the move the computer is already showing is the one that lands" do
     match = taken_over_match(to_move: :home)
-    match.update_columns(bot_due_at: nil)
-    match.tick!(rng: @rng)
-    plan = match.reload.bot_plan["steps"]
+    # A quiet move, not the one a fresh choice would make: the unit on show.
+    plan = quiet_turn_for(match)
+    assert_not_equal plan, CyvasseRules::Bot.choose_turn(match.to_game, rng: Random.new(99))
+    match.update_columns(bot_plan: { "steps" => plan, "stage" => "selected", "move" => 3, "second" => 2 })
     expected = match.to_game.tap { _1.play!(plan) }.position(Match::HOME)
 
     match.take_back_seat!(@home, rng: Random.new(99))
