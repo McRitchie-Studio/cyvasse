@@ -9,10 +9,6 @@ module OnboardingPrompt
   PENDING = :onboarding_pending
   RETURN_TO = :onboarding_return_to
 
-  # Sign-ins that never open it: a desk's local review, which must land the
-  # reviewer on the page under review.
-  QUIET_SIGN_INS = %w[studio/local_reviews].freeze
-
   # Pages it never interrupts: the flow itself and the sign-in doors.
   EXEMPT = %w[onboarding email_handoffs session_confirmations sessions studio/links magic_links
               omniauth_callbacks studio/local_reviews studio/local_emails].freeze
@@ -24,7 +20,7 @@ module OnboardingPrompt
   private
 
   def prompt_onboarding(user)
-    session[PENDING] = true unless user.guest? || QUIET_SIGN_INS.include?(controller_path)
+    session[PENDING] = true unless user.guest?
   end
 
   def open_onboarding
