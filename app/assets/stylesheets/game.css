@@ -535,8 +535,11 @@
 }
 
 /* The opponent's reach: one thin, soft warm line round the region they could
- * strike next turn. Context, not a cue: it sits over the board and under
- * nothing a player has to read. */
+ * strike next turn, drawn only where it meets board they cannot reach (never
+ * along the board's own rim). Context, not a cue: it lies over the resting
+ * board but beneath the selection and its move rings, which a mask cuts it
+ * away from (maskThreats in the controller), so it hides nothing a player has
+ * to read. */
 .cyvasse-board .threat-outline {
   fill: none;
   stroke: hsl(14 95% 62%);
@@ -547,7 +550,11 @@
 }
 
 /* A unit of yours the opponent could kill next turn: a red ring that breathes
- * behind the art (steady for a player who asked for less motion). */
+ * behind the art (steady for a player who asked for less motion). It breathes
+ * by opacity and scale, not stroke width, so no frame rebuilds its stroke
+ * geometry (the ring is still repainted: SVG children get no layer of their
+ * own). Scaled about the hex centre (the group's origin), its outer edge
+ * swells from 30 to 31 units, where the old stroke-width 3 to 5 took it. */
 .cyvasse-board .danger-ring {
   display: none;
   fill: none;
@@ -559,11 +566,12 @@
 .cyvasse-board .is-danger .danger-ring {
   display: inline;
   animation: cyvasse-danger 1.6s ease-in-out infinite;
+  will-change: opacity, transform;
 }
 
 @keyframes cyvasse-danger {
-  0%, 100% { stroke-opacity: 0.95; stroke-width: 3; }
-  50% { stroke-opacity: 0.35; stroke-width: 5; }
+  0%, 100% { opacity: 0.95; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(1.035); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -572,3 +580,4 @@
     stroke-opacity: 0.9;
   }
 }
+
