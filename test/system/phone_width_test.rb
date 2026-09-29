@@ -26,7 +26,7 @@ class PhoneWidthTest < ApplicationSystemTestCase
       # The opening banner hands over to the turn banner; wait until a turn
       # banner has slid in, slid out, and gone.
       assert_selector ".cyvasse-banner.is-showing", text: /Turn 1 ·/, wait: 10
-      assert_selector ".cyvasse-banner.is-leaving", wait: 10
+      assert_banner_left
       screenshot("play-#{width}-leaving")
       assert_selector ".cyvasse-banner", visible: :hidden, wait: 10
       assert_no_selector ".cyvasse-banner", wait: 5
@@ -55,7 +55,7 @@ class PhoneWidthTest < ApplicationSystemTestCase
     click_on "Ready"
 
     assert_selector ".cyvasse-banner.is-showing", text: /Turn \d+ ·/, wait: 10
-    assert_selector ".cyvasse-banner.is-leaving", wait: 10
+    assert_banner_left
     screenshot("match-390-leaving")
     assert_no_selector ".cyvasse-banner", wait: 5
 
@@ -89,10 +89,21 @@ class PhoneWidthTest < ApplicationSystemTestCase
     assert_operator scroll, :<=, client, "no sideways scroll at #{width}px"
   end
 
+  # is-leaving lives 600ms, or less when the next banner cuts in, which a
+  # Capybara poll on a loaded runner can step right over. The watcher latches
+  # it on <html> the moment a banner starts to leave; wait on the latch.
+  def assert_banner_left
+    assert_selector "html[data-banner-left]", visible: :all, wait: 10
+  end
+
   # Record the page's widest scrollWidth every frame from here on, so a banner
   # that widens the page only while it slides out is caught too.
   def watch_widest_page
     page.execute_script(<<~JS)
+      delete document.documentElement.dataset.bannerLeft
+      new MutationObserver(() => {
+        if (document.querySelector(".cyvasse-banner.is-leaving")) document.documentElement.dataset.bannerLeft = ""
+      }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ["class"] })
       window.__widestPage = 0
       const tick = () => {
         window.__widestPage = Math.max(window.__widestPage, document.documentElement.scrollWidth)
