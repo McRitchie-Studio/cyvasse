@@ -18,7 +18,8 @@ class ClickToDeselectTest < ApplicationSystemTestCase
     assert_selector "[data-controller=cyvasse-game][data-phase=play][data-offense='1'][data-holding=false]", wait: 15
 
     deselects_three_ways
-    switches_keeps_and_moves("[data-controller=cyvasse-game][data-offense='0']")
+    turn = find("[data-controller=cyvasse-game]")["data-turn"].to_i
+    switches_keeps_and_moves("[data-controller=cyvasse-game]") { |node| node["data-turn"].to_i > turn }
   end
 
   test "in setup, a picked unit is let go three ways and placement still works" do
@@ -112,7 +113,7 @@ class ClickToDeselectTest < ApplicationSystemTestCase
     assert_let_go
   end
 
-  def switches_keeps_and_moves(after_move)
+  def switches_keeps_and_moves(after_move, &filter)
     first_pick = pick_mover
     second_pick = pick_mover(except: first_pick)
     assert_selector "#{SELECTED}[data-hex='#{second_pick}']"
@@ -122,6 +123,10 @@ class ClickToDeselectTest < ApplicationSystemTestCase
     assert_selector "#{SELECTED}[data-hex='#{second_pick}']"
 
     first(TARGETS).click
-    assert_selector after_move, wait: 10
+    # A cavalry unit's second jump keeps the turn; take it.
+    first(TARGETS, minimum: 0, wait: 0.5)&.click if page.has_selector?(SELECTED, wait: 0)
+    # At pace 0 the computer answers at once, so /play's passing move is the
+    # turn counter moving on, not a fleeting data-offense='0'.
+    assert_selector(after_move, wait: 10, &filter)
   end
 end
