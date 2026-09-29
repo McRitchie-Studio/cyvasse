@@ -120,7 +120,7 @@ module LiveMatch
 
   # The name a player sees for `user`: a computer player's full name.
   def display_name_of(user)
-    COMPUTER_NAMES[user.username] || user.username
+    (user.computer? && COMPUTER_NAMES[user.username]) || user.username
   end
 
   private

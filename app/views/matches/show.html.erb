@@ -1,4 +1,5 @@
-<% content_for(:title, "#{current_user.username} vs #{@opponent.username} · Cyvasse") %>
+<% them = @match.display_name_of(@opponent) %>
+<% content_for(:title, "#{current_user.username} vs #{them} · Cyvasse") %>
 <% content_for(:head) do %>
   <%= stylesheet_link_tag "game", "data-turbo-track": "reload" %>
   <%# A match moves on without this page: never restore a cached board. %>
@@ -11,20 +12,33 @@
          data-cyvasse-match-state-value="<%= @state.to_json %>"
          data-cyvasse-match-state-url-value="<%= match_path(@match, format: :json) %>"
          data-cyvasse-match-setup-url-value="<%= setup_match_path(@match) %>"
-         data-cyvasse-match-move-url-value="<%= moves_match_path(@match) %>">
+         data-cyvasse-match-move-url-value="<%= moves_match_path(@match) %>"
+         <% if @match.live? %>data-cyvasse-match-poll-ms-value="1000" data-live="true"<% end %>>
   <header class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
     <div>
       <p class="text-sm text-secondary"><%= link_to "← My games", matches_path, class: "underline underline-offset-2" %></p>
       <h1 class="text-3xl font-extrabold text-heading tracking-tight">
         <%= current_user.username %> <span class="text-muted font-semibold">vs</span>
-        <span data-cyvasse-match-target="opponent"><%= @opponent.username %></span>
+        <span data-cyvasse-match-target="opponent"><%= them %></span>
+        <% if @opponent.computer? %><span class="live-computer-tag">computer</span><% end %>
       </h1>
       <p class="text-sm text-secondary" hidden data-cyvasse-match-target="deadline"></p>
+      <% if @match.live? %>
+        <%# The live clock both players see (LiveMatch): setup, then each move. %>
+        <div class="live-clock mt-2" hidden data-cyvasse-match-target="clock">
+          <div class="flex items-baseline justify-between gap-3 text-sm">
+            <span class="font-semibold text-heading" data-cyvasse-match-target="clockLabel"></span>
+            <span class="live-clock-seconds" data-cyvasse-match-target="clockSeconds"></span>
+          </div>
+          <div class="live-clock-track"><span data-cyvasse-match-target="clockBar"></span></div>
+        </div>
+      <% end %>
     </div>
     <p class="text-secondary font-medium" role="status" aria-live="polite" data-cyvasse-match-target="status">Loading the board…</p>
   </header>
 
   <p class="cyvasse-alert mb-4" role="alert" hidden data-cyvasse-match-target="error"></p>
+  <p class="live-notice mb-4" role="status" aria-live="polite" hidden data-cyvasse-match-target="notice"></p>
 
   <div class="cyvasse-layout">
     <div class="cyvasse-board-wrap">
@@ -50,7 +64,8 @@
         <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">Your army</h2>
         <p class="text-sm text-secondary">
           Pick a unit, then a lit hex in your five rows. Click a placed unit to move it again.
-          Once you press Ready, your army is locked in; <%= @opponent.username %> will not see it until the game starts.
+          Once you press Ready, your army is locked in; <%= them %> will not see it until the game starts.
+          <% if @match.live? %>Watch the clock: when it runs out, your army is placed for you.<% end %>
         </p>
         <div class="cyvasse-dock" data-cyvasse-match-target="dock"></div>
         <div class="cyvasse-setup-actions">
@@ -76,20 +91,21 @@
           <div class="cyvasse-graveyard" data-team="1" data-cyvasse-match-target="graveyard"></div>
         </div>
         <div>
-          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted mb-1"><%= @opponent.username %>'s fallen</h2>
+          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted mb-1"><%= them %>'s fallen</h2>
           <div class="cyvasse-graveyard" data-team="0" data-cyvasse-match-target="graveyard"></div>
         </div>
       </div>
 
-      <%= render "matches/chat", match: @match, opponent: @opponent %>
+      <%# Chatting with a computer player goes nowhere. %>
+      <%= render "matches/chat", match: @match, opponent: @opponent unless @opponent.computer? %>
 
       <div class="flex flex-wrap items-center gap-3">
         <% if @match.in_progress? %>
           <%= button_to "Resign", resign_match_path(@match), class: "btn btn-secondary",
-                form: { data: { turbo_confirm: "Resign this match? #{@opponent.username} wins." } } %>
+                form: { data: { turbo_confirm: "Resign this match? #{them} wins." } } %>
         <% elsif @match.pregame? && !@state[:can_accept] %>
           <%= button_to "Cancel match", match_path(@match), method: :delete, class: "btn btn-secondary",
-                form: { data: { turbo_confirm: "Cancel this match with #{@opponent.username}?" } } %>
+                form: { data: { turbo_confirm: "Cancel this match with #{them}?" } } %>
         <% end %>
         <%= link_to "How to play", rules_path, class: "text-sm text-secondary underline underline-offset-2" %>
       </div>
