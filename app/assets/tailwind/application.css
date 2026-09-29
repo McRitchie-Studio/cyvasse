@@ -10,6 +10,39 @@
  *
  * App-local styles (the game board, piece skins) belong below this comment. */
 
+/* The gold, readable (task cyvasse-contrast-and-names). The brand gold
+ * (#C08A2E, config.theme_primary) is 3.04:1 under a white label and 2.9:1 as
+ * text on the light page, both under WCAG AA's 4.5:1, and as text on a dark
+ * card it is 3.67:1. One hex cannot fix all three, so the gold keeps its hue
+ * and takes a shade from the engine's primary scale for each job:
+ *
+ * - The CTA fill (btn-primary, "Log in", Play Now) is the 700 shade in both
+ *   themes: 5.61:1 under white. Hover goes one deeper, as the engine's does.
+ *   :root:root outranks the engine theme's `html:not(.dark)` and `.dark`
+ *   blocks, which also set --color-cta.
+ * - Gold TEXT reads --cyvasse-gold-ink: the 700 shade on the light page
+ *   (5.36:1) and the 400 shade on the dark ones (5.29:1 on a card).
+ *
+ * test/lib/light_mode_contrast_test.rb holds these numbers and
+ * test/system/contrast_test.rb measures them in the browser. */
+:root:root {
+  --color-cta: var(--color-primary-700);
+  --color-cta-hover: var(--color-primary-800);
+  --cyvasse-gold-ink: var(--color-primary-400);
+}
+
+html:root:not(.dark) {
+  --cyvasse-gold-ink: var(--color-primary-700);
+}
+
+/* The engine's navbar paints the app name, the current page's link and a
+ * hovered link with text-primary; this rule, outside any layer, outranks
+ * that utility. */
+.text-primary,
+.hover\:text-primary:hover {
+  color: var(--cyvasse-gold-ink);
+}
+
 /* Piece tiles (/pieces). The tile is parchment in BOTH themes on purpose: the
  * pencil skin is black linework on a transparent ground, so a dark tile would
  * swallow it. */
@@ -113,9 +146,13 @@
  * label colour is the view's text-white, not a colour here: the green label
  * was ~3:1 over the brightest spot of the scrimmed art, and white clears AA.
  * Hover and keyboard focus both tint the fill green; focus also draws a white
- * ring outside the border. */
+ * ring outside the border.
+ *
+ * The outline keeps the bright brand green (#4BAF50), not the deeper success
+ * role (config.theme_success): it is a border on the always-dark hero, where
+ * it clears 3:1, and carries no text. */
 .home-secondary-btn {
-  --home-accent: var(--btn-secondary-bg, var(--color-success));
+  --home-accent: #4BAF50;
   background: transparent;
   border: 2px solid var(--home-accent);
 }
@@ -153,16 +190,9 @@
 
 .rules-prose a,
 .about-page a {
-  color: rgb(var(--color-primary-rgb));
+  color: var(--cyvasse-gold-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-
-/* The gold primary is 2.9:1 on the light page, under WCAG AA's 4.5:1 for
- * text; its 700 shade is 5.4:1. Dark mode keeps the brighter gold. */
-html:not(.dark) .rules-prose a,
-html:not(.dark) .about-page a {
-  color: rgb(var(--color-primary-700-rgb));
 }
 
 /* A Special Rules card marks the stats its rule is about with a gold pill on
@@ -301,7 +331,7 @@ dd.unit-stat-marked {
 }
 
 .leaderboard-row:nth-child(-n + 3) .leaderboard-rank {
-  color: rgb(var(--color-primary-rgb));
+  color: var(--cyvasse-gold-ink);
 }
 
 .leaderboard-name {
@@ -328,7 +358,7 @@ dd.unit-stat-marked {
 }
 
 .leaderboard-inline-cta strong {
-  color: rgb(var(--color-primary-rgb));
+  color: var(--cyvasse-gold-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
