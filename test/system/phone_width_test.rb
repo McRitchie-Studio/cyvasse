@@ -18,7 +18,7 @@ class PhoneWidthTest < ApplicationSystemTestCase
       assert_selector "svg.cyvasse-board g.hex", count: 91
       assert_fits width
 
-      random_setup!
+      smart_setup!
       watch_widest_page
       click_on "Ready"
 
@@ -48,7 +48,7 @@ class PhoneWidthTest < ApplicationSystemTestCase
     assert_selector ".cyvasse-dock .dock-unit", count: 19
     assert_fits 390
 
-    random_setup!
+    smart_setup!
     watch_widest_page
     click_on "Ready"
 

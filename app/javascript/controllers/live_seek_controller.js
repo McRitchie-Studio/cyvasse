@@ -95,6 +95,7 @@ export default class extends Controller {
     clearTimeout(this.pollTimer)
     this.startSplash({ ask: false })
     this.fill(data.you, data.opponent)
+    if (data.opponent_portrait) this.portrait(this.opponentInitialTarget, data.opponent_portrait, data.opponent)
     this.computerTagTarget.hidden = !data.computer
     this.gate.arrive(data.match_url)
     clearTimeout(this.openTimer)
@@ -106,6 +107,17 @@ export default class extends Controller {
     this.opponentTarget.textContent = opponent
     this.youInitialTarget.textContent = initial(you)
     this.opponentInitialTarget.textContent = initial(opponent)
+  }
+
+  // A computer player's portrait in place of its initial.
+  portrait(target, src, name) {
+    const img = document.createElement("img")
+    img.src = src
+    img.alt = name || ""
+    img.className = "live-seek-portrait"
+    img.dataset.avatar = "bot-portrait"
+    target.replaceChildren(img)
+    target.classList.add("live-seek-avatar-portrait")
   }
 }
 

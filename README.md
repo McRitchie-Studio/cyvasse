@@ -89,12 +89,16 @@ person's uploaded picture, else their own piece of the vector art on a
 parchment disc ringed in `User#avatar_color` (`AvatarsHelper#user_piece`: a
 stable hash of the user id over every piece but the mountain, so a player keeps
 one piece on every page and in every game). A
-computer player shows `app/assets/images/bots/<username>.webp` (or `.png`,
-`.jpg`, `.svg`; `qavo`, `tyrion`, `haldon`, `doran`, `ben`, `aegon`) the moment
-that file exists; until then it shows its own piece of the vector art on a
-parchment disc ringed in the computer accent (`AvatarsHelper::BOT_PIECES`).
-A portrait must be original art: never a likeness of the characters the
-computer players are named after.
+computer player shows the portrait its seed set: `users.portrait`, a path under
+`app/assets/images/bots/` (`qavo`, `tyrion`, `haldon`, `doran`, `ben`, `aegon`,
+each a square WebP of the old Cyvasse app's picture; `User::COMPUTER_PORTRAITS`).
+`bin/rails db:seed`, and the narrower `bin/rails users:seed_computer_players`
+(the post-deploy command), create any missing named computer player and set its
+portrait in place, so a re-run is safe. A computer player with no portrait
+(legacy ids 8-10), or whose file is missing, shows its own piece of the vector
+art on a parchment disc ringed in the computer accent (`AvatarsHelper::BOT_PIECES`).
+The Play Now splash shows the same portrait (`opponent_portrait` in the seek's
+JSON). The artists the old files credit are thanked on `/about`.
 
 ## Piece skins
 
