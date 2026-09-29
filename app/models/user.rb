@@ -40,8 +40,7 @@ class User < ApplicationRecord
 
   # The seeded identities (studio-engine/docs/NEW_APP_SETUP.md section 11):
   # the shared operator, the ordinary member, and an admin on this app's own
-  # domain. Names must parameterize to DISTINCT slugs — Sluggable derives the
-  # uniquely indexed slug from the name.
+  # domain. Sluggable derives each one's slug from its name (name_slug).
   SEED_IDENTITIES = [
     { email: "alex@mcritchie.studio", name: "Alex McRitchie", role: "admin" },
     # The member is not optional: without one every seeded account is an admin
@@ -50,8 +49,27 @@ class User < ApplicationRecord
     { email: "alex@cyvasse.mcritchie.studio", name: "Alex McRitchie (Cyvasse)", role: "admin" }
   ].freeze
 
+  # Sluggable sets the uniquely indexed slug from this before every save. It is
+  # never empty and never another account's (task cyvasse-blank-name-slug):
+  #
+  # 1. A slug already held stands while the name it came from does, so a legacy
+  #    player's "user-<id>" and every existing slug survive an ordinary save.
+  # 2. The stem is the name, transliterated (José Núñez -> jose-nunez), else
+  #    the username, else nothing (a new magic-link account, or a name with no
+  #    Latin letters such as "Иван" or an emoji).
+  # 3. No stem: "user-" and a random token. A taken stem: the next free
+  #    numeric suffix (carl, carl-2, carl-3).
+  #
+  # The check can lose a race with a concurrent save; create_or_update below
+  # retries on the slug index rather than trusting it.
   def name_slug
-    name.present? ? name.parameterize : "user-#{id}"
+    stem = slug_stem
+    return slug if slug.present? && @slug_conflicts.to_i.zero? && slug_stands?(stem)
+    return random_slug if stem.nil? || @slug_conflicts.to_i >= SLUG_SUFFIX_TRIES
+
+    return stem unless slug_taken?(stem)
+
+    "#{stem}-#{highest_slug_suffix(stem) + 1}"
   end
 
   # A legacy player (LegacyImport) has a username and no name.
@@ -88,6 +106,33 @@ class User < ApplicationRecord
     legacy_id.present? && COMPUTER_LEGACY_IDS.cover?(legacy_id)
   end
 
+  # The named computer players' portraits, from the old Cyvasse app
+  # (amcritchie/Cyvasse app/assets/images, task cyvasse-bot-portraits): the
+  # logical asset path the seed writes to users.portrait, which
+  # AvatarsHelper#bot_portrait reads. A computer player missing here (legacy
+  # ids 8-10) keeps its piece art.
+  COMPUTER_PORTRAITS = LiveMatch::COMPUTER_NAMES.keys.index_with { |username| "bots/#{username}.webp" }.freeze
+  PORTRAIT_FORMAT = %r{\Abots/[a-z0-9_]+\.(webp|png|jpg|svg)\z}
+  validates :portrait, format: { with: PORTRAIT_FORMAT }, allow_nil: true
+
+  # One named computer player (LiveMatch::COMPUTER_NAMES), found by its legacy
+  # id or created (a new database has no legacy import), with its portrait set.
+  # Idempotent: a second run finds the same row and writes nothing, and an
+  # existing row (production's imported computer players) is updated in place.
+  def self.seed_computer_player!(username)
+    legacy_id = LiveMatch::COMPUTER_LEGACY_IDS.fetch(username)
+    user = find_by(legacy_id:) || create!(legacy_id:, username:, name: LiveMatch::COMPUTER_NAMES.fetch(username))
+    portrait = COMPUTER_PORTRAITS[username]
+    user.update!(portrait:) unless user.portrait == portrait
+    user
+  end
+
+  # Every named computer player, seeded (db/seeds.rb and the
+  # users:seed_computer_players post-deploy task).
+  def self.seed_computer_players!
+    transaction { LiveMatch::COMPUTER_NAMES.keys.map { |username| seed_computer_player!(username) } }
+  end
+
   # People with a name on the board (Leaderboard): never a computer player,
   # never a Play Now guest, and never an account with no public username (the
   # board shows usernames only, so it cannot leak a name or an email).
@@ -120,9 +165,9 @@ class User < ApplicationRecord
   # Google sign-in (the engine's OmniauthCallbacksController), as the hub does
   # it: the account already linked to this Google identity, else the account
   # with its email once Google has verified that email (an unverified one
-  # could take over someone else's account), else a new account. A name
-  # another player already slugs to is left off; Sluggable's slug is unique.
-  # Returns :email_not_verified for the refused link.
+  # could take over someone else's account), else a new account, which keeps
+  # its Google name even when another player shares it (name_slug suffixes the
+  # slug). Returns :email_not_verified for the refused link.
   def self.from_omniauth(auth, email_verified: false)
     user = find_by(provider: auth.provider, uid: auth.uid)
     return user if user
@@ -135,9 +180,7 @@ class User < ApplicationRecord
       return existing
     end
 
-    name = auth.info.name.presence
-    name = nil if name && exists?(slug: name.parameterize)
-    create!(email:, name:, provider: auth.provider, uid: auth.uid)
+    create!(email:, name: auth.info.name.presence, provider: auth.provider, uid: auth.uid)
   rescue ActiveRecord::RecordNotUnique
     # A concurrent callback created it first.
     find_by(provider: auth.provider, uid: auth.uid) || (email && find_by(email:))
@@ -164,6 +207,66 @@ class User < ApplicationRecord
   end
 
   private
+
+  # Tries per save before giving up on the slug index: the first few take the
+  # next numeric suffix, the rest a random token no race can share.
+  SLUG_SUFFIX_TRIES = 2
+  SLUG_SAVE_TRIES = 5
+  SLUG_INDEX = "index_users_on_slug".freeze
+
+  # A save that loses the slug to a concurrent one retries with a fresh slug.
+  # The savepoint keeps a caller's outer transaction usable after the failed
+  # statement; any other unique violation is re-raised untouched.
+  def create_or_update(**options, &block)
+    @slug_conflicts = 0
+    begin
+      self.class.transaction(requires_new: true) { super(**options, &block) }
+    rescue ActiveRecord::RecordNotUnique => e
+      raise unless slug_index_violation?(e) && (@slug_conflicts += 1) < SLUG_SAVE_TRIES
+
+      retry
+    end
+  ensure
+    @slug_conflicts = 0
+  end
+
+  # Matched on the constraint Postgres names in the error, not the message text:
+  # an email or username violation whose DETAIL quotes a value containing the
+  # index name must still raise.
+  def slug_index_violation?(error)
+    result = error.cause.respond_to?(:result) ? error.cause.result : nil
+    result&.error_field(PG::Result::PG_DIAG_CONSTRAINT_NAME) == SLUG_INDEX
+  end
+
+  def slug_stem
+    [ name, username ].each do |source|
+      stem = source.to_s.parameterize
+      return stem if stem.present?
+    end
+    nil
+  end
+
+  # The held slug fits when the name is unchanged, or when it changed to one
+  # with the same stem ("Carl" to "CARL" keeps carl-2).
+  def slug_stands?(stem)
+    return true unless will_save_change_to_name?
+
+    stem.present? && slug.match?(/\A#{Regexp.escape(stem)}(-\d+)?\z/)
+  end
+
+  def slug_taken?(candidate)
+    User.where(slug: candidate).where.not(id: id).exists?
+  end
+
+  # parameterize leaves only [a-z0-9_-], so the stem is safe inside the pattern.
+  def highest_slug_suffix(stem)
+    User.where.not(id: id).where("slug ~ ?", "^#{stem}-[0-9]{1,9}$")
+        .maximum(Arel.sql("substring(slug from '[0-9]+$')::integer")).to_i.clamp(1..)
+  end
+
+  def random_slug
+    "user-#{SecureRandom.alphanumeric(10).downcase}"
+  end
 
   def username_free_in_any_case
     return if username.blank?

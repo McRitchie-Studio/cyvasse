@@ -1,0 +1,12 @@
+<%# Both graveyards. Hidden until the first unit falls (renderGraveyards).
+    Locals: board, the board's Stimulus identifier; them, the other side. %>
+<div class="card p-4 space-y-3" hidden data-<%= board %>-target="fallen">
+  <div>
+    <h2 class="text-sm font-semibold uppercase tracking-widest text-muted mb-1">Your fallen</h2>
+    <div class="cyvasse-graveyard" data-team="1" data-<%= board %>-target="graveyard"></div>
+  </div>
+  <div>
+    <h2 class="text-sm font-semibold uppercase tracking-widest text-muted mb-1"><%= them %>'s fallen</h2>
+    <div class="cyvasse-graveyard" data-team="0" data-<%= board %>-target="graveyard"></div>
+  </div>
+</div>

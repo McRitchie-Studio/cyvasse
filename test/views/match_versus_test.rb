@@ -2,9 +2,9 @@ require "test_helper"
 
 # [component] The match's versus card (matches/_versus, players/_avatar):
 # you over them, each an avatar then a name, a vs between, a person's photo or else their
-# own piece art in their colour, a computer player's portrait from
-# app/assets/images/bots when one is there and its piece art on the computer
-# accent when not.
+# own piece art in their colour, a computer player's seeded portrait
+# (users.portrait, app/assets/images/bots) when it has one and its piece art on
+# the computer accent when not.
 class MatchVersusTest < ActionView::TestCase
   helper AvatarsHelper
 
@@ -62,29 +62,44 @@ class MatchVersusTest < ActionView::TestCase
     assert_select "[data-side=me] [data-avatar=piece]", 0
   end
 
-  test "a computer player with no portrait shows its piece art, never a likeness" do
+  test "a computer player with no portrait shows its piece art" do
     assert_nil bot_portrait(@haldon)
     render_versus
     assert_select "[data-avatar=bot-fallback][role=img][aria-label='Haldon Halfmaester'] img[src*='pieces/vector/catapult']"
     assert_includes css_select("[data-avatar=bot-fallback]").sole["class"], "ring-[var(--color-cta,#8E82FE)]"
     assert_select "[data-side=them] [data-avatar=piece]", 0
+    assert_select "[data-avatar=bot-portrait]", 0
   end
 
-  test "a computer player's portrait is used as soon as bots/<username> exists" do
-    Dir.mktmpdir do |dir|
-      file = Pathname(dir).join("haldon.webp").tap { |f| f.write("portrait") }
-      load_path = Rails.application.assets.load_path
-      asset = Propshaft::Asset.new(file, logical_path: Pathname("bots/haldon.webp"), load_path:)
-      load_path.singleton_class.alias_method(:find_without_portrait, :find)
-      load_path.define_singleton_method(:find) { |path| path == "bots/haldon.webp" ? asset : find_without_portrait(path) }
-      begin
-        assert_equal "bots/haldon.webp", bot_portrait(@haldon)
-        render_versus
-      ensure
-        load_path.singleton_class.send(:remove_method, :find)
-      end
-    end
-    assert_select "[data-side=them] img[data-avatar=bot-portrait][alt='Haldon Halfmaester'][src*='bots/haldon-']"
+  test "a computer player shows the portrait its seed set, from the real asset" do
+    User.seed_computer_player!("haldon")
+    @haldon.reload
+    assert_equal "bots/haldon.webp", bot_portrait(@haldon)
+    render_versus
+    assert_select "[data-side=them] img[data-avatar=bot-portrait][alt='Haldon Halfmaester'][src*='bots/haldon-'][src$='.webp']"
+    assert_includes css_select("[data-avatar=bot-portrait]").sole["class"], "rounded-full"
     assert_select "[data-avatar=bot-fallback]", 0
+  end
+
+  test "a portrait only by filename does not count: the seed is the source of truth" do
+    assert Rails.application.assets.load_path.find("bots/haldon.webp"), "the file is there"
+    assert_nil @haldon.portrait
+    render_versus
+    assert_select "[data-avatar=bot-fallback]"
+  end
+
+  test "a portrait whose file is missing, or an unsafe path, falls back to piece art" do
+    @haldon.update_columns(portrait: "bots/nobody.webp")
+    assert_nil bot_portrait(@haldon)
+    @haldon.update_columns(portrait: "../secrets.webp")
+    assert_nil bot_portrait(@haldon)
+    render_versus
+    assert_select "[data-avatar=bot-fallback] img[src*='pieces/vector/catapult']"
+  end
+
+  test "a computer player with no named portrait (legacy ids 8-10) keeps the default piece" do
+    alexx = User.create!(legacy_id: 8, username: "alexx")
+    render_versus(opponent: alexx, name: "alexx")
+    assert_select "[data-avatar=bot-fallback] img[src*='pieces/vector/#{AvatarsHelper::BOT_DEFAULT_PIECE}']"
   end
 end

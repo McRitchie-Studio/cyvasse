@@ -21,7 +21,7 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     JS
   end
 
-  # Place the army. On a phone, Random Setup sits below the fold, so the click
+  # Place the army. On a phone, Smart Setup sits below the fold, so the click
   # first scrolls it into view, and that scroll collapses the engine's sticky,
   # in-flow navbar (navCollapse: 32px here, 4px a frame). The page slides up
   # under a click already aimed, and on a loaded CI runner it lands below the
@@ -30,8 +30,8 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # below only rules out a page still painting; it cannot see a collapse that
   # the click's own scroll starts. The confirm-and-retry is the fix: by the
   # second click the page is scrolled and the navbar settled. A second click
-  # is harmless: Random Setup only ever places or reshuffles your own army.
-  def random_setup!
+  # is harmless: Smart Setup only ever places or replaces your own army.
+  def smart_setup!
     assert page.evaluate_async_script(<<~JS), "the page finished loading"
       const done = arguments[arguments.length - 1]
       const loaded = document.readyState === "complete" ? Promise.resolve() :
@@ -39,7 +39,7 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
       loaded.then(() => document.fonts.ready).then(() => requestAnimationFrame(() => done(true)))
     JS
     2.times do
-      click_on "Random Setup"
+      find("button.cyvasse-smart").click
       break if has_no_selector?(".cyvasse-dock .dock-unit", wait: 3)
     end
     assert_no_selector ".cyvasse-dock .dock-unit"

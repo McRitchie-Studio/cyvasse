@@ -56,6 +56,59 @@
   background: rgb(0 0 0 / 0.7);
 }
 
+/* Its background: one action shot per piece (pages/_home_gallery), stacked,
+ * the active one opaque. A slow crossfade; none for reduced motion, where the
+ * controller never advances anyway. The slides fill the hero absolutely, so
+ * a slide landing never moves the page. */
+.home-slide,
+.home-slide-caption {
+  opacity: 0;
+  transition: opacity 1.6s ease-in-out;
+}
+
+.home-slide {
+  position: absolute;
+  inset: 0;
+}
+
+.home-slide.is-active,
+.home-slide-caption.is-active {
+  opacity: 1;
+}
+
+.home-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-gallery-captions {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.75rem;
+  display: grid;
+  justify-items: end;
+  pointer-events: none;
+}
+
+/* One grid cell for every caption, so they cross-fade in place. */
+.home-slide-caption {
+  grid-area: 1 / 1;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.7);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-slide,
+  .home-slide-caption {
+    transition: none;
+  }
+}
+
 /* Secondary to the gold Play Now: a green outline with a white label. The
  * label colour is the view's text-white, not a colour here: the green label
  * was ~3:1 over the brightest spot of the scrimmed art, and white clears AA.

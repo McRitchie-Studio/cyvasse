@@ -38,6 +38,21 @@ Imported from the legacy repo and served through Propshaft
 | `pieces/vector/*.svg` | The coloured vector skin, 11 pieces (verbatim) | `public/images/svgs/` |
 | `backgrounds/`, `title/`, `hex.svg` | Page backgrounds, title wordmarks, the hex outline | `app/assets/images/cyvasse_*.png`, `hex.svg` |
 | `tutorial/`, `thanks/` | Tutorial figures and the gSchool thanks photos | `public/images/tutorial/`, `public/images/thanks/` |
+| `backgrounds/home/*.webp` | The home page's background gallery: one action shot per piece, a 2:1 wide crop and a `-mobile` portrait crop each | New: captured from `/play` (below) |
+
+The home page's background (`HomeGallery`, `pages/_home_gallery`,
+`home_gallery_controller.js`) crossfades through the eleven shots every 7
+seconds from a random first piece. Only the first carries its `src` and is
+preloaded; each later one loads a slide ahead of its turn, and
+`prefers-reduced-motion` holds the first still. The shots are real board
+states staged in `test/capture/home_gallery_capture.rb`, one scene per piece,
+in the vector skin. Re-capture them (Chrome and `cwebp` needed; a re-run is
+byte-identical) with:
+
+```bash
+bin/rails cyvasse:capture_home_gallery                     # all eleven
+PIECES=dragon PREVIEW=1 bin/rails cyvasse:capture_home_gallery  # one, plus its whole board in tmp/home_gallery
+```
 
 `Piece` (`app/models/piece.rb`) is the lineup and resolves each skin's path.
 The rasters were compressed on import (256-colour PNG, JPEG q82, title art
@@ -89,12 +104,16 @@ person's uploaded picture, else their own piece of the vector art on a
 parchment disc ringed in `User#avatar_color` (`AvatarsHelper#user_piece`: a
 stable hash of the user id over every piece but the mountain, so a player keeps
 one piece on every page and in every game). A
-computer player shows `app/assets/images/bots/<username>.webp` (or `.png`,
-`.jpg`, `.svg`; `qavo`, `tyrion`, `haldon`, `doran`, `ben`, `aegon`) the moment
-that file exists; until then it shows its own piece of the vector art on a
-parchment disc ringed in the computer accent (`AvatarsHelper::BOT_PIECES`).
-A portrait must be original art: never a likeness of the characters the
-computer players are named after.
+computer player shows the portrait its seed set: `users.portrait`, a path under
+`app/assets/images/bots/` (`qavo`, `tyrion`, `haldon`, `doran`, `ben`, `aegon`,
+each a square WebP of the old Cyvasse app's picture; `User::COMPUTER_PORTRAITS`).
+`bin/rails db:seed`, and the narrower `bin/rails users:seed_computer_players`
+(the post-deploy command), create any missing named computer player and set its
+portrait in place, so a re-run is safe. A computer player with no portrait
+(legacy ids 8-10), or whose file is missing, shows its own piece of the vector
+art on a parchment disc ringed in the computer accent (`AvatarsHelper::BOT_PIECES`).
+The Play Now splash shows the same portrait (`opponent_portrait` in the seek's
+JSON). The artists the old files credit are thanked on `/about`.
 
 ## Piece skins
 

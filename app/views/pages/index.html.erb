@@ -1,8 +1,14 @@
 <% content_for(:title, "Cyvasse") %>
 
-<%# The art is a desk game mid-play; the black scrim keeps the white type legible in both themes. %>
-<section class="home-hero relative overflow-hidden rounded-2xl">
-  <%= image_tag "backgrounds/cyvasse_home_background.webp", alt: "", class: "absolute inset-0 w-full h-full object-cover", decoding: "async", data: { home_background: true } %>
+<%# The art is one action shot per piece (HomeGallery), crossfading in turn; the black scrim keeps the white type legible in both themes. %>
+<% content_for(:head) do %>
+  <% first = @gallery.first %>
+  <link rel="preload" as="image" href="<%= image_path(first.desktop_image) %>" media="(min-width: 641px)" fetchpriority="high">
+  <link rel="preload" as="image" href="<%= image_path(first.mobile_image) %>" media="(max-width: 640px)" fetchpriority="high">
+<% end %>
+<section class="home-hero relative overflow-hidden rounded-2xl"
+         data-controller="home-gallery" data-home-gallery-interval-value="<%= HomeGallery::INTERVAL_MS %>">
+  <%= render "pages/home_gallery", slides: @gallery %>
   <div class="home-hero-scrim relative px-4 py-16">
     <div class="max-w-2xl mx-auto text-center">
       <h1 class="text-4xl font-extrabold text-white tracking-tight mb-4">Cyvasse</h1>
@@ -28,4 +34,5 @@
       </div>
     </div>
   </div>
+  <%= render "pages/home_gallery_captions", slides: @gallery %>
 </section>
