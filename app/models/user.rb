@@ -195,12 +195,20 @@ class User < ApplicationRecord
     begin
       self.class.transaction(requires_new: true) { super(**options, &block) }
     rescue ActiveRecord::RecordNotUnique => e
-      raise unless e.message.include?(SLUG_INDEX) && (@slug_conflicts += 1) < SLUG_SAVE_TRIES
+      raise unless slug_index_violation?(e) && (@slug_conflicts += 1) < SLUG_SAVE_TRIES
 
       retry
     end
   ensure
     @slug_conflicts = 0
+  end
+
+  # Matched on the constraint Postgres names in the error, not the message text:
+  # an email or username violation whose DETAIL quotes a value containing the
+  # index name must still raise.
+  def slug_index_violation?(error)
+    result = error.cause.respond_to?(:result) ? error.cause.result : nil
+    result&.error_field(PG::Result::PG_DIAG_CONSTRAINT_NAME) == SLUG_INDEX
   end
 
   def slug_stem

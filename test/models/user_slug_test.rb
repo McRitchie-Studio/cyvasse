@@ -97,4 +97,15 @@ class UserSlugTest < ActiveSupport::TestCase
 
     assert_raises(ActiveRecord::RecordNotUnique) { User.create!(email: "dup@example.com", name: "Two") }
   end
+
+  test "a unique violation quoting the slug index name in its value still raises" do
+    User.create!(email: "index_users_on_slug@example.com", name: "One")
+    inserts = 0
+    counter = ->(*, payload) { inserts += 1 if payload[:sql].start_with?('INSERT INTO "users"') }
+
+    ActiveSupport::Notifications.subscribed(counter, "sql.active_record") do
+      assert_raises(ActiveRecord::RecordNotUnique) { User.create!(email: "index_users_on_slug@example.com", name: "Two") }
+    end
+    assert_equal 1, inserts, "an email violation is raised on the first try, never retried as a slug race"
+  end
 end
