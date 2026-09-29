@@ -23,6 +23,14 @@ class ApplicationController < ActionController::Base
   before_action :claim_guest_from_link, if: -> { params[:claim].present? }
   CLAIM_WINDOW = 2.minutes
 
+  # After the claim above: the first page after a sign-in opens the
+  # onboarding when the account is incomplete.
+  include OnboardingPrompt
+
+  # A session an email handoff started needs a fresh magic link before it
+  # changes the email or a sign-in method.
+  include ConfirmedSession
+
   private
 
   # Every sign-in passes through here: the engine's magic link, hub SSO, local
@@ -33,6 +41,9 @@ class ApplicationController < ActionController::Base
     guest = signed_in_guest
     super
     @current_user = user
+    # A fresh sign-in is a normal one; EmailHandoffsController marks its own.
+    session.delete(EmailHandoff::SESSION_KEY)
+    prompt_onboarding(user)
     if user.guest?
       session[:guest_user_id] = user.id
     else
@@ -53,6 +64,13 @@ class ApplicationController < ActionController::Base
   def remember_google_return
     path = request.env["omniauth.params"]&.dig("return_to").to_s
     session[AFTER_SIGN_IN] = path if path.start_with?("/") && !path.start_with?("//") && !path.include?("\\")
+  end
+
+  # `path` when it is a path on this site, else nil: never "//host", a scheme,
+  # or a backslash some browsers read as a slash.
+  def local_path(path)
+    path = path.to_s
+    path if path.start_with?("/") && !path.start_with?("//") && !path.include?("\\")
   end
 
   def signed_in_guest

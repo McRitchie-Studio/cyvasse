@@ -31,6 +31,8 @@ class OnlineMatchTest < ActionDispatch::IntegrationTest
   test "a player without a username chooses one, then lands on My games" do
     newcomer = User.create!(email: "new@example.com", name: "Newcomer")
     log_in_as(newcomer)
+    get root_path
+    assert_redirected_to onboarding_path, "no username: the first page after signing in is the onboarding"
 
     get matches_path
     assert_redirected_to username_path(return_to: matches_path)

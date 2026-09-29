@@ -31,6 +31,8 @@ gem "tailwindcss-rails", "~> 4.5"
 gem "studio-engine", "~> 0.76"
 # Google sign-in through the engine's OmniauthCallbacksController, beside the
 # magic link (config/initializers/omniauth.rb). The same three gems the hub runs.
+# ES256 assertions from the hub (EmailHandoff::Verifier).
+gem "jwt", "~> 3.1"
 gem "omniauth"
 gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
