@@ -12,6 +12,8 @@ class BoardHighlightsTest < ApplicationSystemTestCase
   WHITE = "rgb(255, 255, 255)".freeze
 
   setup do
+    # Motion allowed, whatever an earlier test in this browser emulated.
+    motion("no-preference")
     visit play_path
     assert_selector "[data-controller=cyvasse-game][data-phase=setup]"
   end
@@ -40,16 +42,17 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     assert frames.all? { |frame| frame.match?(/\Aopacity: [\d.]+;\z/) }, "only opacity animates: #{frames}"
 
     # Less motion: a steady orange edge.
-    page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-reduced-motion", value: "reduce" } ])
+    motion("reduce")
     still = style("g.hex[data-hex='44'] .danger-edge")
     assert_equal "none", still["animationName"]
     assert_equal "inline", still["display"]
   ensure
-    page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [])
+    motion("no-preference")
   end
 
   test "every hex in the opponent's reach wears a full red outline" do
     start_game
+    mouse_away
     screenshot("opening")
     assert_no_selector "svg.cyvasse-board path.threat-outline", visible: :all
 
@@ -126,6 +129,10 @@ class BoardHighlightsTest < ApplicationSystemTestCase
       ctrl.clearSelection()
       ctrl.render()
     JS
+  end
+
+  def motion(value)
+    page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-reduced-motion", value: value } ])
   end
 
   # Off the board, so no hex wears the hover edge.
