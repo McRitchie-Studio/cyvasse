@@ -64,6 +64,17 @@ class PhoneWidthTest < ApplicationSystemTestCase
     assert_operator widest, :<=, 390, "the page never grew wider than the phone while the banner moved"
   end
 
+  test "the board's sideways clip leaves room for the start-over hint's focus ring" do
+    visit play_path
+    assert_selector "svg.cyvasse-board g.hex", count: 91
+    page.execute_script("document.querySelector('.cyvasse-hint').hidden = false")
+    gap = page.evaluate_script(<<~JS)
+      document.querySelector('.cyvasse-hint').getBoundingClientRect().left -
+        document.querySelector('.cyvasse-board-wrap').getBoundingClientRect().left
+    JS
+    assert_operator gap, :>=, 3, "a focus ring drawn outside the hint fits inside the clipped wrap"
+  end
+
   private
 
   # A true phone viewport.
