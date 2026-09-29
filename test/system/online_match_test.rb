@@ -21,7 +21,15 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
     assert_selector BOARD
     assert_selector "svg.cyvasse-board g.hex", count: 91
     assert_selector ".cyvasse-dock .dock-unit", count: 19
+    # Ready waits for a full army; Random Setup is the hollow secondary.
+    assert_button "Ready", disabled: true
+    assert_selector "button.btn-outline", text: "Random Setup"
     click_on "Random Setup"
+    assert_button "Ready", disabled: false
+    if ENV["SCREENSHOTS"]
+      sleep 0.4
+      page.save_screenshot(Rails.root.join("tmp/screenshots/setup-match-ready.png"))
+    end
     click_on "Ready"
     assert_selector "[role=status]", text: "Waiting for brienne to accept"
     match = Match.last

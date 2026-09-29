@@ -72,9 +72,9 @@ function ghostStops(hue, entry) {
   const [s, l] = entry.split(",").map((part) => parseFloat(part))
   const [inner, outer] = RING_DRIFT[hue]
   return [
-    ["0%", `hsl(${hue + inner}, ${s}%, ${l}%)`, 0.05],
-    ["55%", `hsl(${hue}, ${s}%, ${l}%)`, 0.16],
-    ["100%", `hsl(${hue + outer}, ${Math.min(100, s + 12)}%, ${l + 4}%)`, 0.46]
+    ["0%", `hsl(${hue + inner}, ${s}%, ${l}%)`, 0.08],
+    ["55%", `hsl(${hue}, ${s}%, ${l}%)`, 0.22],
+    ["100%", `hsl(${hue + outer}, ${Math.min(100, s + 12)}%, ${l + 4}%)`, 0.6]
   ]
 }
 
@@ -110,6 +110,27 @@ const GROUND = {
   "hex-base": [["0%", "hsl(218, 10%, 25%)"], ["60%", "hsl(220, 11%, 17%)"], ["100%", "hsl(222, 13%, 10%)"]],
   "hex-deploy": [["0%", "hsl(232, 20%, 12%)"], ["65%", "hsl(236, 24%, 7%)"], ["100%", "hsl(240, 28%, 4%)"]],
   "hex-drop": [["0%", "hsl(226, 72%, 50%)"], ["55%", "hsl(233, 64%, 34%)"], ["100%", "hsl(240, 58%, 20%)"]]
+}
+
+// A faint stop is not left see-through, or the page behind the board would
+// show through it (white, in the light theme): it is mixed over the slate
+// board instead, so the hex stays opaque and reads the same in both themes.
+const BOARD_UNDER = [220, 11, 15]
+
+function hslToRgb(h, s, l) {
+  s /= 100
+  l /= 100
+  const k = (n) => (n + h / 30) % 12
+  const a = s * Math.min(l, 1 - l)
+  return [0, 8, 4].map((n) => 255 * (l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1))))
+}
+
+function overBoard(color, alpha) {
+  const [h, s, l] = color.match(/-?[\d.]+/g).map(Number)
+  const top = hslToRgb(((h % 360) + 360) % 360, s, l)
+  const under = hslToRgb(...BOARD_UNDER)
+  const [r, g, b] = top.map((c, i) => Math.round(c * alpha + under[i] * (1 - alpha)))
+  return `rgb(${r}, ${g}, ${b})`
 }
 
 // Every class a ripple may leave on a hex; render() and each repaint clear
@@ -367,7 +388,7 @@ export default class extends Controller {
     const gradientOf = (id, stops) => {
       const gradient = el("radialGradient", { id, cx: "50%", cy: "46%", r: "62%", fx: "42%", fy: "34%" })
       for (const [offset, color, opacity = 1] of stops) {
-        gradient.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
+        gradient.append(el("stop", { offset, "stop-color": opacity < 1 ? overBoard(color, opacity) : color }))
       }
       defs.append(gradient)
     }
