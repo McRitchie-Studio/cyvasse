@@ -76,9 +76,11 @@ class RangeGradientTest < ApplicationSystemTestCase
     # Picking another unit clears the dragon's gradients and texture from every
     # hex the new unit does not reach.
     before = lit_hexes
-    find("svg.cyvasse-board g.hex[aria-label='Your king']").click
+    king = find("svg.cyvasse-board g.hex[aria-label='Your king']")
+    king_hex = king["data-hex"]
+    king.click
     assert_no_selector "svg.cyvasse-board g.hex.is-selected[data-hex='#{hex}']"
-    left = before - settled { lit_hexes }
+    left = before - settled { lit_hexes } - [ king_hex ]
     assert_operator left.size, :>, 3
     left.each do |index|
       assert_equal "rgb(0, 0, 0)", fill_of(index), "hex #{index} is dark again"
