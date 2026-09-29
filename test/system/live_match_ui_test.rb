@@ -107,7 +107,9 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     @match.set_up!(@arya, CyvasseRules::Bot.random_lineup(rng: Random.new(2)))
     @match.reload
     unless @match.seat_to_move == :home
-      travel_to(@match.bot_due_at + 1) { @match.tick! }
+      # Real time, not travel_to: a write stamped in the future makes the
+      # page read the next poll as stale. bot_pace 0 makes the turn due now.
+      @match.tick!
       @match.reload
     end
     skip "the computer won on its first move" if @match.finished?
