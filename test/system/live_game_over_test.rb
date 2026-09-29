@@ -59,6 +59,22 @@ class LiveGameOverTest < ApplicationSystemTestCase
     assert_no_button "Forfeit match"
   end
 
+  test "the seat notice clears when the match ends with the page open" do
+    @match.set_up!(@arya, CyvasseRules::Bot.lineup(rng: Random.new(5)))
+    # Arya missed two clocks and took her seat back: the notice warns her.
+    @match.reload.update_columns(home_strikes: 2, home_bot: false, updated_at: Time.current)
+    visit match_path(@match)
+    assert_selector "[data-cyvasse-match-target=notice]", text: "You took back your seat. Miss one more clock"
+
+    @match.reload.resign!(@arya)
+
+    within(MODAL, wait: 10) { assert_selector "h3", text: "You resigned." }
+    assert_selector "[data-cyvasse-match-target=status]", text: "You resigned."
+    assert_no_selector "[data-cyvasse-match-target=notice]", wait: 0
+    assert_no_text "Miss one more clock", wait: 0
+    assert_no_selector "[data-cyvasse-match-target=takeBackSeat]", wait: 0
+  end
+
   test "an opponent's forfeit that lands while the player is away opens the modal when they come back" do
     @match.set_up!(@arya, CyvasseRules::Bot.lineup(rng: Random.new(5)))
     visit match_path(@match)
