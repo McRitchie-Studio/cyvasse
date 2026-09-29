@@ -105,7 +105,10 @@ export default class extends GameController {
         const response = await fetch(this.stateUrlValue, { headers: { Accept: "application/json" }, credentials: "same-origin" })
         if (response.ok) {
           const state = await response.json()
-          if (state.version !== this.state.version) {
+          // A move's own answer can land before an older poll's: never step back.
+          if (Number(state.version) < Number(this.state.version)) {
+            // Stale: look again next time.
+          } else if (state.version !== this.state.version) {
             // Mid-setup, keep the army being placed: only the clock and the
             // opponent move on. Everything else redraws from the server.
             if (this.state.can_set_up && state.can_set_up && state.phase === "setup") {
