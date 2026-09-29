@@ -96,15 +96,32 @@ class OnboardingFlowTest < ActionDispatch::IntegrationTest
     assert_select "[role=alert]", /3 to 20/
   end
 
-  test "a name another player holds, and an impossible birthday, are refused" do
-    player("rook_ravenholt", name: "Rook Ravenholt")
+  test "an impossible birthday is refused" do
     log_in_as(@rook)
-    patch onboarding_step_path("profile"), params: { name: "Rook Ravenholt" }
-    assert_response :unprocessable_entity
-    assert_select "[role=alert]", /taken/
     patch onboarding_step_path("profile"), params: { name: "Rook R", birth_year: "1990", birth_month: "2", birth_day: "31" }
+    assert_response :unprocessable_entity
     assert_select "[role=alert]", /not a real date/
     assert_nil @rook.reload.name
+  end
+
+  # Task cyvasse-blank-name-slug: a display name is not an identity (the
+  # username is), so a name another player holds saves under its own slug.
+  # This replaced the old "is taken by another player" refusal, which only
+  # guarded the slug index and also refused a second "Иван", whose name
+  # parameterized to an empty slug.
+  test "a display name another player holds saves, Latin or not" do
+    player("rook_ravenholt", name: "Rook Ravenholt")
+    player("ivan_one", name: "Иван")
+    [ "Rook Ravenholt", "Иван" ].each do |name|
+      @rook.update_columns(name: nil, slug: "user-#{@rook.id}")
+      log_in_as(@rook)
+      patch onboarding_step_path("profile"), params: { name: }
+      assert_redirected_to onboarding_path(step: "contact")
+      @rook.reload
+      assert_equal name, @rook.name
+      assert_predicate @rook.slug, :present?
+      assert_equal 1, User.where(slug: @rook.slug).count
+    end
   end
 
   test "a complete account signs in straight to its page" do

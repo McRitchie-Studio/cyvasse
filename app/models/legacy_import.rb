@@ -255,8 +255,8 @@ class LegacyImport
       }
     end
     insert_batches(User, records)
-    # Sluggable's name_slug for a nameless player, which a later save would set
-    # anyway; insert_all runs no callbacks.
+    # A nameless player's stable slug; insert_all runs no callbacks, and a
+    # later save keeps it (User#name_slug).
     User.where(legacy_id: records.map { |r| r[:legacy_id] }, slug: nil).update_all("slug = 'user-' || id") if records.any?
     @report.users_imported = records.size
   end
