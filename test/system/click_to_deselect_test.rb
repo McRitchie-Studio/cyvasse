@@ -10,8 +10,9 @@ class ClickToDeselectTest < ApplicationSystemTestCase
   TARGETS = "svg.cyvasse-board g.hex.is-move, svg.cyvasse-board g.hex.is-attack".freeze
 
   # One fixed /play game (see with_seeded_random): the player moves first and
-  # the game is still on after the computer's reply. A random game can end on
-  # the computer's first turn, before a single step below runs (seed 18 does).
+  # the game is still on after the computer's reply. A random game can end
+  # before a single step below runs (with Random Setup, seed 18 ended on the
+  # computer's first turn); a seeded one is the same game every run.
   PLAY_SEED = 7
 
   test "on /play, a picked piece is let go three ways" do
