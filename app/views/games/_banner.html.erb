@@ -1,0 +1,6 @@
+<%# The turn banner's slot, above the board and its bar: "Turn 4 · Your
+    move", "You win". It is never drawn over the board (cyvasse/banner.js
+    fills it). Locals: board, the board's Stimulus identifier. %>
+<div class="cyvasse-banner-slot">
+  <div class="cyvasse-banner" hidden data-<%= board %>-target="banner"></div>
+</div>
