@@ -51,7 +51,14 @@ class LiveSeeksController < ApplicationController
 
     opponent = match.opponent_of(current_user)
     { status: "matched", match_url: match_path(match), you: current_user.username,
-      opponent: match.display_name_of(opponent), computer: opponent.computer?, splash_ms: splash_ms }
+      opponent: match.display_name_of(opponent), computer: opponent.computer?,
+      opponent_portrait: opponent_portrait_url(opponent), splash_ms: splash_ms }
+  end
+
+  # A computer player's seeded portrait for the splash, or nil (its initial).
+  def opponent_portrait_url(opponent)
+    portrait = opponent.computer? && helpers.bot_portrait(opponent)
+    helpers.asset_path(portrait) if portrait
   end
 
   def splash_ms

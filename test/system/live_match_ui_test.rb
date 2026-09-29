@@ -62,29 +62,42 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     assert_no_selector "[data-cyvasse-match-target=deadline]", visible: true
   end
 
-  test "[e2e] the versus card stacks you over the computer, its piece art beside its name, and fits a phone" do
+  test "[e2e] the versus card stacks you over the computer, its portrait beside its name, and fits a phone" do
     visit match_path(@match)
-    them = @match.display_name_of(@match.away_user)
+    bot = @match.away_user
+    them = @match.display_name_of(bot)
     assert_selector "h1.match-versus [data-side=me] [data-avatar=piece] img[src*='pieces/vector/']"
-    assert_selector "h1.match-versus [data-side=them] [data-avatar=bot-fallback][aria-label='#{them}'] img[src*='pieces/vector/']"
+    assert_selector "h1.match-versus [data-side=them] img[data-avatar=bot-portrait][alt='#{them}'][src*='bots/#{bot.username}-']"
+    assert_no_selector "h1.match-versus [data-avatar=bot-fallback]"
     assert_selector "h1.match-versus [data-side=them]", text: them
-    me, vs, bot = %w[[data-side=me]\ [data-avatar] .match-versus-vs [data-side=them]\ [data-avatar]].map do |css|
+    assert portrait_loaded?, "the portrait image loaded"
+    me, vs, bot_top = %w[[data-side=me]\ [data-avatar] .match-versus-vs [data-side=them]\ [data-avatar]].map do |css|
       page.evaluate_script("document.querySelector('h1.match-versus #{css}').getBoundingClientRect().top")
     end
     assert_operator me, :<, vs
-    assert_operator vs, :<, bot
-    page.save_screenshot(Rails.root.join("tmp/screenshots/versus-desktop.png")) if ENV["SCREENSHOTS"]
+    assert_operator vs, :<, bot_top
+    page.save_screenshot(Rails.root.join("tmp/screenshots/bot-portraits-versus-desktop.png")) if ENV["SCREENSHOTS"]
 
     # The phone viewport outlives the test in a shared browser: always undo it.
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 360, height: 800, deviceScaleFactor: 1, mobile: true)
+    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
     begin
-      assert_selector "h1.match-versus [data-avatar=bot-fallback]"
+      assert_selector "h1.match-versus [data-avatar=bot-portrait]"
+      assert portrait_loaded?, "the portrait image loaded at 390px"
       scroll, client = page_widths
-      assert_operator scroll, :<=, client, "no sideways scroll at 360px"
-      page.save_screenshot(Rails.root.join("tmp/screenshots/versus-phone.png")) if ENV["SCREENSHOTS"]
+      assert_operator scroll, :<=, client, "no sideways scroll at 390px"
+      page.save_screenshot(Rails.root.join("tmp/screenshots/bot-portraits-versus-390.png")) if ENV["SCREENSHOTS"]
     ensure
       page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
     end
+  end
+
+  # The versus card's portrait is decoded and square on screen.
+  def portrait_loaded?
+    page.evaluate_script(<<~JS)
+      (() => { const img = document.querySelector("h1.match-versus img[data-avatar=bot-portrait]")
+               const box = img.getBoundingClientRect()
+               return img.complete && img.naturalWidth > 0 && Math.abs(box.width - box.height) < 1 })()
+    JS
   end
 
   test "ten seconds from the end the player is told to hurry" do

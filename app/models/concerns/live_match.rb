@@ -54,12 +54,11 @@ module LiveMatch
       match.tick!(rng:)
     end
 
-    # One of the six named computer players, created if this database lacks it
-    # (a new database has no legacy import).
+    # One of the six named computer players, created with its portrait if
+    # this database lacks it (a new database has no legacy import).
     def computer_player(rng: Random.new)
       username = COMPUTER_NAMES.keys.sample(random: rng)
-      User.find_by(legacy_id: COMPUTER_LEGACY_IDS.fetch(username)) ||
-        User.create!(legacy_id: COMPUTER_LEGACY_IDS.fetch(username), username:, name: COMPUTER_NAMES.fetch(username))
+      User.find_by(legacy_id: COMPUTER_LEGACY_IDS.fetch(username)) || User.seed_computer_player!(username)
     end
   end
 
