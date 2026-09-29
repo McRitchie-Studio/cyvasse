@@ -80,4 +80,3 @@ class LiveMatchUiTest < ApplicationSystemTestCase
                     text: "#{@match.display_name_of(@match.away_user)} is thinking…"
   end
 end
-
