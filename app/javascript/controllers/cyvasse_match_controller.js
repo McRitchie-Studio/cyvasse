@@ -325,7 +325,9 @@ export default class extends GameController {
       return
     }
 
-    const remaining = Math.max(0, (Date.parse(clock.ends_at) - (Date.now() + (this.clockOffset || 0))) / 1000)
+    // A Play Now setup clock starts after the versus splash (LiveMatch
+    // setup_grace): a board opened early holds at the full clock until then.
+    const remaining = Math.min(clock.seconds, Math.max(0, (Date.parse(clock.ends_at) - (Date.now() + (this.clockOffset || 0))) / 1000))
     const mine = clock.kind === "setup" ? this.state.can_set_up : this.state.your_turn
     const warning = remaining <= clock.warning
     let label
