@@ -13,6 +13,8 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
   end
 
   teardown do
+    Rails.configuration.x.live_search_time = nil
+    Rails.configuration.x.live_splash_time = nil
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
   end
 
@@ -37,6 +39,38 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     screenshot("landing-empty")
   end
 
+  # Alex's report (2026-09-29): games finished as a guest never reached the
+  # card. A real Play Now game against the computer, lost by resigning.
+  test "finishing a game against the computer puts the guest on the landing board" do
+    Rails.configuration.x.live_search_time = 20.seconds
+    Rails.configuration.x.live_splash_time = 0.5.seconds
+    visit root_path
+    click_on "Play Now"
+    assert_text "Finding an opponent"
+    click_on "Play the computer now"
+    assert_selector "[data-controller=cyvasse-match]", wait: 8
+    guest = LiveSeek.last.user
+    match = Match.involving(guest).last
+    match.set_up!(guest, CyvasseRules::Bot.lineup(rng: Random.new(5)))
+    # Resigned on the server: a click can beat Turbo's confirm on a slow runner.
+    match.reload.resign!(guest)
+
+    visit root_path
+    within("[data-leaderboard-card]") do
+      assert_no_selector "[data-leaderboard-empty]"
+      row = find("[data-leaderboard-row='#{guest.username}'].is-you")
+      assert_equal [ "1", "1 pt", "0 W", "1 G" ], %w[rank points wins games].map { row.find("[data-stat=#{_1}]").text.squish }
+    end
+    screenshot("guest-finished-on-card")
+
+    phone!
+    visit root_path
+    assert_selector "[data-leaderboard-card] [data-leaderboard-row='#{guest.username}']"
+    assert_no_sideways_scroll
+    find("[data-leaderboard-card]").scroll_to(:center)
+    screenshot("guest-finished-on-card-phone")
+  end
+
   test "the landing card lists the leaders and fits a 375px phone" do
     long = player("a_very_long_username")
     arya = player("arya")
@@ -56,7 +90,7 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
 
     click_on "See all"
     assert_selector "h1", text: "Leaderboard"
-    assert_selector "[data-board=live] [data-leaderboard-row=a_very_long_username]", text: /3\s*W/
+    assert_selector "[data-board=live] [data-leaderboard-row=a_very_long_username]", text: /9\s*pts\s*3\s*W\s*3\s*G/
     assert_no_sideways_scroll
     screenshot("leaderboard-phone")
   end
