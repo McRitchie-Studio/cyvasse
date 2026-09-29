@@ -123,6 +123,8 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     assert_selector "[data-onboarding-step=username] h1", text: "Pick a username"
     fill_in "Username", with: "arya"
     click_on "Save username"
+    # Wait for the profile step: the username page has its own "Skip for now".
+    assert_selector "[data-onboarding-step=profile]"
     click_on "Skip for now"
 
     assert_current_path(%r{\A/matches/#{match.id}})
