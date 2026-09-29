@@ -68,6 +68,20 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     assert_not_equal "", outline
   end
 
+  test "at the opening the outline draws no edge along the board's own rim" do
+    start_game
+    segments = outline_segments
+    assert_not_empty segments, "the outline is drawn at the opening"
+
+    # An edge between two board hexes has a hex centre half a hex (W / 2 = 30)
+    # from its midpoint on each side; an edge on the rim has only one. The
+    # outline marks where the reach ends inside the board, never the board's
+    # own edge, so the opening board does not wear a frame.
+    rim = segments.select { |edge| hexes_beside(edge) == 1 }
+    assert_empty rim, "#{rim.size} of #{segments.size} outline edges lie on the board's rim"
+    assert segments.all? { |edge| hexes_beside(edge) == 2 }, "every outline edge lies between two board hexes"
+  end
+
   test "Esc lets go of a piece and takes back a cavalry unit's first jump" do
     start_game
     # A light horse of yours on 80 with an enemy rabble two hexes away.
@@ -165,6 +179,14 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
 
   def outline_segments
     outline.scan(/M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)/).map { |a| a.map(&:to_f).each_slice(2).to_a }
+  end
+
+  # How many board hexes an outline edge lies against: 2 inside the board, 1 on its rim.
+  def hexes_beside(((ax, ay), (bx, by)))
+    @centres ||= page.evaluate_script("[...#{CONTROLLER}.hexCentres.values()].map((c) => [c.x, c.y])")
+    mx = (ax + bx) / 2
+    my = (ay + by) / 2
+    @centres.count { |x, y| Math.hypot(x - mx, y - my) < 31 }
   end
 
   def hex_centre(hex)
