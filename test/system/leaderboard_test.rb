@@ -2,9 +2,9 @@ require "application_system_test_case"
 
 # [e2e] The leaderboards and a guest's sign-in after a live game, in a real
 # browser: the landing page's live leaderboard card (and its empty state) at
-# desktop and phone width, the full board's tabs, the "You won!" call on a
-# guest's finished live match, and signing in through the email link to put
-# the win on the board. SCREENSHOTS=1 saves each step to tmp/screenshots.
+# desktop and phone width, the full board's tabs, the game-over modal's call
+# on a guest's finished live match, and signing in through the email link to
+# put the win on the board. SCREENSHOTS=1 saves each step to tmp/screenshots.
 class LeaderboardSystemTest < ApplicationSystemTestCase
   include LiveResults
 
@@ -69,17 +69,17 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     match = live_result(guest, @qavo, winner: guest)
 
     visit match_path(match)
-    assert_text "You captured the king. You win."
-    assert_selector "[data-cyvasse-match-target=claimWin]", text: "You won!"
-    assert_no_selector "[data-cyvasse-match-target=claimLoss]", visible: true
+    within("[data-test=game-over-modal]") do
+      assert_selector "h3", text: "You captured the king. You win."
+      assert_text "this win goes on the live leaderboard under your name"
+    end
     screenshot("guest-win-cta")
     phone!
     assert_no_sideways_scroll
     screenshot("guest-win-cta-phone")
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
 
-    click_on "Sign in to put this win on the leaderboard"
-    assert_selector "h1", text: "Put your win on the leaderboard"
+    click_on "Sign in to keep your record"
     fill_in "Email", with: "arya@example.com"
     click_on "Email me a sign-in link"
     assert_text "Check your inbox"
@@ -89,7 +89,8 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     fill_in "Username", with: "arya"
     click_on "Save"
 
-    assert_selector "h1", text: "Leaderboard"
+    assert_current_path(%r{\A/matches/#{match.id}})
+    visit leaderboard_path
     assert_selector "[data-leaderboard-row=arya].is-you", text: /1\s*W/
     arya = User.find_by!(email: "arya@example.com")
     assert_equal arya, match.reload.winner
@@ -105,8 +106,10 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     match = live_result(guest, @qavo, winner: @qavo)
 
     visit match_path(match)
-    assert_selector "[data-cyvasse-match-target=claimLoss]", text: "Sign in to save your games"
-    assert_no_selector "[data-cyvasse-match-target=claimWin]", visible: true
+    within("[data-test=game-over-modal]") do
+      assert_text "Sign in to keep this game and your record"
+      assert_no_text "live leaderboard"
+    end
     screenshot("guest-loss-line")
   end
 
