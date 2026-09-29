@@ -1,5 +1,6 @@
 import GameController from "controllers/cyvasse_game_controller"
 import { Game, PLAYER } from "cyvasse/game"
+import { pointsLine } from "cyvasse/game_over"
 
 // The board for an online match (matches/show): the /play board, driven by
 // the server instead of the computer.
@@ -440,7 +441,7 @@ export default class extends GameController {
       result: this.outcomeText(),
       boardWin: Boolean(this.state.live?.board_win),
       points: this.state.live?.board_points ?? null,
-      rank: this.state.live?.board_rank ?? null,
+      pointsLine: pointsLine({ points: this.state.live?.board_points, win: this.state.live?.board_win, rank: this.state.live?.board_rank }),
       returnTo: this.returnToValue || null
     })
   }
