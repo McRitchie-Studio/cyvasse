@@ -40,8 +40,7 @@ class User < ApplicationRecord
 
   # The seeded identities (studio-engine/docs/NEW_APP_SETUP.md section 11):
   # the shared operator, the ordinary member, and an admin on this app's own
-  # domain. Names must parameterize to DISTINCT slugs — Sluggable derives the
-  # uniquely indexed slug from the name.
+  # domain. Sluggable derives each one's slug from its name (name_slug).
   SEED_IDENTITIES = [
     { email: "alex@mcritchie.studio", name: "Alex McRitchie", role: "admin" },
     # The member is not optional: without one every seeded account is an admin
@@ -139,9 +138,9 @@ class User < ApplicationRecord
   # Google sign-in (the engine's OmniauthCallbacksController), as the hub does
   # it: the account already linked to this Google identity, else the account
   # with its email once Google has verified that email (an unverified one
-  # could take over someone else's account), else a new account. A name
-  # another player already slugs to is left off; Sluggable's slug is unique.
-  # Returns :email_not_verified for the refused link.
+  # could take over someone else's account), else a new account, which keeps
+  # its Google name even when another player shares it (name_slug suffixes the
+  # slug). Returns :email_not_verified for the refused link.
   def self.from_omniauth(auth, email_verified: false)
     user = find_by(provider: auth.provider, uid: auth.uid)
     return user if user
@@ -154,9 +153,7 @@ class User < ApplicationRecord
       return existing
     end
 
-    name = auth.info.name.presence
-    name = nil if name && exists?(slug: name.parameterize)
-    create!(email:, name:, provider: auth.provider, uid: auth.uid)
+    create!(email:, name: auth.info.name.presence, provider: auth.provider, uid: auth.uid)
   rescue ActiveRecord::RecordNotUnique
     # A concurrent callback created it first.
     find_by(provider: auth.provider, uid: auth.uid) || (email && find_by(email:))
