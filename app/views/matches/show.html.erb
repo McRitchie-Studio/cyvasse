@@ -34,7 +34,7 @@
     </div>
 
     <aside class="cyvasse-panel match-panel space-y-4">
-      <div class="card p-4 space-y-3 match-panel-status">
+      <div class="card p-4 flex flex-col gap-3 match-panel-status">
         <% if @match.live? %>
           <%# The live clock both players see (LiveMatch): setup, then each move. %>
           <div class="live-clock" hidden data-cyvasse-match-target="clock">
