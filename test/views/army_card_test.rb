@@ -25,7 +25,7 @@ class ArmyCardTest < ActionView::TestCase
     render partial: "games/army_card", locals: { board: "cyvasse-game" }
 
     assert_select "p.cyvasse-army-count[data-cyvasse-game-target=armyCount][aria-live=polite][aria-atomic=true]"
-    assert_select "p.cyvasse-army-count[aria-hidden]", count: 0, "the count is no longer hidden from screen readers"
+    assert_select "p.cyvasse-army-count[aria-hidden]", false, "the count is no longer hidden from screen readers"
     assert_select "button.cyvasse-smart" do
       assert_select "> span[aria-hidden=true]", text: "✨", count: 1
       assert_select "> span[data-smart-label]:not([aria-hidden])", text: "Smart Setup"
