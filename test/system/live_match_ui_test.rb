@@ -84,7 +84,7 @@ class LiveMatchUiTest < ApplicationSystemTestCase
       window.fetch = (url, init) => init?.method === "POST" ? real(url, init) : real(url, init).then((answer) => new Promise((ok) => setTimeout(() => ok(answer), 1500)))
     JS
     sleep 1.2
-    click_on "Submit army"
+    click_on "Ready"
     sleep 3
     loaded = page.evaluate_script("window.__loaded")
     assert_operator loaded.size, :>=, 1
