@@ -18,8 +18,7 @@ class PhoneWidthTest < ApplicationSystemTestCase
       assert_selector "svg.cyvasse-board g.hex", count: 91
       assert_fits width
 
-      click_on "Random Setup"
-      assert_no_selector ".cyvasse-dock .dock-unit"
+      random_setup!
       watch_widest_page
       click_on "Ready"
 
@@ -49,8 +48,7 @@ class PhoneWidthTest < ApplicationSystemTestCase
     assert_selector ".cyvasse-dock .dock-unit", count: 19
     assert_fits 390
 
-    click_on "Random Setup"
-    assert_no_selector ".cyvasse-dock .dock-unit"
+    random_setup!
     watch_widest_page
     click_on "Ready"
 
@@ -76,6 +74,26 @@ class PhoneWidthTest < ApplicationSystemTestCase
   end
 
   private
+
+  # Place the army. On a cold CI browser under phone emulation the piece art
+  # and fonts can still be loading when Selenium scrolls the button into view,
+  # so the page shifts and the click lands where the button was: a silent
+  # no-op, 19 units still in the dock. Wait for the page to settle, then
+  # confirm the click took, clicking again if it did not (Random Setup only
+  # ever places the army, so a second click is harmless).
+  def random_setup!
+    assert page.evaluate_async_script(<<~JS), "the page finished loading"
+      const done = arguments[arguments.length - 1]
+      const loaded = document.readyState === "complete" ? Promise.resolve() :
+        new Promise((resolve) => window.addEventListener("load", resolve, { once: true }))
+      loaded.then(() => document.fonts.ready).then(() => requestAnimationFrame(() => done(true)))
+    JS
+    2.times do
+      click_on "Random Setup"
+      break if has_no_selector?(".cyvasse-dock .dock-unit", wait: 3)
+    end
+    assert_no_selector ".cyvasse-dock .dock-unit"
+  end
 
   # A true phone viewport.
   def phone!(width)
