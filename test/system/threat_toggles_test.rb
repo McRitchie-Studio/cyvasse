@@ -1,9 +1,8 @@
 require "application_system_test_case"
 
 # [e2e] The Ranged and Melee threat switches, on /play and on a match board:
-# each hides only its own units' reach, outline (melee solid, ranged dashed)
-# and danger, a hex either group reaches shows while that group is on, and
-# each choice is remembered.
+# each hides only its own units' reach, perimeter and danger, a hex either
+# group reaches shows while that group is on, and each choice is remembered.
 #
 # Staged: their catapult (ranged) on 46, their king and a rabble (melee) on 1
 # and 10, a rabble of mine on 66 that only the catapult can take. From
@@ -82,8 +81,8 @@ class ThreatTogglesTest < ApplicationSystemTestCase
     danger = page.evaluate_script("[...document.querySelectorAll('svg.cyvasse-board g.hex.is-danger')].map((g) => g.dataset.hex)")
     assert_equal(ranged ? [ "66" ] : [], danger, "only the catapult can take the rabble")
     count = ->(kind) { page.evaluate_script("document.querySelectorAll('svg.cyvasse-board line.hex-edge[data-kind=#{kind}]').length") }
-    assert_equal({ solid: melee, dashed: ranged }, { solid: count.("perimeter").positive?, dashed: count.("perimeter-ranged").positive? },
-                 "melee's outline is solid, ranged's dashed, each only while its switch is on")
+    assert_equal ranged || melee, count.("perimeter").positive?, "one solid outline while either switch is on"
+    assert_equal 0, count.("perimeter-ranged"), "no dashed outline in the default style"
   end
 
   def stage(board)

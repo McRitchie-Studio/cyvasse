@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { HEXES, hexAt, neighbors, distance } from "cyvasse/board";
-import { sideNeighbors, edgeKey, EDGES, perimeter, EDGE_PRIORITY, hexClaim, resolveEdges } from "cyvasse/edges";
+import { sideNeighbors, edgeKey, EDGES, perimeter, EDGE_PRIORITY, hexClaim, resolveEdges, threatRims, PERIMETER_STYLE } from "cyvasse/edges";
 
 const disc = (origin, r) => new Set(HEXES.filter((h) => distance(hexAt(origin), h) <= r).map((h) => h.index));
 const sidesOf = (index) => [0, 1, 2, 3, 4, 5].map((side) => edgeKey(index, side));
@@ -131,10 +131,21 @@ test("one owner per edge, the highest claim on either side or the perimeter", ()
   for (const key of sidesOf(68)) assert.equal(owners.get(key), "team-1");
 });
 
-test("two outlines: melee-only edges solid, ranged-only dashed, shared edges solid", () => {
+test("the default style is one solid rim round both groups' areas together", () => {
+  assert.equal(PERIMETER_STYLE, "single");
+  const regions = { melee: disc(46, 1), ranged: disc(47, 1) };
+  const { solid, dashed } = threatRims(regions);
+  assert.deepEqual([...solid].sort(), [...perimeter(new Set([...regions.melee, ...regions.ranged]))].sort());
+  assert.equal(dashed.size, 0);
+  assert.deepEqual([...threatRims({ melee: new Set(), ranged: regions.ranged }).solid].sort(), [...perimeter(regions.ranged)].sort(), "one group alone is solid too");
+  assert.ok([...resolveEdges(new Map(), solid, dashed).values()].every((k) => k === "perimeter"));
+});
+
+test("dual style: melee-only edges solid, ranged-only dashed, shared edges solid", () => {
   // Two overlapping discs share a stretch of outer rim along the board's edge.
-  const melee = perimeter(disc(46, 1));
-  const ranged = perimeter(disc(47, 1));
+  const { solid: melee, dashed: ranged } = threatRims({ melee: disc(46, 1), ranged: disc(47, 1) }, "dual");
+  assert.deepEqual([...melee].sort(), [...perimeter(disc(46, 1))].sort());
+  assert.deepEqual([...ranged].sort(), [...perimeter(disc(47, 1))].sort());
   const shared = [...melee].filter((k) => ranged.has(k));
   const meleeOnly = [...melee].filter((k) => !ranged.has(k));
   const rangedOnly = [...ranged].filter((k) => !melee.has(k));
