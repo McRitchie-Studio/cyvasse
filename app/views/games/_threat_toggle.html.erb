@@ -1,6 +1,11 @@
-<%# The threat-outline switch. Locals: board, the board's Stimulus identifier.
-    Hidden until the board knows it is in play (renderThreats), so it never flashes during setup. %>
-<label class="cyvasse-threat-toggle" hidden>
-  <input type="checkbox" checked data-<%= board %>-target="threatToggle" data-action="<%= board %>#toggleThreats">
-  Show threats
-</label>
+<%# The threat-outline switches, one per threat group (cyvasse/units THREAT_GROUPS).
+    Locals: board, the board's Stimulus identifier.
+    Hidden until the board knows it is in play (renderThreats), so they never flash during setup. %>
+<span class="cyvasse-threat-toggles" hidden>
+  <% { "ranged" => "Ranged threats", "melee" => "Melee threats" }.each do |group, label| %>
+    <label class="cyvasse-threat-toggle">
+      <input type="checkbox" checked data-threat-group="<%= group %>" data-<%= board %>-target="threatToggle" data-action="<%= board %>#toggleThreats">
+      <%= label %>
+    </label>
+  <% end %>
+</span>

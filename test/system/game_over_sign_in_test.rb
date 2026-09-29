@@ -58,9 +58,13 @@ class GameOverSignInSystemTest < ApplicationSystemTestCase
       OmniAuth::AuthHash.new(provider: "google_oauth2", uid: "g-1", info: { email: "newcomer@example.com", name: "New Comer" })
     click_on "Continue with Google"
 
-    assert_selector "h1", text: "Your username"
+    # A new account finishes itself first (the onboarding), username first.
+    assert_selector "[data-onboarding-step=username] h1", text: "Pick a username"
     fill_in "Username", with: "newcomer"
-    click_on "Save"
+    click_on "Save username"
+    # Wait for the profile step: the username page has its own "Skip for now".
+    assert_selector "[data-onboarding-step=profile]"
+    click_on "Skip for now"
 
     assert_current_path(%r{\A/matches/#{match.id}(\?|\z)})
     newcomer = User.find_by!(email: "newcomer@example.com")
@@ -103,9 +107,13 @@ class GameOverSignInSystemTest < ApplicationSystemTestCase
 
     visit link_path(token: Studio::Link.last.token)
     click_on "Sign in" if page.has_button?("Sign in", wait: 1)
-    assert_selector "h1", text: "Your username"
+    # A new account finishes itself first (the onboarding), username first.
+    assert_selector "[data-onboarding-step=username] h1", text: "Pick a username"
     fill_in "Username", with: "arya"
-    click_on "Save"
+    click_on "Save username"
+    # Wait for the profile step: the username page has its own "Skip for now".
+    assert_selector "[data-onboarding-step=profile]"
+    click_on "Skip for now"
 
     assert_current_path(%r{\A/matches/#{match.id}})
     arya = User.find_by!(email: "arya@example.com")

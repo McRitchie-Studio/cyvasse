@@ -3,10 +3,10 @@ import { Game, PLAYER, COMPUTER } from "cyvasse/game"
 import { chooseAction, KILL_PRIORITY } from "cyvasse/ai"
 import { botDelays } from "cyvasse/pacing"
 import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
-import { UNIT_TYPES } from "cyvasse/units"
+import { UNIT_TYPES, THREAT_GROUPS } from "cyvasse/units"
 import { Banner, passNotice } from "cyvasse/banner"
 import { threats } from "cyvasse/threats"
-import { EDGES, perimeter, hexClaim, resolveEdges } from "cyvasse/edges"
+import { EDGES, hexClaim, resolveEdges, threatRims, PERIMETER_STYLE } from "cyvasse/edges"
 import { playIntent, setupIntent } from "cyvasse/selection"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
@@ -38,8 +38,11 @@ const RIPPLE_MS = 120
 const HSL_SHORT = ["40%,30%", "42%,39%", "44%,47%", "46%,50%", "48%,55%", "50%,60%"]
 const HSL_LONG = ["40%,30%", "41%,34%", "42%,38%", "43%,42%", "44%,45%", "45%,48%", "46%,51%", "47%,54%", "48%,57%", "50%,60%"]
 const HSL_TABLES = { short: HSL_SHORT, long: HSL_LONG }
-// Move ring code -> hue (animation.js updateRing).
-const MOVE_HUE = { 1: 240, 2: 290, 3: 10, 4: 10, 5: 280 }
+// Move ring code -> hue (animation.js updateRing). A hex the unit cannot stop
+// on (2x, flown over; 5x, blocked) is not a hue: it is sunken, a desaturated
+// gray dish, darker at the centre, with no hatch (SUNKEN_STOPS, .is-sunken).
+const MOVE_HUE = { 1: 240, 3: 10, 4: 10 }
+const SUNKEN_CODES = new Set([2, 5])
 
 // Each lit hex is filled with a radial gradient rather than the flat legacy
 // colour: the ring's own hsl() sits at the middle stop, the centre is lighter
@@ -48,7 +51,7 @@ const MOVE_HUE = { 1: 240, 2: 290, 3: 10, 4: 10, 5: 280 }
 // the capture red drifts towards crimson, never towards the selection orange.
 // One gradient per hue, table and ripple step, so the outward brightening of
 // the ripple still reads. [centre, edge] hue offsets:
-const RING_DRIFT = { 240: [-16, 14], 290: [-14, 12], 10: [-4, -18], 280: [-10, 8] }
+const RING_DRIFT = { 240: [-16, 14], 10: [-4, -18], 280: [-10, 8] }
 
 function ringStops(hue, entry) {
   const [s, l] = entry.split(",").map((part) => parseFloat(part))
@@ -58,6 +61,15 @@ function ringStops(hue, entry) {
     ["0%", `hsl(${hue + inner}, ${clamp(s + 14, 0, 100)}%, ${clamp(l + 20, 0, 80)}%)`],
     ["55%", `hsl(${hue}, ${s}%, ${l}%)`],
     ["100%", `hsl(${hue + outer}, ${clamp(s + 10, 0, 100)}%, ${clamp(l - 14, 12, 100)}%)`]
+  ]
+}
+
+function sunkenStops(entry) {
+  const l = parseFloat(entry.split(",")[1])
+  return [
+    ["0%", `hsl(220, 3%, ${(7 + l * 0.04).toFixed(1)}%)`],
+    ["70%", `hsl(220, 4%, ${(11 + l * 0.06).toFixed(1)}%)`],
+    ["100%", `hsl(220, 5%, ${(17 + l * 0.1).toFixed(1)}%)`]
   ]
 }
 
@@ -139,13 +151,15 @@ function overBoard(color, alpha) {
 
 // Every class a ripple may leave on a hex; render() and each repaint clear
 // the lot, so a hex never carries two looks.
-const RING_CLASSES = ["is-lit", "is-ghost", "is-field", "is-target", "is-blocked"]
-// The threat outline (renderThreats) is on unless the player turned it off.
+const RING_CLASSES = ["is-lit", "is-sunken", "is-ghost", "is-field", "is-target", "is-blocked"]
+// Each threat group's outline (renderThreats) is on unless the player turned
+// it off; a player who turned off the old single switch starts with both off.
 const THREATS_KEY = "cyvasse.showThreats"
 
-function threatsWanted() {
+function threatsWanted(group) {
   try {
-    return window.localStorage.getItem(THREATS_KEY) !== "off"
+    const stored = window.localStorage.getItem(`${THREATS_KEY}.${group}`) ?? window.localStorage.getItem(THREATS_KEY)
+    return stored !== "off"
   } catch {
     return true
   }
@@ -430,9 +444,10 @@ export default class extends Controller {
   }
 
   toggleThreats(event) {
-    this.showThreats = event.target.checked
+    const { threatGroup } = event.target.dataset
+    this.showThreats[threatGroup] = event.target.checked
     try {
-      window.localStorage.setItem(THREATS_KEY, this.showThreats ? "on" : "off")
+      window.localStorage.setItem(`${THREATS_KEY}.${threatGroup}`, event.target.checked ? "on" : "off")
     } catch {
       // Storage refused (a private window): the switch still works this visit.
     }
@@ -477,6 +492,7 @@ export default class extends Controller {
     for (const [table, entries] of Object.entries(HSL_TABLES)) {
       entries.forEach((entry, step) => {
         for (const hue of Object.values(PREVIEW_HUE)) gradientOf(`ghost-${hue}-${table}-${step}`, ghostStops(hue, entry))
+        gradientOf(`sunken-${table}-${step}`, sunkenStops(entry))
         const [s, l] = entry.split(",").map((part) => parseFloat(part))
         for (const [kind, stops] of Object.entries(RANGE_STOPS)) gradientOf(`${kind}-${table}-${step}`, stops(s, l))
       })
@@ -687,23 +703,38 @@ export default class extends Controller {
   }
 
   // Where the opponent could strike next turn (cyvasse/threats, from the
-  // rules' own legal actions): each hex in reach gets .is-threatened, and the
-  // edge round that area (their own units counted in, so it is one shape) is
-  // outlined red by renderEdges; each unit of yours they could actually kill
-  // gets .is-danger (the orange edge pulse). Play only; the switch turns it off.
+  // rules' own legal actions): each hex in reach gets .is-threatened, and
+  // renderEdges outlines the switched-on groups' area (their units counted in,
+  // so it is one shape) in red, by cyvasse/edges PERIMETER_STYLE; each unit of yours
+  // they could actually kill gets .is-danger (the orange edge pulse). Play
+  // only; the ranged and melee switches each turn off their own group.
   renderThreats() {
     const game = this.game
     // Read once per page, by /play and the match board alike.
-    this.showThreats ??= threatsWanted()
-    const live = game.phase === "play" && this.showThreats
-    if (this.hasThreatToggleTarget) {
-      this.threatToggleTarget.checked = this.showThreats
-      this.threatToggleTarget.closest("label").hidden = game.phase !== "play"
+    this.showThreats ??= Object.fromEntries(THREAT_GROUPS.map((group) => [group, threatsWanted(group)]))
+    const groups = THREAT_GROUPS.filter((group) => this.showThreats[group])
+    const live = game.phase === "play" && groups.length > 0
+    for (const input of this.threatToggleTargets) {
+      input.checked = this.showThreats[input.dataset.threatGroup]
+      input.closest(".cyvasse-threat-toggles").hidden = game.phase !== "play"
     }
-    const { reach, kills } = live ? threats(game, 1 - PLAYER) : { reach: new Set(), kills: new Set() }
-    const region = new Set(reach)
-    if (live) for (const unit of game.teamUnits(1 - PLAYER, "alive")) if (unit.hex != null) region.add(unit.hex)
-    this.threatRim = perimeter(region)
+    const reach = new Set()
+    const kills = new Set()
+    this.threatRegions = {}
+    for (const group of THREAT_GROUPS) {
+      const region = new Set()
+      if (live && this.showThreats[group]) {
+        const found = threats(game, 1 - PLAYER, { groups: [group] })
+        for (const hex of found.reach) {
+          reach.add(hex)
+          region.add(hex)
+        }
+        for (const hex of found.kills) kills.add(hex)
+        for (const hex of found.units) region.add(hex)
+      }
+      this.threatRegions[group] = region
+    }
+    this.threatRims = threatRims(this.threatRegions, this.perimeterStyle ?? PERIMETER_STYLE)
     for (const [index, node] of this.hexNodes) {
       const unit = game.pieceAt(index)
       const danger = kills.has(index) && unit?.team === PLAYER
@@ -731,7 +762,7 @@ export default class extends Controller {
       const kind = hexClaim(new Set(group.classList), { team, ghost: group.dataset.ghost })
       if (kind) claims.set(index, kind)
     }
-    const owners = resolveEdges(claims, this.threatRim)
+    const owners = resolveEdges(claims, this.threatRims?.solid, this.threatRims?.dashed)
     for (const [key, line] of this.edgeLines) {
       const kind = owners.get(key)
       // Only on a change, so the danger pulse is not restarted.
@@ -884,6 +915,8 @@ export default class extends Controller {
         const code = Math.floor(ring / 10)
         if (MOVE_HUE[code] !== undefined) {
           light(index, ringFill(MOVE_HUE[code], table, step), "is-lit")
+        } else if (SUNKEN_CODES.has(code)) {
+          light(index, `url(#sunken-${table}-${step})`, "is-sunken")
         } else if (PREVIEW_HUE[code] !== undefined) {
           light(index, `url(#ghost-${PREVIEW_HUE[code]}-${table}-${step})`, "is-ghost").dataset.ghost = code
         }

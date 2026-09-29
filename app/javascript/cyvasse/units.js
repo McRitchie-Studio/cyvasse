@@ -22,6 +22,10 @@
 //   - the elephant moves 2 hexes, not 3. It is strong but slow, so it earns its
 //     place on the front line, across from the enemy, rather than as a raider.
 
+// The board's two threat switches: these shoot; every other unit is melee.
+export const RANGED_UNITS = Object.freeze(["crossbowman", "trebuchet", "catapult"]);
+export const THREAT_GROUPS = Object.freeze(["ranged", "melee"]);
+
 export const UNIT_TYPES = Object.freeze({
   rabble: unit("rabble", "Rabble", "vanguard", { attack: 1, defence: 1, moveRange: 3, attackRange: 0, flank: 2, trump: [] }),
   spearman: unit("spearman", "Spearman", "vanguard", { attack: 2, defence: 2, moveRange: 2, attackRange: 0, flank: 1, trump: ["lighthorse"] }),
@@ -62,5 +66,6 @@ export function typeAt(index) {
 }
 
 function unit(codename, name, rank, stats) {
-  return Object.freeze({ codename, name, rank, ...stats, trump: Object.freeze(stats.trump) });
+  const threatGroup = RANGED_UNITS.includes(codename) ? "ranged" : "melee";
+  return Object.freeze({ codename, name, rank, threatGroup, ...stats, trump: Object.freeze(stats.trump) });
 }

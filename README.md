@@ -70,7 +70,11 @@ piece of the epic. The rules are the legacy engine's, ported line for line from
 clicks into `Game` calls; it holds no rules. Highlight borders are drawn once
 per edge, full width, by whichever highlight owns it (`cyvasse/edges.js`:
 selection > move rings > last move > danger > threat perimeter > team edge);
-"Show threats" outlines only the rim of the opponent's reach. The board plays from the keyboard
+the threat outline draws only the rim of the opponent's reach (one solid red
+rim; `PERIMETER_STYLE = "dual"` in `cyvasse/edges.js` draws melee's solid and
+ranged's dashed instead), and its two switches, "Ranged threats" (crossbowman, trebuchet, catapult: `RANGED_UNITS` in
+`cyvasse/units.js`) and "Melee threats" (every other unit), each show or hide
+their own units' share. The board plays from the keyboard
 too (it is one tab stop: arrows move between hexes, Enter or Space selects),
 and when a side has no legal move its turn passes and the page says who passed
 (`cyvasse/banner.js`); if neither side can move the game is a draw. `/rules`
@@ -434,6 +438,41 @@ opt-in switch (`config/initializers/session_store.rb`):
 - Unset, the cookie is `_cyvasse_session` on the request host. Sign-in still
   works; the "Continue as" button just never appears.
 
+## Email sign-in handoff and onboarding
+
+The hub's "Cyvasse is back" emails sign a player in with one click. The hub
+checks the click (a CTA works for 180 days after the send, and is reusable),
+then redirects here with a short-lived assertion it signed; Cyvasse is only the
+consumer (`EmailHandoffsController`, contract in `app/models/email_handoff.rb`):
+
+```text
+GET /auth/email_handoff?assertion=<JWT>&return_to=<local path>
+
+alg  ES256 only            iss  "mcritchie.studio"     aud  "cyvasse"
+sub  the email, lowercase  jti  16-128 chars, spent once (email_handoff_nonces)
+iat  unix seconds          exp  exp - iat <= 300; 30 s clock skew either way
+ref  the hub delivery token (kept for the email beacons)
+```
+
+A good assertion for an account signs it in (Play Now guests are claimed, as on
+any sign-in) and marks the session `email_handoff`; an address with no account
+lands on Play Now signed out; an admin account is refused and sent to sign in
+with a magic link, since a reusable email CTA is too weak a proof for the admin
+pages. Anything else lands on Play Now with no session.
+The endpoint allows 10 requests a minute per IP, and `assertion` is a filtered
+parameter. Without `MS_HANDOFF_PUBLIC_KEY` it fails closed and writes a
+`EmailHandoff::NotConfigured` ErrorLog. A handoff session may play, chat and
+onboard; changing the email or a sign-in method first emails a normal magic link
+whose click confirms the session (`ConfirmedSession`).
+
+After any sign-in, an incomplete account (`User#onboarding_due?`: a legacy player
+not yet welcomed, no usable username, or no name) gets the onboarding once: welcome
+back with the legacy record, username, name and piece skin, and how to sign in
+plus "Keep me posted about Cyvasse" (stored with a timestamp in
+`users.email_updates_at`). Every step but an unusable username can be skipped;
+"Skip for now" resumes at the next sign-in. `/admin/sign_ins` shows handoff
+outcomes and where the onboarding loses people.
+
 ## Environment
 
 | Variable | Where | Purpose |
@@ -441,6 +480,7 @@ opt-in switch (`config/initializers/session_store.rb`):
 | `DATABASE_URL` | production, desks | Postgres connection |
 | `TEST_DATABASE_URL` | desks | the desk's isolated test database |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | production (optional) | Google sign-in; both unset, the app is magic link only |
+| `MS_HANDOFF_PUBLIC_KEY` | production | the hub's ES256 (P-256) public key, PEM, for the email sign-in handoff; unset, the handoff fails closed. The private half lives only on the hub (1Password, credential-filing SOP) |
 | `SECRET_KEY_BASE` | production | session and cookie encryption; the hub's value when SSO is on. The app keeps no `credentials.yml.enc` |
 | `APP_HOST` | production | public host for links, default `cyvasse.mcritchie.studio` |
 | `APP_PORT` | desks | the desk's port, default 3600 |

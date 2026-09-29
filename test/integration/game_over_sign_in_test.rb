@@ -46,9 +46,13 @@ class GameOverSignInTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
 
     follow_redirect!
+    assert_redirected_to onboarding_path, "a new account finishes itself first"
+    follow_redirect!
+    patch onboarding_step_path("username"), params: { username: "newcomer" }
+    get root_path
     assert_redirected_to match_path(match), "the home page sends them back once"
     follow_redirect!
-    assert_redirected_to username_path(return_to: match_path(match)), "a new account names itself first"
+    assert_response :success
     get root_path
     assert_response :success, "only once"
   end
@@ -107,6 +111,8 @@ class GameOverSignInTest < ActionDispatch::IntegrationTest
     google_as("newcomer@example.com")
     sign_in_with_google(return_to: "//evil.example/x")
     follow_redirect!
+    assert_redirected_to onboarding_path
+    get root_path
     assert_response :success
     assert_equal "/", path
   end

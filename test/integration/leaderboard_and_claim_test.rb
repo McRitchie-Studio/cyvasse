@@ -145,9 +145,13 @@ class LeaderboardAndClaimTest < ActionDispatch::IntegrationTest
     assert_equal newcomer, match.reload.winner
 
     follow_redirect!
-    assert_redirected_to username_path(return_to: leaderboard_path)
-    patch username_path, params: { username: "newcomer", return_to: leaderboard_path }
+    assert_redirected_to onboarding_path, "the new account finishes itself first, starting with the username"
     follow_redirect!
+    assert_select "[data-onboarding-step=username]"
+    patch onboarding_step_path("username"), params: { username: "newcomer" }
+    assert_redirected_to onboarding_path(step: "profile")
+    follow_redirect!
+    get css_select("a[data-test=onboarding-leave]").first["href"] # Skip for now: back to the board
     assert_select "[data-leaderboard-row=newcomer]"
   end
 
