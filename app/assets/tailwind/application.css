@@ -308,6 +308,29 @@ html:not(.dark) .tutorial-card figcaption a {
   color: var(--color-text-body);
 }
 
+/* The key to the rows' short labels (pts, W, G, L): one muted line that
+ * wraps at its separators on a narrow phone. */
+.leaderboard-key {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.leaderboard-key span {
+  white-space: nowrap;
+}
+
+.leaderboard-key b {
+  font-weight: 700;
+  color: var(--color-text-body);
+}
+
+.leaderboard-stat abbr[title] {
+  text-decoration: none;
+  cursor: help;
+}
+
 .leaderboard-inline-cta {
   text-align: left;
   font-size: 0.875rem;
