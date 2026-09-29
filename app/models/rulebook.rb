@@ -12,6 +12,12 @@ module Rulebook
   Unit = Data.define(:piece, :movement, :strength, :range, :trumps) do
     def name = piece.name
     def slug = piece.slug
+
+    # A cavalry unit's two jumps, [first, second], read from its "3 + 2"
+    # movement; nil for every other unit.
+    def jumps
+      movement.match(/\A(\d+) \+ (\d+)\z/)&.captures&.map(&:to_i)
+    end
   end
 
   UnitClass = Data.define(:name, :units)
@@ -22,6 +28,10 @@ module Rulebook
   end
   private_class_method :unit
 
+  # Every cavalry unit's second jump reaches 2 hexes, whatever its first
+  # (legalActions in app/javascript/cyvasse/rules.js).
+  CAVALRY_SECOND_JUMP = 2
+
   CLASSES = [
     UnitClass.new(name: "Vanguard", units: [
       unit("rabble", movement: 3, strength: 1),
@@ -29,8 +39,8 @@ module Rulebook
       unit("elephant", movement: 2, strength: 4)
     ]),
     UnitClass.new(name: "Cavalry", units: [
-      unit("lighthorse", movement: "3 + 2", strength: 2),
-      unit("heavyhorse", movement: "2 + 2", strength: 3)
+      unit("lighthorse", movement: "3 + #{CAVALRY_SECOND_JUMP}", strength: 2),
+      unit("heavyhorse", movement: "2 + #{CAVALRY_SECOND_JUMP}", strength: 3)
     ]),
     UnitClass.new(name: "Range", units: [
       unit("crossbowman", movement: 1, strength: 2, range: 2, trumps: [ "Elephant" ]),
@@ -62,9 +72,27 @@ module Rulebook
     "Catapults now trump Dragons."
   ].freeze
 
+  UNITS = CLASSES.flat_map(&:units).index_by(&:slug).freeze
+
   def self.classes
     CLASSES
   end
+
+  def self.fetch(slug)
+    UNITS.fetch(slug)
+  end
+
+  def self.class_of(unit)
+    CLASSES.find { |unit_class| unit_class.units.include?(unit) }.name
+  end
+
+  # The army each player sets up, counted from the engine's own list
+  # (CyvasseRules::Units::ARMY, pinned to units.js) so the page cannot drift
+  # from it: 19 pieces, 17 of them units of 10 kinds, and 2 mountains.
+  def self.army_size = CyvasseRules::Units::ARMY.size
+  def self.mountain_count = CyvasseRules::Units::ARMY.count("mountain")
+  def self.army_unit_count = army_size - mountain_count
+  def self.unit_kind_count = (CyvasseRules::Units::ARMY.uniq - [ "mountain" ]).size
 
   # "Light Horse", "Elephant and Dragon", "Rabble, Spearman and Elephant"; an
   # em dash when the unit trumps nothing (the original printed "--").
