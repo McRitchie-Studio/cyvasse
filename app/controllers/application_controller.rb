@@ -19,7 +19,9 @@ class ApplicationController < ActionController::Base
 
   # A guest who signed in from another browser claims their games through the
   # signed token in the sign-in email's return address (GuestClaim).
+  # Only on the first request after a sign-in, within this window.
   before_action :claim_guest_from_link, if: -> { params[:claim].present? }
+  CLAIM_WINDOW = 2.minutes
 
   private
 
@@ -33,8 +35,12 @@ class ApplicationController < ActionController::Base
     @current_user = user
     if user.guest?
       session[:guest_user_id] = user.id
-    elsif guest
-      claim_guest(guest, user)
+    else
+      claim_guest(guest, user) if guest
+      # Only the redirect right after this sign-in may claim by link: a
+      # claim link opened later (sent by a guest to a signed-in player) must
+      # not push the guest's games and chat onto that player.
+      session[:claim_window_until] = CLAIM_WINDOW.from_now.to_i
     end
   end
 
@@ -54,7 +60,8 @@ class ApplicationController < ActionController::Base
   end
 
   def claim_guest_from_link
-    return unless current_user && !current_user.guest?
+    window = session.delete(:claim_window_until).to_i
+    return unless current_user && !current_user.guest? && Time.current.to_i < window
 
     guest = GuestClaim.guest_from_token(params[:claim])
     claim_guest(guest, current_user) if guest

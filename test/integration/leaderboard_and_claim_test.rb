@@ -135,6 +135,15 @@ class LeaderboardAndClaimTest < ActionDispatch::IntegrationTest
     assert_equal guest, match.reload.winner
   end
 
+  test "a claim link opened by a player who did not just sign in claims nothing" do
+    guest = become_guest(open_session)
+    match = live_result(guest, @qavo, winner: guest)
+    consume_link(email: player("arya").email)
+    travel 3.minutes
+    get leaderboard_path(claim: GuestClaim.token_for(guest))
+    assert_equal guest, match.reload.winner
+  end
+
   test "a signed-in account signing in again claims nothing" do
     arya = player("arya")
     brienne = player("brienne")
