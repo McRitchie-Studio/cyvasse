@@ -251,7 +251,7 @@ class Match < ApplicationRecord
       status: match_status,
       phase: if in_progress? then "play" elsif finished? then "over" else "setup" end,
       version: updated_at.to_f.to_s,
-      you: { username: user.username, ready: ready?(user) },
+      you: { username: user.username, ready: ready?(user), guest: user.guest? },
       opponent: { username: display_name_of(opponent_of(user)), ready: ready?(opponent_of(user)) },
       seat: seat(user),
       can_accept: pending? && seat(user) == :away,
@@ -374,6 +374,12 @@ class Match < ApplicationRecord
   # the result is nobody's). The live leaderboard follows the same rule.
   def on_record?(user)
     !user.computer? && !(live? && bot_seat?(seat(user)))
+  end
+
+  # A finished live match won from `user`'s own seat: a win for the live
+  # leaderboard (Leaderboard), once the player has an account.
+  def leaderboard_win?(user)
+    live? && finished? && winner_id.present? && winner_id == user&.id && on_record?(user)
   end
 
   def normalize_steps(steps)
