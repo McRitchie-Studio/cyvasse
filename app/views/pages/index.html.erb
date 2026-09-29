@@ -1,26 +1,31 @@
 <% content_for(:title, "Cyvasse") %>
 
-<section class="max-w-2xl mx-auto text-center py-16">
-  <h1 class="text-4xl font-extrabold text-heading tracking-tight mb-4">Cyvasse</h1>
-  <p class="text-secondary leading-relaxed mb-8">
-    The hexagonal strategy game is back on the board. Press Play Now for a live
-    game against whoever else is playing right now, no account needed. Or play
-    the computer at your own pace, or challenge a friend.
-  </p>
-  <div class="mb-6">
-    <%= button_to "Play Now", live_seeks_path, class: "btn btn-primary btn-lg text-xl px-10", form: { class: "inline-block" } %>
-  </div>
-  <div class="flex flex-wrap justify-center gap-3 mb-6">
-    <%= link_to "Play the computer", play_path, class: "btn btn-secondary btn-lg" %>
-    <%= link_to "Play a friend", matches_path, class: "btn btn-secondary btn-lg" %>
-    <% unless logged_in? %>
-      <%= link_to "Sign in", signin_path, class: "btn btn-secondary btn-lg" %>
-    <% end %>
-  </div>
-  <% if logged_in? %>
-    <p class="text-secondary">Signed in as <%= current_user.display_name %>.</p>
-  <% end %>
-  <div class="max-w-md mx-auto mt-10">
-    <%= render "leaderboards/card", rows: @live_leaderboard %>
+<%# The art is a desk game mid-play; the black scrim keeps the white type legible in both themes. %>
+<section class="home-hero relative overflow-hidden rounded-2xl">
+  <%= image_tag "backgrounds/cyvasse_home_background.webp", alt: "", class: "absolute inset-0 w-full h-full object-cover", decoding: "async", data: { home_background: true } %>
+  <div class="home-hero-scrim relative px-4 py-16">
+    <div class="max-w-2xl mx-auto text-center">
+      <h1 class="text-4xl font-extrabold text-white tracking-tight mb-4">Cyvasse</h1>
+      <p class="text-white/85 leading-relaxed mb-8">
+        The hexagonal strategy game is back on the board. Press Play Now for a
+        live game, no account needed, or challenge a friend.
+      </p>
+      <div class="mb-6">
+        <%= button_to "Play Now", live_seeks_path, class: "btn btn-primary btn-lg text-xl px-10", form: { class: "inline-block" } %>
+      </div>
+      <div class="flex flex-wrap justify-center gap-3 mb-6">
+        <%= link_to "Rules", rules_path, class: "btn home-secondary-btn" %>
+        <%= link_to "Play a friend", matches_path, class: "btn home-secondary-btn" %>
+        <% unless logged_in? %>
+          <%= link_to "Sign in", signin_path, class: "btn home-secondary-btn" %>
+        <% end %>
+      </div>
+      <% if logged_in? %>
+        <p class="text-white/80">Signed in as <%= current_user.display_name %>.</p>
+      <% end %>
+      <div class="max-w-md mx-auto mt-10">
+        <%= render "leaderboards/card", rows: @live_leaderboard %>
+      </div>
+    </div>
   </div>
 </section>

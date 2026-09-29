@@ -67,9 +67,12 @@ class GamePageTest < ActionDispatch::IntegrationTest
     assert_select "link[rel=stylesheet][href^='/assets/game-']"
   end
 
-  test "the front door offers a game against the computer" do
+  # The computer game is still reached through Play Now's fallback; the front
+  # door's second button is Rules now.
+  test "the front door offers the rules, not a separate computer button" do
     get root_path
 
-    assert_select "a[href=?]", play_path, text: "Play the computer"
+    assert_select "a[href=?]", rules_path, text: "Rules"
+    assert_select "section.home-hero a[href=?]", play_path, 0
   end
 end
