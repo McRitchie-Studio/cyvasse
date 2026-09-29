@@ -23,20 +23,20 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     assert_selector "[data-cyvasse-match-target=clock]", visible: true
     assert_selector "[data-cyvasse-match-target=clockLabel]", text: "Set up your army"
     assert_selector "[data-cyvasse-match-target=clockSeconds]", text: /\A(59|60)s\z/
-    assert_selector ".live-computer-tag", text: /computer/i
+    assert_selector ".match-versus-bot", text: "Computer"
     assert_text @match.display_name_of(@match.away_user)
     assert_no_text "Chat with"
     assert_no_selector "[data-cyvasse-match-target=deadline]", visible: true
   end
 
-  test "[e2e] the header puts an avatar at each edge, the computer's piece art on the right, and fits a phone" do
+  test "[e2e] the versus card stacks you over the computer, its piece art beside its name, and fits a phone" do
     visit match_path(@match)
     them = @match.display_name_of(@match.away_user)
     assert_selector "h1.match-versus [data-side=me] [data-avatar=piece] img[src*='pieces/vector/']"
     assert_selector "h1.match-versus [data-side=them] [data-avatar=bot-fallback][aria-label='#{them}'] img[src*='pieces/vector/']"
     assert_selector "h1.match-versus [data-side=them]", text: them
     me, vs, bot = %w[[data-side=me]\ [data-avatar] .match-versus-vs [data-side=them]\ [data-avatar]].map do |css|
-      page.evaluate_script("document.querySelector('h1.match-versus #{css}').getBoundingClientRect().left")
+      page.evaluate_script("document.querySelector('h1.match-versus #{css}').getBoundingClientRect().top")
     end
     assert_operator me, :<, vs
     assert_operator vs, :<, bot
