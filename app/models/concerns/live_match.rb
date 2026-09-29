@@ -138,6 +138,7 @@ module LiveMatch
     mine = seat(user)
     theirs = mine == :home ? :away : :home
     ends_at = live_clock_ends_at
+    points = leaderboard_points(user)
     {
       server_time: Time.current.iso8601(3),
       clock: ends_at && {
@@ -156,9 +157,12 @@ module LiveMatch
       taken_over: { you: taken_over?(mine), opponent: taken_over?(theirs) },
       took_back: { you: took_back?(mine), opponent: took_back?(theirs) },
       auto_set_up: { you: auto_set_up?(mine), opponent: auto_set_up?(theirs) },
-      # The game-over modal's line to a guest (modals/_game_over): signing in
-      # puts this win on the leaderboard.
+      # The game-over modal's points line (modals/_game_over): what this game
+      # put on the viewer's leaderboard row, whether it was a win, and a
+      # signed-in player's rank now (one query, only once the game counted).
       board_win: leaderboard_win?(user),
+      board_points: points,
+      board_rank: (Leaderboard.rank_for(user)&.rank if points.to_i.positive? && !user.guest?),
       just_ended: finished? && finished_at.present? && finished_at > GAME_OVER_FRESH.ago
     }
   end

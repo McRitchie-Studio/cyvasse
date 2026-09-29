@@ -384,6 +384,17 @@ class Match < ApplicationRecord
     live? && finished? && winner_id.present? && winner_id == user&.id && on_record?(user)
   end
 
+  # What this match put on `user`'s live leaderboard row (Leaderboard):
+  # Leaderboard.points for one game, won or not; 0 for a seat a computer
+  # held at the end (it counts for nobody); nil when it is not a counted game
+  # for them (not a live result, or not their match). For the game-over modal.
+  def leaderboard_points(user)
+    return unless live? && finished? && Leaderboard::COUNTED_ENDINGS.include?(finish_reason) && seat(user)
+    return 0 unless on_record?(user)
+
+    Leaderboard.points(games: 1, wins: leaderboard_win?(user) ? 1 : 0)
+  end
+
   def normalize_steps(steps)
     list = Array(steps).map { |step| Array(step).map { |hex| hex_number(hex) } }
     raise Refused, "A turn is one or two steps of [from, to]." unless list.size.between?(1, 2) && list.all? { |s| s.size == 2 && s.all?(Integer) }

@@ -439,6 +439,8 @@ export default class extends GameController {
       ariaLabel: "Game over",
       result: this.outcomeText(),
       boardWin: Boolean(this.state.live?.board_win),
+      points: this.state.live?.board_points ?? null,
+      rank: this.state.live?.board_rank ?? null,
       returnTo: this.returnToValue || null
     })
   }
