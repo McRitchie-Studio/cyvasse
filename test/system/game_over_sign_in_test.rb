@@ -37,8 +37,9 @@ class GameOverSignInSystemTest < ApplicationSystemTestCase
 
   test "a guest who resigns signs in with Google and comes back to the game, now theirs" do
     guest, match = guest_in_a_game
+    # Resigned on the server: a click can beat Turbo's confirm on a slow runner.
+    match.resign!(guest)
     visit match_path(match)
-    accept_confirm { click_on "Resign" }
 
     within(MODAL) do
       assert_selector "h3", text: "You resigned."
