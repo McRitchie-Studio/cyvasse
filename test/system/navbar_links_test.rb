@@ -5,7 +5,7 @@ require "application_system_test_case"
 # click lands on the page and marks it current; at 390px the phone row shows
 # them with no sideways page scroll. SCREENSHOTS=1 saves each to
 # tmp/screenshots/nav-links-*.png.
-class NavbarLinksTest < ApplicationSystemTestCase
+class NavbarLinksSystemTest < ApplicationSystemTestCase
   include LiveResults
 
   setup do
