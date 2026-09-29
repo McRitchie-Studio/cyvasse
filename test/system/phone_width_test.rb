@@ -38,6 +38,32 @@ class PhoneWidthTest < ApplicationSystemTestCase
     end
   end
 
+  test "the online match board has no sideways scroll at 390px while its turn banner comes and goes" do
+    arya = User.create!(email: "arya@example.com", name: "Arya", username: "arya")
+    match = Match.start_live!(arya, computer: true, rng: Random.new(4))
+    visit link_path(token: Studio::Link.create_magic_link(email: arya.email).token)
+    assert_text "Signed in as Arya"
+
+    phone!(390)
+    visit match_path(match)
+    assert_selector ".cyvasse-dock .dock-unit", count: 19
+    assert_fits 390
+
+    click_on "Random Setup"
+    assert_no_selector ".cyvasse-dock .dock-unit"
+    watch_widest_page
+    click_on "Ready"
+
+    assert_selector ".cyvasse-banner.is-showing", text: /Turn \d+ ·/, wait: 10
+    assert_selector ".cyvasse-banner.is-leaving", wait: 10
+    screenshot("match-390-leaving")
+    assert_no_selector ".cyvasse-banner", wait: 5
+
+    assert_fits 390
+    widest = page.evaluate_script("window.__widestPage")
+    assert_operator widest, :<=, 390, "the page never grew wider than the phone while the banner moved"
+  end
+
   private
 
   # A true phone viewport.
