@@ -22,6 +22,8 @@ Rails.application.routes.draw do
   # A game against the computer, played in the browser (piece 4). Public: no
   # account and nothing saved until matches arrive (piece 6).
   get "play", to: "games#show", as: :play
+  # Play Now: search for a live opponent (a computer player if none turns up).
+  resources :live_seeks, path: "live", only: %i[create show]
   # The piece-skin switcher (piece 5): remembers pencil or vector in a cookie,
   # and on the account when signed in. Public, like the pages it serves.
   patch "skin", to: "skins#update", as: :skin
