@@ -20,7 +20,7 @@ class PlayAgainstComputerTest < ApplicationSystemTestCase
     place_one_by_hand
     pick_up_shows_orange
     place_one_by_keyboard
-    click_on "Random Setup"
+    find("button.cyvasse-smart").click
     assert_no_selector ".cyvasse-dock .dock-unit"
     screenshot("setup")
     click_on "Ready"
