@@ -1,4 +1,4 @@
-// Twenty opening lineups for the setup panel, each one idea on the board.
+// Twenty-five opening lineups for the setup panel, each one idea on the board.
 //
 // A lineup is drawn as the player's five rows, front (row 7, beside no man's
 // land) to back (row 11), ten hexes across down to six, one letter a hex:

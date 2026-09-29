@@ -170,8 +170,9 @@ class SmartSetupCardTest < ApplicationSystemTestCase
     return unless dir
 
     FileUtils.mkdir_p(dir)
-    find(CARD).scroll_to(:center) if has_selector?(CARD, wait: 0)
-    sleep 0.3
+    target = has_selector?(CARD, wait: 0) ? CARD : ".cyvasse-graveyard"
+    page.execute_script("document.querySelector(#{target.to_json}).scrollIntoView({ block: 'center' })")
+    sleep 0.5
     page.save_screenshot(File.join(dir, "smart-setup-#{name}.png"))
   end
 end
