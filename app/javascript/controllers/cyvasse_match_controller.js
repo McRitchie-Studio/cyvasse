@@ -25,7 +25,7 @@ const REASON_TEXT = {
 }
 
 export default class extends GameController {
-  static targets = ["error", "deadline", "clock", "clockLabel", "clockSeconds", "clockBar", "notice"]
+  static targets = ["error", "deadline", "clock", "clockLabel", "clockSeconds", "clockBar", "notice", "claimWin", "claimLoss"]
   static values = {
     state: Object,
     stateUrl: String,
@@ -78,6 +78,7 @@ export default class extends GameController {
     if (arriving) this.animateArrival()
     this.startLiveClock()
 
+    this.renderGuestClaim()
     if (state.phase === "over") {
       this.banner(this.outcomeText(), null, { stay: true })
     } else if (announce && state.phase === "play") {
@@ -336,6 +337,16 @@ export default class extends GameController {
     const step = this.paceValue === 0 ? 0 : 70
     nodes.forEach((group, i) => setTimeout(() => group.classList.remove("is-arriving"), 120 + i * step))
     setTimeout(() => this.boardTarget.classList.remove("is-arrival"), 120 + nodes.length * step + 400)
+  }
+
+  // A guest's game is over: a win for the leaderboard asks them to sign in
+  // for it; anything else, more gently, to save their games.
+  renderGuestClaim() {
+    if (!this.hasClaimWinTarget) return
+    const over = this.state.phase === "over"
+    const won = over && Boolean(this.state.live?.board_win)
+    this.claimWinTarget.hidden = !won
+    this.claimLossTarget.hidden = !over || won
   }
 
   outcomeText() {

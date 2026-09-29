@@ -1,0 +1,26 @@
+<% content_for(:title, "Sign in · Cyvasse") %>
+
+<section class="max-w-md mx-auto card p-6 space-y-4" data-join-leaderboard>
+  <h1 class="text-2xl font-extrabold text-heading tracking-tight">
+    <%= @won ? "Put your win on the leaderboard" : "Save your games" %>
+  </h1>
+  <p class="text-secondary text-sm">
+    <% if @won %>
+      Sign in with your email and this win goes on the live leaderboard under your name, with every
+      game you played as <%= current_user&.username || "a guest" %>.
+    <% else %>
+      Sign in with your email and the games you played as <%= current_user&.username || "a guest" %> are
+      kept on your account.
+    <% end %>
+    No password: we email you a link.
+  </p>
+  <%= form_with url: magic_link_request_path, method: :post, class: "space-y-3", data: { turbo: false } do |form| %>
+    <%= hidden_field_tag :return_to, @return_to %>
+    <div>
+      <%= form.label :email, "Email", class: "block text-sm font-semibold text-heading mb-1" %>
+      <%= form.email_field :email, required: true, autofocus: true, autocomplete: "email",
+            placeholder: "you@example.com", class: "input-field w-full" %>
+    </div>
+    <%= form.submit "Email me a sign-in link", class: "btn btn-primary w-full" %>
+  <% end %>
+</section>

@@ -1,0 +1,17 @@
+<%# The landing page's live leaderboard: the top ten, or an invitation to be
+    first. Locals: rows. %>
+<section class="card p-4 text-left" data-leaderboard-card aria-labelledby="live-leaderboard-title">
+  <div class="flex items-baseline justify-between gap-3 mb-3">
+    <h2 id="live-leaderboard-title" class="text-sm font-semibold uppercase tracking-widest text-muted">Live leaderboard</h2>
+    <%= link_to "See all", leaderboard_path, class: "text-sm text-secondary underline underline-offset-2" %>
+  </div>
+  <% if rows.empty? %>
+    <%# One button, the whole line: the page's main Play Now stays the only
+          control called exactly that. %>
+      <%= button_to live_seeks_path, class: "leaderboard-inline-cta", form: { class: "block" }, data: { leaderboard_empty: true } do %>
+        Be the first on the board — <strong>Play Now</strong>
+      <% end %>
+  <% else %>
+    <%= render "leaderboards/rows", rows:, losses: false %>
+  <% end %>
+</section>

@@ -4,6 +4,8 @@ class PagesController < ApplicationController
   skip_before_action :require_authentication
 
   def index
+    # The top ten under Play Now (Leaderboard: the live board's rule).
+    @live_leaderboard = Leaderboard.live
   end
 
   def pieces

@@ -51,6 +51,9 @@ class Match < ApplicationRecord
   scope :involving, ->(user) { where(home_user_id: user.id).or(where(away_user_id: user.id)) }
   scope :active, -> { where(match_status: [ *PREGAME, IN_PROGRESS ]) }
   scope :finished, -> { where(match_status: FINISHED) }
+  # Played in one sitting on short clocks (LiveMatch): every match from the
+  # relaunch's Play Now on. The live leaderboard (Leaderboard) counts these.
+  scope :live, -> { where(live: true) }
   scope :stale, ->(now = Time.current) { active.where(time_of_last_move: ...(now - MOVE_CLOCK)) }
 
   # ---- Starting and leaving a match ------------------------------------------
@@ -248,7 +251,7 @@ class Match < ApplicationRecord
       status: match_status,
       phase: if in_progress? then "play" elsif finished? then "over" else "setup" end,
       version: updated_at.to_f.to_s,
-      you: { username: user.username, ready: ready?(user) },
+      you: { username: user.username, ready: ready?(user), guest: user.guest? },
       opponent: { username: display_name_of(opponent_of(user)), ready: ready?(opponent_of(user)) },
       seat: seat(user),
       can_accept: pending? && seat(user) == :away,
@@ -354,14 +357,29 @@ class Match < ApplicationRecord
 
   def finish!(winner:, reason:, save: true)
     self.match_status = FINISHED
+    self.finished_at = Time.current
     self.winner = winner
     self.finish_reason = reason
     save! if save
     return unless winner
 
     loser = winner.id == home_user_id ? away_user : home_user
-    User.update_counters(winner.id, wins: 1)
-    User.update_counters(loser.id, losses: 1)
+    User.update_counters(winner.id, wins: 1) if on_record?(winner)
+    User.update_counters(loser.id, losses: 1) if on_record?(loser)
+  end
+
+  # Whether a result goes on this player's won/lost record: only when a person
+  # played the seat. Never a computer player's, and never a live seat a
+  # computer took over after missed clocks (its moves were the computer's, so
+  # the result is nobody's). The live leaderboard follows the same rule.
+  def on_record?(user)
+    !user.computer? && !(live? && bot_seat?(seat(user)))
+  end
+
+  # A finished live match won from `user`'s own seat: a win for the live
+  # leaderboard (Leaderboard), once the player has an account.
+  def leaderboard_win?(user)
+    live? && finished? && winner_id.present? && winner_id == user&.id && on_record?(user)
   end
 
   def normalize_steps(steps)

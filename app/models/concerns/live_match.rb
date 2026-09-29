@@ -114,7 +114,10 @@ module LiveMatch
       strikes: { you: strikes(mine), opponent: strikes(theirs) },
       computer: opponent_of(user).computer?,
       taken_over: { you: taken_over?(mine), opponent: taken_over?(theirs) },
-      auto_set_up: { you: auto_set_up?(mine), opponent: auto_set_up?(theirs) }
+      auto_set_up: { you: auto_set_up?(mine), opponent: auto_set_up?(theirs) },
+      # The game-over panel's call to a guest (matches/show): sign in to put
+      # this win on the leaderboard.
+      board_win: leaderboard_win?(user)
     }
   end
 

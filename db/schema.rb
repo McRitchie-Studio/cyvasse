@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -92,6 +92,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_020000) do
     t.datetime "created_at", null: false
     t.boolean "fast_game", default: false
     t.string "finish_reason"
+    t.datetime "finished_at"
     t.boolean "home_auto_set_up", default: false, null: false
     t.boolean "home_bot", default: false, null: false
     t.boolean "home_ready", default: false
@@ -113,6 +114,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_020000) do
     t.index ["away_user_id"], name: "index_matches_on_away_user_id"
     t.index ["home_user_id"], name: "index_matches_on_home_user_id"
     t.index ["legacy_id"], name: "index_matches_on_legacy_id", unique: true
+    t.index ["live", "match_status"], name: "index_matches_on_live_and_match_status"
     t.index ["match_status", "time_of_last_move"], name: "index_matches_on_match_status_and_time_of_last_move"
     t.index ["winner_id"], name: "index_matches_on_winner_id"
   end

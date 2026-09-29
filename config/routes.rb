@@ -24,6 +24,10 @@ Rails.application.routes.draw do
   get "play", to: "games#show", as: :play
   # Play Now: search for a live opponent (a computer player if none turns up).
   resources :live_seeks, path: "live", only: %i[create show]
+  # The live leaderboard and the all-time one (task live-leaderboard-and-guest-
+  # claim), and a guest's sign-in to put a live win on it. Public.
+  get "leaderboard", to: "leaderboards#show", as: :leaderboard
+  get "leaderboard/join", to: "leaderboards#join", as: :join_leaderboard
   # The piece-skin switcher (piece 5): remembers pencil or vector in a cookie,
   # and on the account when signed in. Public, like the pages it serves.
   patch "skin", to: "skins#update", as: :skin

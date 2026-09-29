@@ -31,6 +31,7 @@ Studio.configure do |config|
       { label: "Home", href: "/", emoji: "♟️", desc: "The front door" },
       { label: "Play", href: "/play", emoji: "🐲", desc: "A game against the computer" },
       { label: "My games", href: "/matches", emoji: "⚔️", desc: "Online matches against players" },
+      { label: "Leaderboard", href: "/leaderboard", emoji: "🏆", desc: "Who is winning live games" },
       { label: "Inbox", href: "/inbox", emoji: "✉️", desc: "Messages from other players" },
       { label: "Pieces", href: "/pieces", emoji: "🐘", desc: "Both piece skins" },
       { label: "Rules", href: "/rules", emoji: "📜", desc: "How to play" },

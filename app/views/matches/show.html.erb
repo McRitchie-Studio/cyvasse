@@ -39,6 +39,20 @@
 
   <p class="cyvasse-alert mb-4" role="alert" hidden data-cyvasse-match-target="error"></p>
   <p class="live-notice mb-4" role="status" aria-live="polite" hidden data-cyvasse-match-target="notice"></p>
+  <% if @match.live? && current_user.guest? %>
+    <%# A guest's call to sign in once the game is over (task
+        live-leaderboard-and-guest-claim); the board shows one of these. %>
+    <div class="card guest-claim p-4 mb-4 flex flex-wrap items-center justify-between gap-3" hidden data-cyvasse-match-target="claimWin">
+      <p class="text-xl font-extrabold text-heading">You won!</p>
+      <%= link_to "Sign in to put this win on the leaderboard", join_leaderboard_path(result: "win"),
+            class: "btn btn-primary btn-lg max-w-full whitespace-normal text-center", data: { claim_cta: "win" } %>
+    </div>
+    <p class="card p-4 mb-4 text-sm text-secondary" hidden data-cyvasse-match-target="claimLoss">
+      <%= link_to "Sign in to save your games", join_leaderboard_path(result: "loss"),
+            class: "font-semibold underline underline-offset-2", data: { claim_cta: "loss" } %>
+      and see them on any device.
+    </p>
+  <% end %>
 
   <div class="cyvasse-layout">
     <div class="cyvasse-board-wrap">
