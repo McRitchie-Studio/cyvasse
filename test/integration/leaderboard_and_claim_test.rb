@@ -6,6 +6,7 @@ require "test_helper"
 # the email link's return address).
 class LeaderboardAndClaimTest < ActionDispatch::IntegrationTest
   include LiveResults
+  include MatchPlay
 
   setup do
     @qavo = computer
@@ -30,31 +31,72 @@ class LeaderboardAndClaimTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "the landing card lists the top ten by live wins, never a computer or a guest" do
-    guest = User.create_guest!(rng: Random.new(2))
-    live_result(guest, @qavo, winner: guest)
+  # Alex's report (2026-09-29): a guest who lost to the computer still saw
+  # "Be the first on the board". The board left out guests and anyone without
+  # a win.
+  test "a guest who resigns against the computer goes on the landing board with 1 point" do
+    guest = become_guest
+    match = Match.start_live!(guest, computer: true, rng: Random.new(4))
+    match.set_up!(guest, home_lineup)
+    assert match.reload.in_progress?
+
+    post resign_match_path(match)
+    assert_equal [ "resigned", @qavo.class ], [ match.reload.finish_reason, match.winner.class ]
+
+    get root_path
+    assert_select "[data-leaderboard-card]" do
+      assert_select "[data-leaderboard-empty]", 0
+      assert_select "[data-leaderboard-row='#{guest.username}']" do
+        assert_select "[data-stat=rank]", "1"
+        assert_select "[data-stat=points]", /\A\s*1\s*pts?\s*\z/
+        assert_select "[data-stat=wins]", /\A\s*0\s*W\s*\z/
+        assert_select "[data-stat=games]", /\A\s*1\s*G\s*\z/
+      end
+    end
+  end
+
+  test "the landing card lists the top ten by points, never a computer" do
     players = (1..11).map { |i| player("champ#{i.to_s.rjust(2, '0')}") }
     players.each_with_index { |p, i| (i + 1).times { live_result(p, @qavo, winner: p) } }
 
     get root_path
     names = css_select("[data-leaderboard-card] [data-leaderboard-row]").map { _1["data-leaderboard-row"] }
     assert_equal players.reverse.first(10).map(&:username), names
-    assert_no_match(/Guest_|#{@qavo.username}/, css_select("[data-leaderboard-card]").text)
+    assert_select "[data-leaderboard-card] [data-leaderboard-row=champ11] [data-stat=points]", /33/
+    assert_no_match(/#{@qavo.username}/, css_select("[data-leaderboard-card]").text)
   end
 
   test "the leaderboard page shows the live board and the all-time one" do
     arya = player("arya", wins: 12, losses: 3)
     brienne = player("brienne")
     live_result(brienne, @qavo, winner: brienne)
+    live_result(brienne, @qavo, winner: @qavo)
 
     get leaderboard_path
     assert_response :success
     assert_select "[data-board=live] [data-leaderboard-row]", 1
-    assert_select "[data-board=live] [data-leaderboard-row=brienne]", /1\s*W.*0\s*L/m
+    assert_select "[data-board=live] [data-leaderboard-row=brienne]", /1\s*.*4\s*pts.*1\s*W.*2\s*G/m
 
     get leaderboard_path(board: "all-time")
     assert_select "[data-board=all-time] [data-leaderboard-row=arya]", /12\s*W.*3\s*L/m
     assert_equal "arya", arya.username
+  end
+
+  test "a claimed guest's points join the account's, nothing counted twice" do
+    guest = become_guest
+    live_result(guest, @qavo, winner: guest)
+    live_result(guest, @qavo, winner: @qavo)
+    arya = player("arya")
+    live_result(arya, @qavo, winner: arya)
+    get root_path
+    assert_select "[data-leaderboard-row='#{guest.username}'] [data-stat=points]", /4/
+
+    consume_link(email: arya.email, return_to: leaderboard_path)
+    follow_redirect!
+
+    assert_select "[data-leaderboard-row]", 1
+    assert_select "[data-leaderboard-row=arya] [data-stat=points]", /7/
+    assert_equal [ 7, 2, 3 ], Leaderboard.rank_for(arya).then { [ _1.points, _1.wins, _1.games ] }
   end
 
   test "a guest's join page sends a sign-in link that comes back with a claim token" do

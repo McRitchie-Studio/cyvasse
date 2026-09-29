@@ -221,6 +221,17 @@ class LiveMatchTest < ActiveSupport::TestCase
     assert_nil Match.challenge!(@home, "brienne").state_for(@home)[:live], "an ordinary match has no live state"
   end
 
+  test "just_ended holds for five minutes after the end, so an old match opens without the modal" do
+    match = Match.start_live!(@home, computer: true, rng: @rng)
+    match.set_up!(@home, CyvasseRules::Bot.lineup(rng: Random.new(5)))
+    assert_not match.reload.state_for(@home)[:live][:just_ended], "not while in play"
+
+    match.resign!(@home)
+    assert match.state_for(@home)[:live][:just_ended]
+    travel(4.minutes) { assert match.state_for(@home)[:live][:just_ended] }
+    travel(6.minutes) { assert_not match.state_for(@home)[:live][:just_ended] }
+  end
+
   test "tick! leaves an ordinary match alone" do
     match = started_match(@home, @away)
     before = match.reload.attributes
