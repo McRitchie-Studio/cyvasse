@@ -18,12 +18,14 @@
 //     shots (rules.js walkRangeRings);
 //   - the king trumps the dragon, so a dragon that comes within the king's
 //     move (two hexes, through an empty one) can be taken. The dragon can
-//     still take the king: its captures never read trumps (rules.js dragonCode).
+//     still take the king: its captures never read trumps (rules.js dragonCode);
+//   - the elephant moves 2 hexes, not 3. It is strong but slow, so it earns its
+//     place on the front line, across from the enemy, rather than as a raider.
 
 export const UNIT_TYPES = Object.freeze({
   rabble: unit("rabble", "Rabble", "vanguard", { attack: 1, defence: 1, moveRange: 3, attackRange: 0, flank: 2, trump: [] }),
   spearman: unit("spearman", "Spearman", "vanguard", { attack: 2, defence: 2, moveRange: 2, attackRange: 0, flank: 1, trump: ["lighthorse"] }),
-  elephant: unit("elephant", "Elephant", "vanguard", { attack: 4, defence: 4, moveRange: 3, attackRange: 0, flank: 1, trump: [] }),
+  elephant: unit("elephant", "Elephant", "vanguard", { attack: 4, defence: 4, moveRange: 2, attackRange: 0, flank: 1, trump: [] }),
   lighthorse: unit("lighthorse", "Light Horse", "cavalry", { attack: 2, defence: 2, moveRange: 3, attackRange: 0, flank: 1, trump: [] }),
   heavyhorse: unit("heavyhorse", "Heavy Horse", "cavalry", { attack: 3, defence: 3, moveRange: 2, attackRange: 0, flank: 1, trump: [] }),
   crossbowman: unit("crossbowman", "Crossbowman", "range", { attack: 2, defence: 1, moveRange: 1, attackRange: 2, flank: 0, trump: ["elephant"] }),
