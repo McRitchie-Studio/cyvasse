@@ -1,5 +1,6 @@
 <% them = @opponent.player_name %>
 <% content_for(:title, "#{current_user.player_name} vs #{them} · Cyvasse") %>
+<% preload_modules "game" %>
 <% content_for(:head) do %>
   <%= stylesheet_link_tag "game", "data-turbo-track": "reload" %>
   <%# A match moves on without this page: never restore a cached board. %>
