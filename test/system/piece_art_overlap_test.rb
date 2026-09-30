@@ -225,16 +225,17 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
 
         covered << [ piece["unit"], piece["hex"], kind ]
         want = stroke.scan(/\d+/).first(3).map(&:to_i)
-        # On the line's own centre, nearest the art: the pixel there and one
-        # either side across the line, the closest to the line's colour (a
-        # rounding of half a pixel either way must not read the line's edge).
+        # On the line's own centre, nearest the art: the pixel there and two
+        # either side across the line (it is 3.5 units wide), the closest to
+        # the line's colour. CI's shot lands a pixel or so off the mapped
+        # centre, where one pixel across read only the line's antialiased edge.
         centre = under.map do |x, y|
           t = (x - x1) * ux + (y - y1) * uy
           [ x1 + ux * t, y1 + uy * t ]
         end
-        across = centre.flat_map { |x, y| [ -1, 0, 1 ].map { |k| [ x - uy * k, y + ux * k ] } }
-        board_pixels(across).each_slice(3) do |trio|
-          rgb = trio.min_by { |c| c.zip(want).sum { |a, b| (a - b).abs } }
+        across = centre.flat_map { |x, y| [ -2, -1, 0, 1, 2 ].map { |k| [ x - uy * k, y + ux * k ] } }
+        board_pixels(across).each_slice(5) do |spread|
+          rgb = spread.min_by { |c| c.zip(want).sum { |a, b| (a - b).abs } }
           off = rgb.zip(want).sum { |a, b| (a - b).abs }
           assert_operator off, :<, 60, "#{skin}: the #{kind} line over the #{piece["unit"]}'s art on hex #{piece["hex"]} shows its own colour #{want.inspect}, not #{rgb.inspect}"
         end
