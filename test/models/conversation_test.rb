@@ -88,7 +88,9 @@ class ConversationTest < ActiveSupport::TestCase
     players.each { |p| say(@arya, p, "hi", at: 1.minute.ago, match: Match.challenge!(@arya, p.username)) }
 
     queries = count_queries { Conversation.page(Message.all).conversations.each { _1.users.map(&:username) + _1.matches.map(&:id) } }
-    assert_operator queries, :<=, 5
+    # count, rows, users, their avatars (preloaded for the Chat hub), last
+    # messages, matches
+    assert_operator queries, :<=, 6
   end
 
   test "parses a pair key" do
