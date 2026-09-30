@@ -1,5 +1,6 @@
 <% them = @match.display_name_of(@opponent) %>
 <% content_for(:title, "#{current_user.username} vs #{them} · Cyvasse") %>
+<% preload_modules "game" %>
 <% content_for(:head) do %>
   <%= stylesheet_link_tag "game", "data-turbo-track": "reload" %>
   <%# A match moves on without this page: never restore a cached board. %>
@@ -26,10 +27,10 @@
     <%= render "matches/versus", me: current_user, opponent: @opponent, opponent_name: them %>
 
     <div class="cyvasse-board-wrap">
+      <%= render "games/banner", board: "cyvasse-match" %>
       <%= render "games/board_bar", board: "cyvasse-match", threats: false %>
       <svg class="cyvasse-board" role="group" aria-label="The Cyvasse board. Arrow keys move between hexes; Enter selects."
            data-cyvasse-match-target="board" data-action="click->cyvasse-match#clickHex keydown->cyvasse-match#keyHex"></svg>
-      <div class="cyvasse-banner" hidden data-cyvasse-match-target="banner"></div>
     </div>
 
     <aside class="cyvasse-panel match-panel space-y-4">
@@ -58,24 +59,7 @@
         </div>
       </div>
 
-      <div class="match-actions">
-        <%= link_to "← My games", matches_path, class: "text-sm text-secondary underline underline-offset-2" %>
-        <%= link_to "How to play", rules_path, class: "text-sm text-secondary underline underline-offset-2" %>
-        <%= render "games/threat_toggle", board: "cyvasse-match" %>
-        <%# Both forfeits render; CSS shows the one for data-match-status, which the board keeps current. %>
-        <% if @match.pregame? && !@state[:can_accept] %>
-          <span class="match-forfeit" data-forfeit="pregame">
-            <%= button_to "Forfeit match", match_path(@match), method: :delete, class: "btn btn-secondary btn-sm",
-                  form: { data: { turbo_confirm: "Forfeit this match? It is called off before it starts." } } %>
-          </span>
-        <% end %>
-        <% if @match.pregame? || @match.in_progress? %>
-          <span class="match-forfeit" data-forfeit="play">
-            <%= button_to "Forfeit match", resign_match_path(@match), class: "btn btn-secondary btn-sm",
-                  form: { data: { turbo_confirm: "Forfeit this match? #{them} wins." } } %>
-          </span>
-        <% end %>
-      </div>
+      <%= render "matches/actions", match: @match, opponent_name: them, can_accept: @state[:can_accept] %>
 
       <% if @state[:can_accept] %>
         <div class="card p-4 space-y-3">
@@ -89,20 +73,13 @@
         </div>
       <% end %>
 
-      <div class="card p-4 space-y-3" hidden data-cyvasse-match-target="setupControls">
-        <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">Your army</h2>
-        <p class="text-sm text-secondary">
-          Pick a unit, then a lit hex in your five rows. Click a placed unit to move it again.
-          Once you press Ready, your army is locked in; <%= them %> will not see it until the game starts.
-          <% if @match.live? %>Watch the clock: when it runs out, your army is placed for you.<% end %>
-        </p>
-        <div class="cyvasse-dock" data-cyvasse-match-target="dock"></div>
-        <div class="cyvasse-setup-actions">
-          <button type="button" class="btn cyvasse-ready" disabled data-cyvasse-match-target="startButton" data-action="cyvasse-match#start">Ready</button>
-          <button type="button" class="btn btn-outline btn-sm cyvasse-outline" data-action="cyvasse-match#randomSetup">Random Setup</button>
+      <div class="space-y-4 cyvasse-setup-controls" hidden data-cyvasse-match-target="setupControls">
+        <%= render "games/army_card", board: "cyvasse-match",
+              note: "Once you press Ready, your army is locked in; #{them} will not see it until the game starts.#{" When the clock runs out, your army is placed for you." if @match.live?}" %>
+        <div class="card p-4 space-y-3">
+          <%= render "setups/openings", board: "cyvasse-match" %>
+          <%= render "setups/panel", board: "cyvasse-match", slots: @setup_slots %>
         </div>
-        <%= render "setups/openings", board: "cyvasse-match" %>
-        <%= render "setups/panel", board: "cyvasse-match", slots: @setup_slots %>
       </div>
 
       <div class="card p-4" hidden data-cyvasse-match-target="info">
@@ -114,16 +91,7 @@
         <p class="cyvasse-trump text-sm text-secondary mt-2" data-info="trump">Trumps <span></span></p>
       </div>
 
-      <div class="card p-4 space-y-3">
-        <div>
-          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted mb-1">Your fallen</h2>
-          <div class="cyvasse-graveyard" data-team="1" data-cyvasse-match-target="graveyard"></div>
-        </div>
-        <div>
-          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted mb-1"><%= them %>'s fallen</h2>
-          <div class="cyvasse-graveyard" data-team="0" data-cyvasse-match-target="graveyard"></div>
-        </div>
-      </div>
+      <%= render "games/fallen_card", board: "cyvasse-match", them: them %>
 
       <%# Chatting with a computer player goes nowhere. %>
       <%= render "matches/chat", match: @match, opponent: @opponent unless @opponent.computer? %>

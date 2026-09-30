@@ -69,6 +69,23 @@ class LiveMatchTest < ActiveSupport::TestCase
     end
   end
 
+  test "setup grace starts the setup clock after it, the same deadline for both seats" do
+    match = Match.start_live!(@home, @away, rng: @rng, setup_grace: 5.seconds)
+    ends_at = match.live_clock_ends_at
+    assert_in_delta Time.current + 65.seconds, ends_at, 1
+    assert_equal [ ends_at.iso8601(3) ] * 2, [ @home, @away ].map { |user| match.live_state_for(user).dig(:clock, :ends_at) }
+    travel 64.seconds do
+      match.tick!(rng: @rng)
+      assert_not match.reload.home_ready?, "the splash's five seconds are not taken from the 60"
+      assert_equal [ 0, 0 ], [ match.home_strikes, match.away_strikes ]
+    end
+    travel 66.seconds do
+      match.tick!(rng: @rng)
+      assert match.reload.in_progress?
+      assert_equal [ 1, 1 ], [ match.home_strikes, match.away_strikes ]
+    end
+  end
+
   test "a missed move clock plays a computer move for the player and counts a strike" do
     match = Match.start_live!(@home, @away, rng: @rng)
     match.set_up!(@home, home_lineup)

@@ -101,8 +101,10 @@ export class Game {
     unit.hex = hexIndex;
   }
 
-  // The "Random Setup" button. With units still in the dock it scatters only
-  // those onto free hexes; with every unit placed it reshuffles the lot.
+  // A random scatter (the legacy Random Setup; the setup panel's button now
+  // places a strategic opening, cyvasse/smart_setup). With units still in the
+  // dock it scatters only those onto free hexes; with every unit placed it
+  // reshuffles the lot.
   randomSetup() {
     this.#requirePhase("setup");
     const units = this.teamUnits(PLAYER);

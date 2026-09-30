@@ -49,6 +49,27 @@ class LiveSeekTest < ActiveSupport::TestCase
     assert_equal paired, first.settle!(computer: true).match
   end
 
+  test "the setup clock starts after the versus splash, for a person or a computer" do
+    freeze_time do
+      LiveSeek.join!(@arya)
+      paired = LiveSeek.join!(@brienne).match
+      computer = LiveSeek.join!(make_player("cersei")).settle!(computer: true).match
+      [ paired, computer ].each do |match|
+        assert_equal Time.current + LiveSeek::SPLASH + LiveMatch::SETUP_CLOCK, match.live_clock_ends_at
+      end
+    end
+  end
+
+  test "a shortened splash shortens the setup grace with it" do
+    Rails.configuration.x.live_splash_time = 2.seconds
+    freeze_time do
+      match = LiveSeek.join!(@arya).settle!(computer: true).match
+      assert_equal Time.current + 2.seconds + LiveMatch::SETUP_CLOCK, match.live_clock_ends_at
+    end
+  ensure
+    Rails.configuration.x.live_splash_time = nil
+  end
+
   test "a searcher who stopped asking is not paired" do
     LiveSeek.join!(@arya)
     travel 6.seconds do

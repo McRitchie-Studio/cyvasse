@@ -87,21 +87,12 @@ class OnboardingController < ApplicationController
     skin = PieceSkinPreference.normalize(params[:skin])
     birth = birth_date_params
     current_user.errors.add(:name, "can't be blank") if name.blank?
-    current_user.errors.add(:name, "is taken by another player") if name.present? && name_taken?(name)
     current_user.errors.add(:birth_date, "is not a real date") if birth == :invalid
     return false if current_user.errors.any?
 
     current_user.update!(name:, **(birth || {}))
     remember_skin!(skin) if skin
     true
-  rescue ActiveRecord::RecordNotUnique
-    current_user.errors.add(:name, "is taken by another player")
-    false
-  end
-
-  # The display name decides the account's unique slug (Sluggable).
-  def name_taken?(name)
-    User.where(slug: name.parameterize).where.not(id: current_user.id).exists?
   end
 
   # nil when left blank (it is optional), :invalid when not a real date.

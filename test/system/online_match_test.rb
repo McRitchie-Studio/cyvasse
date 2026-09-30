@@ -21,11 +21,10 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
     assert_selector BOARD
     assert_selector "svg.cyvasse-board g.hex", count: 91
     assert_selector ".cyvasse-dock .dock-unit", count: 19
-    # Ready waits for a full army; Random Setup is the hollow secondary.
+    # Ready waits for a full army; Smart Setup leads the card until then.
     assert_button "Ready", disabled: true
-    assert_selector "button.btn-outline", text: "Random Setup"
-    assert_selector ".cyvasse-setup-actions button.cyvasse-ready:first-child + button.btn-outline", text: "Random Setup"
-    random_setup!
+    assert_selector ".cyvasse-army[data-army-mode=smart] button.cyvasse-smart", text: "✨ Smart Setup"
+    smart_setup!
     assert_button "Ready", disabled: false
     if ENV["SCREENSHOTS"]
       sleep 0.4
@@ -44,7 +43,7 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
       click_on "Accept"
       assert_text "Challenge accepted"
       assert_no_selector "svg.cyvasse-board g.hex.has-unit[data-team='0']", wait: 0.5
-      random_setup!
+      smart_setup!
       click_on "Ready"
       assert_selector "#{BOARD}[data-phase=play]"
       assert_selector "svg.cyvasse-board g.hex.has-unit[data-team='1']", count: 19
@@ -90,7 +89,8 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
 
     Capybara.using_session(waiting) do
       assert_selector "#{BOARD}[data-your-turn=true]", wait: 10
-      assert_selector "[role=status]", text: "Turn 2: your move."
+      # Their first move: the turn counter counts full moves, so still turn 1.
+      assert_selector "[role=status]", text: "Turn 1: your move."
       assert_selector "svg.cyvasse-board g.hex.is-last-move", minimum: 2
       assert_selector "svg.cyvasse-board g.hex.is-threatened", minimum: 1
     end

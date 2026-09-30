@@ -328,6 +328,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_010000) do
     t.string "name"
     t.jsonb "onboarding_steps", default: {}, null: false
     t.string "piece_skin"
+    t.string "portrait"
     t.string "provider"
     t.string "role", default: "viewer"
     t.string "slug"

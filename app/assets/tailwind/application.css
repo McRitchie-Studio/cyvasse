@@ -56,6 +56,59 @@
   background: rgb(0 0 0 / 0.7);
 }
 
+/* Its background: one action shot per piece (pages/_home_gallery), stacked,
+ * the active one opaque. A slow crossfade; none for reduced motion, where the
+ * controller never advances anyway. The slides fill the hero absolutely, so
+ * a slide landing never moves the page. */
+.home-slide,
+.home-slide-caption {
+  opacity: 0;
+  transition: opacity 1.6s ease-in-out;
+}
+
+.home-slide {
+  position: absolute;
+  inset: 0;
+}
+
+.home-slide.is-active,
+.home-slide-caption.is-active {
+  opacity: 1;
+}
+
+.home-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-gallery-captions {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.75rem;
+  display: grid;
+  justify-items: end;
+  pointer-events: none;
+}
+
+/* One grid cell for every caption, so they cross-fade in place. */
+.home-slide-caption {
+  grid-area: 1 / 1;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.7);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-slide,
+  .home-slide-caption {
+    transition: none;
+  }
+}
+
 /* Secondary to the gold Play Now: a green outline with a white label. The
  * label colour is the view's text-white, not a colour here: the green label
  * was ~3:1 over the brightest spot of the scrimmed art, and white clears AA.
@@ -99,8 +152,7 @@
 }
 
 .rules-prose a,
-.about-page a,
-.tutorial-card figcaption a {
+.about-page a {
   color: rgb(var(--color-primary-rgb));
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -109,9 +161,22 @@
 /* The gold primary is 2.9:1 on the light page, under WCAG AA's 4.5:1 for
  * text; its 700 shade is 5.4:1. Dark mode keeps the brighter gold. */
 html:not(.dark) .rules-prose a,
-html:not(.dark) .about-page a,
-html:not(.dark) .tutorial-card figcaption a {
+html:not(.dark) .about-page a {
   color: rgb(var(--color-primary-700-rgb));
+}
+
+/* A Special Rules card marks the stats its rule is about with a gold pill on
+ * the label and the value (the old screenshots circled them by hand). */
+.unit-stat-marked {
+  justify-self: start;
+  padding: 0 0.375rem;
+  margin-left: -0.375rem;
+  border-radius: 0.25rem;
+  background: rgb(var(--color-primary-rgb) / 0.25);
+}
+
+dd.unit-stat-marked {
+  margin-left: -0.375rem;
 }
 
 /* A unit card's art tile: the parchment .piece-tile above, at a fixed size. */

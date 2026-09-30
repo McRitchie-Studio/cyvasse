@@ -1,6 +1,8 @@
-<%# The threat-outline switches, one per threat group (cyvasse/units THREAT_GROUPS).
+<%# The threat-outline switches, one per threat group (cyvasse/units THREAT_GROUPS),
+    and the board key: what each hex colour means (BoardLegendHelper::BOARD_LEGEND).
     Locals: board, the board's Stimulus identifier.
-    Hidden until the board knows it is in play (renderThreats), so they never flash during setup. %>
+    Hidden until the board knows it is in play (renderThreats), so they never flash during setup.
+    The key is a closed disclosure: a small "?" that opens a panel over the board. %>
 <span class="cyvasse-threat-toggles" hidden>
   <% { "ranged" => "Ranged threats", "melee" => "Melee threats" }.each do |group, label| %>
     <label class="cyvasse-threat-toggle">
@@ -8,4 +10,20 @@
       <%= label %>
     </label>
   <% end %>
+  <details class="cyvasse-legend">
+    <summary class="cyvasse-legend-toggle">
+      <span class="cyvasse-legend-mark" aria-hidden="true">?</span>
+      <span class="cyvasse-legend-name">Board key</span>
+    </summary>
+    <ul class="cyvasse-legend-panel">
+      <% board_legend.each do |entry| %>
+        <li class="cyvasse-legend-entry" data-legend="<%= entry.key %>">
+          <svg class="cyvasse-legend-swatch" data-swatch="<%= entry.key %>" viewBox="0 0 14 16" aria-hidden="true" focusable="false">
+            <polygon points="7,1 13,4.5 13,11.5 7,15 1,11.5 1,4.5" />
+          </svg>
+          <span><%= entry.label %></span>
+        </li>
+      <% end %>
+    </ul>
+  </details>
 </span>
