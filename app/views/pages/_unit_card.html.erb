@@ -11,10 +11,14 @@
     tutorial screenshots circled by hand.
     Locals: unit (Rulebook::Unit), id (optional), highlight (optional). %>
 <% highlight = local_assigns.fetch(:highlight, []) %>
-<%# Strength heads the stats, then Movement (Alex, 2026-09-29). %>
+<%# Strength heads the stats, then Movement (Alex, 2026-09-29); a Range unit
+    leads with its Range, the stat that matters most in its class. %>
 <% stats = [ [ :strength, "Strength", unit.strength ], [ :movement, "Movement", unit.movement ] ]
-   stats << [ :range, "Range", unit.range ] if unit.range
-   stats << [ :trump, "Trump", unit.trumped_pieces ] %>
+   stats.unshift([ :range, "Range", unit.range ]) if unit.range
+   stats << [ :trump, "Trump", unit.trumped_pieces ]
+   # A long worded value is set short, at the size of a number, with the
+   # full meaning kept as its title and for screen readers.
+   short_values = { "Moves in a straight line" => [ "Straight lines", "Moves any distance in a straight line" ] } %>
 <article <%= tag.attributes(id: local_assigns[:id]) %> class="unit-card card p-4" data-unit="<%= unit.slug %>">
   <div class="unit-card-body">
     <figure class="unit-card-art" data-skin="<%= current_skin %>">
@@ -38,7 +42,12 @@
               <% end %>
             </dd>
           <% else %>
-            <dd class="unit-stat-value text-xl font-bold text-heading leading-snug" data-stat="<%= key %>"><%= value %></dd>
+            <% short, full = short_values[value] %>
+            <% if short %>
+              <dd class="unit-stat-value text-xl font-bold text-heading leading-snug" data-stat="<%= key %>" title="<%= full %>"><span aria-hidden="true"><%= short %></span><span class="sr-only"><%= full %></span></dd>
+            <% else %>
+              <dd class="unit-stat-value text-xl font-bold text-heading leading-snug" data-stat="<%= key %>"><%= value %></dd>
+            <% end %>
           <% end %>
         </div>
       <% end %>

@@ -9,7 +9,7 @@
    light_horse = Rulebook.fetch("lighthorse")
    heavy_horse = Rulebook.fetch("heavyhorse")
    rules = [
-     [ "range", "Range Units", [ [ trebuchet, %i[movement range] ] ],
+     [ "range", "Range Units", [ [ trebuchet, %i[range] ] ],
        "Range units shoot from a distance, moving or shooting in a turn but never both, and they block the Dragon's flight. " \
        "They defend at Strength #{Rulebook::RANGE_DEFENCE}, so any unit can take one. " \
        "The Trebuchet #{trebuchet.movement == "0" ? "cannot move" : "moves #{trebuchet.movement}"}, but it shoots #{trebuchet.range} hexes." ],
