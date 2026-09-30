@@ -1,18 +1,21 @@
 <%# The front door's background slides (HomeGallery), behind the scrim.
-    Only the first carries its src, so it paints at once (and the page
-    preloads it); every later one carries data-src and data-srcset, and
-    home_gallery_controller.js fills in the next one a slide ahead of its
-    turn. A phone gets the portrait crop. Decorative: alt is empty. %>
+    Each crop is offered at 1x and 2x with width descriptors, so a 2x laptop
+    gets the sharp wide file and a 1x screen the light one; a phone gets the
+    portrait crop. Only the first slide carries its srcset, so it paints at
+    once (and the page preloads the same srcset); every later one carries
+    data-srcset and data-src, and home_gallery_controller.js fills them in a
+    slide ahead of its turn. Decorative: alt is empty. %>
 <div class="home-gallery absolute inset-0" aria-hidden="true">
   <% slides.each_with_index do |slide, index| %>
     <% first = index.zero? %>
+    <% wide = HomeGallery::WIDE.first %>
     <div class="home-slide<%= ' is-active' if first %>" data-home-gallery-target="slide" data-piece="<%= slide.slug %>">
       <picture>
-        <source media="(max-width: 640px)" <%= first ? "srcset" : "data-srcset" %>="<%= image_path(slide.mobile_image) %>">
+        <source media="(max-width: 640px)" sizes="<%= HomeGallery::SIZES %>" <%= first ? "srcset" : "data-srcset" %>="<%= home_gallery_srcset(slide.portrait_images) %>">
         <% if first %>
-          <%= image_tag slide.desktop_image, alt: "", width: 1800, height: 900, decoding: "async", loading: "eager", fetchpriority: "high", data: { home_background: true } %>
+          <%= image_tag slide.desktop_image, srcset: home_gallery_srcset(slide.wide_images), sizes: HomeGallery::SIZES, alt: "", width: wide.width, height: wide.height, decoding: "async", loading: "eager", fetchpriority: "high", data: { home_background: true } %>
         <% else %>
-          <img alt="" width="1800" height="900" decoding="async" loading="lazy" data-src="<%= image_path(slide.desktop_image) %>">
+          <img alt="" width="<%= wide.width %>" height="<%= wide.height %>" sizes="<%= HomeGallery::SIZES %>" decoding="async" loading="lazy" data-srcset="<%= home_gallery_srcset(slide.wide_images) %>" data-src="<%= image_path(slide.desktop_image) %>">
         <% end %>
       </picture>
     </div>

@@ -81,7 +81,8 @@ export default class extends Controller {
   }
 
   // Give a slide its art (the <source> first, so the browser picks the right
-  // crop before the <img> asks), and answer its <img>.
+  // crop before the <img> asks, then the <img>'s own 1x/2x set), and answer
+  // its <img>.
   load(index) {
     const slide = this.slideTargets[index]
     for (const source of slide.querySelectorAll("source[data-srcset]")) {
@@ -89,6 +90,12 @@ export default class extends Controller {
       delete source.dataset.srcset
     }
     const image = slide.querySelector("img")
+    // srcset before src, so the browser picks from the set and never starts
+    // the 1x fallback it would then drop.
+    if (image?.dataset.srcset) {
+      image.srcset = image.dataset.srcset
+      delete image.dataset.srcset
+    }
     if (image?.dataset.src) {
       image.src = image.dataset.src
       delete image.dataset.src
