@@ -9,6 +9,9 @@
 #   omniauth_callbacks#create      Google sign-in links Google to the account
 #
 # An account deletion route, when one is added, belongs in SENSITIVE too.
+# Changing the username (usernames#update, the profile's Username card) is
+# not: it is the public name, not a way to sign in, and onboarding already
+# lets such a session set it.
 module ConfirmedSession
   extend ActiveSupport::Concern
 
