@@ -44,8 +44,14 @@ class SmartSetupCardTest < ApplicationSystemTestCase
       phone!(width) if width
       visit match_path(match)
       assert_selector ".cyvasse-dock .dock-unit", count: 19
-      # The live clock shows on its first tick; measure once it has.
-      assert_selector "[data-cyvasse-match-target=clockLabel]", text: "Set up your army"
+      # The live clock shows on its first tick; measure once it has. A docked
+      # phone sheet carries it, and the timer card's own is not shown there
+      # (task cyvasse-play-layout-fit).
+      if width
+        assert_selector ".cyvasse-army .cyvasse-army-clock", text: /\A\d+s\z/
+      else
+        assert_selector "[data-cyvasse-match-target=clockLabel]", text: "Set up your army"
+      end
       walk_the_three_states("match-#{label}", docked: !width.nil?)
       find_button("Ready").click
       assert_selector "[data-controller=cyvasse-match][data-phase=play]", wait: 10
