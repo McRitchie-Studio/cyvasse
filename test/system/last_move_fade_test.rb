@@ -52,6 +52,13 @@ class LastMoveFadeTest < ApplicationSystemTestCase
     delay = page.evaluate_script("getComputedStyle(document.querySelector('svg.cyvasse-board')).getPropertyValue('--last-move-delay')").to_f
     assert_operator delay, :<=, -2500, "the fade's clock runs from the move, not the redraw"
     assert_selector "svg.cyvasse-board g.hex.is-last-move", count: 2
+    # ...and counts the time already run once, not twice (about 0.3 of the
+    # way through at three seconds, not 0.6).
+    progress = page.evaluate_script(<<~JS)
+      document.querySelector("svg.cyvasse-board g.hex.is-last-move .hex-glow").getAnimations()
+        .find((a) => a.animationName === "cyvasse-last-move").effect.getComputedTiming().progress
+    JS
+    assert_operator progress, :<, 0.45, "a redraw must not jump the fade ahead"
 
     # Gone by ten seconds after the move, and a redraw does not bring it back.
     assert_no_selector "svg.cyvasse-board g.hex.is-last-move", wait: 9

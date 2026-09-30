@@ -15,7 +15,13 @@
     <%= render "studio/banners/stack" %>
     <%= render "layouts/navbar" %>
 
-    <main class="max-w-7xl mx-auto px-4 py-6">
+    <%# A page's full-bleed band (the front door's hero), edge to edge
+        directly under the navbar. It sits outside <main>'s centred
+        container rather than breaking out of it with 100vw, which counts
+        the scrollbar and scrolls the page sideways. %>
+    <%= yield :hero %>
+
+    <main class="max-w-7xl mx-auto px-4<%= " py-6" unless content_for?(:hero) %>">
       <%= render "layouts/studio/flash" %>
       <%= yield %>
       <% email_goal_beacons.each do |beacon| %><img src="<%= beacon %>" alt="" width="1" height="1" hidden data-email-beacon><% end %>

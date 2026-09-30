@@ -5,6 +5,7 @@ require "application_system_test_case"
 # SCREENSHOTS=1 saves each view to tmp/screenshots.
 class HomePageSystemTest < ApplicationSystemTestCase
   teardown do
+    page.driver.browser.execute_cdp("Network.setCacheDisabled", cacheDisabled: false)
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
     page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-reduced-motion", value: "" } ])
   end
@@ -92,13 +93,103 @@ class HomePageSystemTest < ApplicationSystemTestCase
     end
   end
 
+  # [e2e] Retina (task cyvasse-gallery-retina-recapture): each crop comes at
+  # 1x and 2x, and the browser picks one per slide by the screen's density.
+  # A 2x laptop gets the 3600 px wide crop, a 1x one the 1800, a phone the
+  # portrait crop; the preload asks for the very file the first slide picks,
+  # so no slide's art is fetched twice. The cache is off, so every fetch is
+  # a resource-timing entry.
+  [ [ "a 2x laptop", 1440, 900, 2, "-2x" ], [ "a 1x laptop", 1440, 900, 1, "" ],
+    [ "a 1x phone", 390, 844, 1, "-mobile" ], [ "a 3x phone", 390, 844, 3, "-mobile-2x" ] ].each do |name, width, height, density, suffix|
+    test "#{name} loads the #{suffix.presence || '1x wide'} crop, one file per slide" do
+      emulate(width:, height:, density:)
+      page.driver.browser.execute_cdp("Network.enable")
+      page.driver.browser.execute_cdp("Network.setCacheDisabled", cacheDisabled: true)
+      visit root_path
+      assert_equal density, page.evaluate_script("window.devicePixelRatio")
+      gallery = find("section.home-hero[data-home-gallery-state=playing]")
+      first = gallery["data-home-gallery-piece"]
+      assert page.evaluate_script("(img => img.complete && img.naturalWidth > 0)(document.querySelector('.home-slide.is-active img'))")
+      assert_match %r{/#{first}#{suffix}-\h+\.webp\z}, active_src, "the first slide's #{name} crop"
+
+      page.execute_script("document.querySelector('.home-hero').dataset.homeGalleryIntervalValue = '400'")
+      assert_no_selector "section.home-hero[data-home-gallery-piece='#{first}']", wait: 10
+      second = gallery["data-home-gallery-piece"]
+      assert_match %r{/#{second}#{suffix}-\h+\.webp\z}, active_src, "the second slide's #{name} crop"
+
+      [ first, second ].each do |slug|
+        fetched = page.evaluate_script(<<~JS, slug)
+          performance.getEntriesByType("resource").map((e) => new URL(e.name).pathname)
+            .filter((path) => path.split("/").pop().startsWith(arguments[0] + "-"))
+        JS
+        assert_equal 1, fetched.size, "#{slug}: one file fetched, not #{fetched.inspect}"
+        assert_match %r{/#{slug}#{suffix}-\h+\.webp\z}, fetched.first
+      end
+      retina_screenshot(name) if density == 2
+    end
+  end
+
+  # [e2e] Full bleed (task cyvasse-full-bleed-home): the hero runs from one
+  # edge of the viewport to the other, straight under the navbar, with no
+  # card corners and no sideways scroll (a 100vw breakout would count the
+  # scrollbar). On a laptop the leaderboard card still starts above the fold.
+  [ [ "laptop", 1440, 900 ], [ "phone", 390, 844 ] ].each do |name, width, height|
+    test "the hero spans the viewport edge to edge on a #{name}" do
+      emulate(width:, height:)
+      visit root_path
+      assert_selector "section.home-hero [data-leaderboard-card]"
+
+      left, right, top, radius, client, nav_bottom, card_top = page.evaluate_script(<<~JS)
+        (() => {
+          const hero = document.querySelector("section.home-hero")
+          const r = hero.getBoundingClientRect()
+          return [r.left, r.right, r.top, getComputedStyle(hero).borderTopLeftRadius,
+                  document.documentElement.clientWidth,
+                  document.querySelector("header[data-pin=nav]").getBoundingClientRect().bottom,
+                  hero.querySelector("[data-leaderboard-card]").getBoundingClientRect().top]
+        })()
+      JS
+      assert_in_delta 0, left, 1, "the hero starts at the left edge"
+      assert_in_delta client, right, 1, "the hero ends at the right edge"
+      assert_in_delta nav_bottom, top, 1, "the hero sits directly under the navbar"
+      assert_equal "0px", radius, "square corners"
+      assert_operator card_top, :<, height, "the leaderboard card starts above the fold" if name == "laptop"
+
+      scroll, client = page_widths
+      assert_operator scroll, :<=, client, "no sideways scroll"
+      full_bleed_screenshots(name)
+    end
+  end
+
   private
+
+  # SCREENSHOTS=1: the front door in each theme, as
+  # tmp/screenshots/full-bleed-home-<size>-<theme>.png.
+  def full_bleed_screenshots(size)
+    return unless ENV["SCREENSHOTS"]
+
+    %w[light dark].each do |theme|
+      page.execute_script("document.documentElement.classList.toggle('dark', arguments[0])", theme == "dark")
+      page.save_screenshot(Rails.root.join("tmp/screenshots/full-bleed-home-#{size}-#{theme}.png"))
+    end
+  end
 
   # The size, and motion allowed: the browser is shared across the suite, and
   # an earlier test (jump_range_rings_test) leaves reduced motion on.
-  def emulate(width:, height:, motion: "no-preference")
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width:, height:, deviceScaleFactor: 1, mobile: width < 640)
+  def emulate(width:, height:, motion: "no-preference", density: 1)
+    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width:, height:, deviceScaleFactor: density, mobile: width < 640)
     page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-reduced-motion", value: motion } ])
+  end
+
+  def active_src
+    page.evaluate_script("document.querySelector('.home-slide.is-active img').currentSrc")
+  end
+
+  # SCREENSHOTS=1: the front door on a 2x laptop, as tmp/screenshots/home-retina.png.
+  def retina_screenshot(_name)
+    return unless ENV["SCREENSHOTS"]
+
+    page.save_screenshot(Rails.root.join("tmp/screenshots/home-retina.png"))
   end
 
   def hero_box

@@ -1,7 +1,8 @@
 require "test_helper"
 
 # [component] The front door (pages/index), rendered alone: Play Now, then
-# Rules and Play a friend as smaller outlined buttons, over the piece gallery.
+# Rules and Play a friend as smaller outlined buttons, over the piece gallery,
+# whose slides offer each crop at 1x and 2x.
 class HomePageTest < ActionView::TestCase
   setup do
     @live_leaderboard = []
@@ -60,8 +61,12 @@ class HomePageTest < ActionView::TestCase
     first_img = first.at_css("img")
     assert_equal "eager", first_img["loading"]
     assert_equal "high", first_img["fetchpriority"]
-    assert_match %r{backgrounds/home/#{@gallery.first.slug}-\h+\.webp\z}, first_img["src"]
-    assert_match %r{backgrounds/home/#{@gallery.first.slug}-mobile-\h+\.webp\z}, first.at_css("source[media='(max-width: 640px)']")["srcset"]
+    assert_match %r{backgrounds/home/#{@gallery.first.slug}-\h+\.webp\z}, first_img["src"], "the 1x wide crop is the fallback"
+    assert_wide_srcset @gallery.first.slug, first_img["srcset"]
+    assert_equal "100vw", first_img["sizes"]
+    portrait = first.at_css("source[media='(max-width: 640px)']")
+    assert_portrait_srcset @gallery.first.slug, portrait["srcset"]
+    assert_equal "100vw", portrait["sizes"]
 
     rest.each do |slide|
       slug = slide["data-piece"]
@@ -69,10 +74,14 @@ class HomePageTest < ActionView::TestCase
       assert_not_includes slide["class"], "is-active", slug
       assert_equal "lazy", img["loading"], slug
       assert_nil img["src"], "#{slug} waits for its turn"
+      assert_nil img["srcset"], "#{slug} waits for its turn"
       assert_match %r{backgrounds/home/#{slug}-\h+\.webp\z}, img["data-src"]
+      assert_wide_srcset slug, img["data-srcset"]
+      assert_equal "100vw", img["sizes"], slug
       source = slide.at_css("source[media='(max-width: 640px)']")
       assert_nil source["srcset"], slug
-      assert_match %r{backgrounds/home/#{slug}-mobile-\h+\.webp\z}, source["data-srcset"]
+      assert_portrait_srcset slug, source["data-srcset"]
+      assert_equal "100vw", source["sizes"], slug
     end
     # Every slide holds the same box, so none can shift the page as it lands.
     slides.each { |slide| assert_equal [ "1800", "900" ], slide.at_css("img").then { [ _1["width"], _1["height"] ] } }
@@ -87,15 +96,40 @@ class HomePageTest < ActionView::TestCase
     assert_equal [ true ] + [ false ] * (captions.size - 1), captions.map { _1["class"].include?("is-active") }
   end
 
-  test "only the first slide is preloaded, one crop per screen size" do
+  # The preload names the same srcset and sizes as the first slide, and no
+  # href, so the browser preloads the file the slide picks and nothing else.
+  test "only the first slide is preloaded, one crop per screen size, by the slide's own srcset" do
     @gallery = HomeGallery.slides(random: Random.new(1))
     render_home(user: nil)
 
-    preloads = view.content_for(:head).scan(/<link rel="preload" as="image" href="([^"]+)" media="([^"]+)"/)
-    assert_equal 2, preloads.size
+    links = Nokogiri::HTML5.fragment(view.content_for(:head).to_s).css("link[rel=preload][as=image]")
+    assert_equal 2, links.size
+    links.each do |link|
+      assert_nil link["href"], "no href: a browser with imagesrcset would ignore it, one without would fetch the wrong file"
+      assert_equal "high", link["fetchpriority"]
+      assert_equal "100vw", link["imagesizes"]
+    end
+    by_media = links.index_by { _1["media"] }
     slug = @gallery.first.slug
-    assert_match %r{/#{slug}-\h+\.webp\z}, preloads.to_h.invert.fetch("(min-width: 641px)")
-    assert_match %r{/#{slug}-mobile-\h+\.webp\z}, preloads.to_h.invert.fetch("(max-width: 640px)")
+    assert_wide_srcset slug, by_media.fetch("(min-width: 641px)")["imagesrcset"]
+    assert_portrait_srcset slug, by_media.fetch("(max-width: 640px)")["imagesrcset"]
+
+    first = css_select("section.home-hero .home-slide").first
+    assert_equal first.at_css("img")["srcset"], by_media.fetch("(min-width: 641px)")["imagesrcset"], "the preload is the slide's own set"
+    assert_equal first.at_css("source")["srcset"], by_media.fetch("(max-width: 640px)")["imagesrcset"]
+  end
+
+  # Full bleed (task cyvasse-full-bleed-home): the hero is the layout's :hero
+  # slot, not the page body inside <main>, and it is not a rounded card.
+  test "the hero fills the :hero slot, square, with nothing left in the body" do
+    view.define_singleton_method(:logged_in?) { false }
+    view.define_singleton_method(:current_user) { nil }
+    body = render template: "pages/index"
+
+    assert_no_match(/home-hero/, body, "nothing of the hero inside <main>")
+    hero = Nokogiri::HTML5.fragment(view.content_for(:hero).to_s).at_css("section.home-hero")
+    assert hero, "the hero is in the :hero slot"
+    assert_empty hero["class"].split.grep(/\A(rounded|mx-|px-|max-w-)/), "no card corners or gutters"
   end
 
   test "a signed-in player is named and not offered Sign in" do
@@ -107,9 +141,21 @@ class HomePageTest < ActionView::TestCase
 
   private
 
+  # "<…/slug-<digest>.webp> 1800w, <…/slug-2x-<digest>.webp> 3600w"
+  def assert_wide_srcset(slug, srcset)
+    assert_match %r{\A\S+/backgrounds/home/#{slug}-\h+\.webp 1800w, \S+/backgrounds/home/#{slug}-2x-\h+\.webp 3600w\z}, srcset
+  end
+
+  def assert_portrait_srcset(slug, srcset)
+    assert_match %r{\A\S+/backgrounds/home/#{slug}-mobile-\h+\.webp 720w, \S+/backgrounds/home/#{slug}-mobile-2x-\h+\.webp 1440w\z}, srcset
+  end
+
   def render_home(user:)
     view.define_singleton_method(:logged_in?) { user.present? }
     view.define_singleton_method(:current_user) { user }
-    render template: "pages/index"
+    body = render template: "pages/index"
+    # The hero goes to the layout's :hero slot (full bleed, outside <main>),
+    # so what the page shows is that slot plus its body.
+    @rendered = view.content_for(:hero).to_s + body
   end
 end

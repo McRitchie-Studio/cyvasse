@@ -26,6 +26,17 @@
 export const RANGED_UNITS = Object.freeze(["crossbowman", "trebuchet", "catapult"]);
 export const THREAT_GROUPS = Object.freeze(["ranged", "melee"]);
 
+// How big each unit's art is drawn on the board, smallest first (Alex,
+// September 29, 2026: tiers of size in place of the old strength-graded team
+// shade). The board sets a hex's data-tier from this and game.css scales the
+// art by it; this is the only place a unit's tier is decided.
+export const SIZE_TIERS = Object.freeze(["small", "medium", "large"]);
+export const SIZE_TIER_UNITS = Object.freeze({
+  small: ["rabble", "spearman", "crossbowman"],
+  medium: ["king", "lighthorse", "heavyhorse"],
+  large: ["trebuchet", "catapult", "elephant", "dragon", "mountain"]
+});
+
 export const UNIT_TYPES = Object.freeze({
   rabble: unit("rabble", "Rabble", "vanguard", { attack: 1, defence: 1, moveRange: 3, attackRange: 0, flank: 2, trump: [] }),
   spearman: unit("spearman", "Spearman", "vanguard", { attack: 2, defence: 2, moveRange: 2, attackRange: 0, flank: 1, trump: ["lighthorse"] }),
@@ -67,5 +78,6 @@ export function typeAt(index) {
 
 function unit(codename, name, rank, stats) {
   const threatGroup = RANGED_UNITS.includes(codename) ? "ranged" : "melee";
-  return Object.freeze({ codename, name, rank, threatGroup, ...stats, trump: Object.freeze(stats.trump) });
+  const sizeTier = SIZE_TIERS.find((tier) => SIZE_TIER_UNITS[tier].includes(codename));
+  return Object.freeze({ codename, name, rank, threatGroup, sizeTier, ...stats, trump: Object.freeze(stats.trump) });
 }

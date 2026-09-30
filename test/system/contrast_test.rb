@@ -77,7 +77,14 @@ class ContrastSystemTest < ApplicationSystemTestCase
       page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
       visit_in_theme(match_path(match), theme)
       clock = find(".cyvasse-army .cyvasse-army-clock", text: /\A\d+s\z/)
-      page.execute_script("arguments[0].classList.add('is-warning')", clock)
+      # The live clock re-toggles is-warning on every tick, so a one-off add
+      # races it; hold the class on for the rest of the test.
+      page.execute_script(<<~JS, clock)
+        const el = arguments[0]
+        const hold = () => { if (!el.classList.contains("is-warning")) el.classList.add("is-warning") }
+        hold()
+        new MutationObserver(hold).observe(el, { attributes: true, attributeFilter: ["class"] })
+      JS
 
       assert_aa clock, "the urgent setup clock"
       color = page.evaluate_script("getComputedStyle(arguments[0]).color", clock)

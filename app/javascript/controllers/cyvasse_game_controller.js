@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { Game, PLAYER, COMPUTER } from "cyvasse/game"
-import { chooseAction, KILL_PRIORITY } from "cyvasse/ai"
+import { chooseAction } from "cyvasse/ai"
 import { botDelays } from "cyvasse/pacing"
 import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
 import { UNIT_TYPES, THREAT_GROUPS } from "cyvasse/units"
@@ -172,34 +172,26 @@ function threatsWanted(group) {
 
 const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", unique: "Unique", mountain: "Mountain" }
 
-// Every unit's hex is shaded in its team's colour from the edge in towards
-// the centre (blue yours, red theirs), and the more a piece is worth the
-// deeper the shade reaches and the stronger it gets. Worth is the computer's
-// own ranking (KILL_PRIORITY, rabble up to king); mountains sit below it.
+// Every unit's hex carries a faint rim of its team's colour from the edge in
+// (blue yours, red theirs), the same for every piece: it says whose piece it
+// is, nothing more. How much a piece matters now shows in the size of its art
+// (units.js sizeTier, scaled in game.css); the rim no longer deepens with the
+// piece's worth (Alex, September 29, 2026).
 const TEAM_SHADE = { 1: "#3b82f6", 0: "#dc2626" }
+const SHADE_STOPS = [["58%", 0], ["100%", 0.45]]
 // The glow of the last move and of the selection: [offset, colour, opacity]
 // from the centre out. The last move's fades away; the selection's pulses.
 // Warm and strongest at the centre, easing off towards the edge, where a
-// moved unit's team shade shows through (the in-danger glow runs the other
+// moved unit's team rim shows through (the in-danger glow runs the other
 // way, orange from the edges in, and pulses).
 const HEX_GLOW = [["0%", "#ffd27f", 0.72], ["45%", "#ffb04a", 0.5], ["80%", "#ff9a1f", 0.3], ["100%", "#ff8c1a", 0.22]]
-const SHADE_RANKS = ["mountain", ...KILL_PRIORITY]
-const TOP_RANK = SHADE_RANKS.length - 1
-
-// Rank 0 is a faint rim; the top rank floods in to near the centre.
-function shadeStops(rank) {
-  const t = rank / TOP_RANK
-  const clear = Math.round(62 - t * 50)
-  const edge = (0.3 + t * 0.7).toFixed(2)
-  return [[`${clear}%`, 0], ["100%", edge]]
-}
 
 // The board key (games/_threat_toggle) counts as a control: reading it keeps the picked piece.
 const CONTROLS = "button, a, input, label, select, textarea, summary, [role=button], .cyvasse-legend"
 
 export default class extends Controller {
   static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent", "hint", "threatToggle",
-    "army", "smartButton", "armyCount", "armyClock", "fallen"]
+    "army", "smartButton", "armyCount", "armyClock", "armyStatus", "fallen"]
   static values = { skin: { type: String, default: "vector" }, images: Object, skins: Object, pace: { type: Number, default: 1 } }
 
   connect() {
@@ -547,13 +539,11 @@ export default class extends Controller {
     svg.replaceChildren()
     const defs = el("defs", {})
     for (const [team, color] of Object.entries(TEAM_SHADE)) {
-      SHADE_RANKS.forEach((_, rank) => {
-        const gradient = el("radialGradient", { id: `shade-${team}-${rank}`, r: "60%" })
-        for (const [offset, opacity] of shadeStops(rank)) {
-          gradient.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
-        }
-        defs.append(gradient)
-      })
+      const gradient = el("radialGradient", { id: `shade-${team}`, r: "60%" })
+      for (const [offset, opacity] of SHADE_STOPS) {
+        gradient.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
+      }
+      defs.append(gradient)
     }
     for (const hue of new Set(Object.values(MOVE_HUE))) {
       for (const [table, entries] of Object.entries(HSL_TABLES)) {
@@ -608,6 +598,11 @@ export default class extends Controller {
     const corners = cornersAt(0.97)
     // Inset, inside the band a highlight edge draws over.
     const dangerCorners = cornersAt(0.935)
+    // The art is clipped to its hex's outline: however large its size tier
+    // draws it (game.css), no wing, arm or snow foot reaches a neighbour.
+    const artClip = el("clipPath", { id: "hex-art-clip" })
+    artClip.append(el("polygon", { points: corners }))
+    defs.append(artClip)
 
     for (const hex of HEXES) {
       const cx = PAD + (11 - hex.size) * W / 2 + (hex.x - 0.5) * W
@@ -623,9 +618,11 @@ export default class extends Controller {
       const danger = el("polygon", { class: "danger-edge", points: dangerCorners, fill: "url(#danger-edge)" })
       const disc = el("circle", { class: "unit-disc", r: 27 })
       const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
-      group.append(polygon, texture, shade, glow, danger, disc, image)
+      const art = el("g", { class: "unit-art", "clip-path": "url(#hex-art-clip)" })
+      art.append(image)
+      group.append(polygon, texture, shade, glow, danger, disc, art)
       svg.append(group)
-      this.hexNodes.set(hex.index, { group, polygon, shade, disc, image })
+      this.hexNodes.set(hex.index, { group, polygon, shade, glow, disc, image })
       this.hexCentres.set(hex.index, { x: cx, y: cy, row: hex.y })
     }
 
@@ -742,11 +739,12 @@ export default class extends Controller {
       node.group.dataset.unitId = unit?.id ?? ""
       node.group.dataset.team = unit ? unit.team : ""
       if (unit) {
-        const rank = SHADE_RANKS.indexOf(unit.type.codename)
-        node.group.dataset.rank = rank
-        node.shade.setAttribute("fill", `url(#shade-${unit.team}-${rank})`)
+        node.group.dataset.unit = unit.type.codename
+        node.group.dataset.tier = unit.type.sizeTier
+        node.shade.setAttribute("fill", `url(#shade-${unit.team})`)
       } else {
-        delete node.group.dataset.rank
+        delete node.group.dataset.unit
+        delete node.group.dataset.tier
         node.shade.removeAttribute("fill")
       }
       if (unit) {
@@ -792,7 +790,18 @@ export default class extends Controller {
     const moved = game.phase === "setup" ? [] : [...game.lastMove, game.utilMove].filter((hex) => hex != null)
     const { hexes, elapsed } = this.lastMoveMarker.mark(game.phase === "setup" ? "" : lastMoveKey(game), moved)
     this.boardTarget.style.setProperty("--last-move-delay", `${-elapsed}ms`)
-    for (const hex of hexes) this.hexNodes.get(hex)?.group.classList.add("is-last-move")
+    for (const hex of hexes) {
+      const node = this.hexNodes.get(hex)
+      if (!node) continue
+      node.group.classList.add("is-last-move")
+      // render() takes the class off and puts it back in one pass, so a fade
+      // already running keeps its start time; the new delay would then count
+      // the elapsed time twice and jump the glow ahead. Start it over, so the
+      // delay alone sets how far through it is.
+      for (const fade of node.glow.getAnimations?.() ?? []) {
+        if (fade.animationName === "cyvasse-last-move") { fade.cancel(); fade.play() }
+      }
+    }
   }
 
   clearLastMove() {
@@ -831,9 +840,13 @@ export default class extends Controller {
   }
 
   // The status line is the board's one live region: write it only on a
-  // change, so a redraw that says the same thing is not read out again.
-  setStatus(text) {
+  // change, so a redraw that says the same thing is not read out again. A
+  // match's army card shows a copy for the eye (armyStatus, aria-hidden)
+  // while the line itself is read, not shown (task cyvasse-sidebar-reorder).
+  // `shown` is what that copy says, when it should say less than is read.
+  setStatus(text, shown = text) {
     if (this.statusTarget.textContent !== text) this.statusTarget.textContent = text
+    if (this.hasArmyStatusTarget && this.armyStatusTarget.textContent !== shown) this.armyStatusTarget.textContent = shown
   }
 
   // Each hex's resting fill, from the classes render() just set. It is the

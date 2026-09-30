@@ -1,12 +1,13 @@
 require "application_system_test_case"
 
-# [e2e] The opening picker and the value shading in a real browser: a visitor
+# [e2e] The opening picker and the team shading in a real browser: a visitor
 # loads one of the twenty openings (app/javascript/cyvasse/openings.js) onto
-# the board, and each unit's hex is shaded by what the piece is worth.
+# the board, and each unit's hex carries its team's rim, the same for every
+# piece, with the piece's size tier (units.js sizeTier) on the hex.
 class OpeningsSystemTest < ApplicationSystemTestCase
   CONTROLLER = "Stimulus.getControllerForElementAndIdentifier(document.querySelector('[data-controller=cyvasse-game]'), 'cyvasse-game')".freeze
 
-  test "load an opening during setup against the computer; each hex is shaded by the worth of its piece" do
+  test "load an opening during setup against the computer; each hex carries its team's rim and its piece's size tier" do
     visit play_path
     assert_selector "[data-controller=cyvasse-game][data-phase=setup]"
     assert_selector ".cyvasse-dock .dock-unit", count: 19
@@ -18,17 +19,17 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     assert_text "Loaded Crown Forward."
     assert_no_selector ".cyvasse-dock .dock-unit"
     # Crown Forward: the king on the second row's middle hex (66), the
-    # trebuchet and catapult on the front row above it (56, 57). The shade
-    # ranks mountain 0, then KILL_PRIORITY: trebuchet 7, catapult 8,
-    # king 10.
-    assert_selector "g.hex[data-hex='66'][data-unit-id='1-17'][data-rank='10'] .unit-shade[fill='url(#shade-1-10)']"
-    assert_selector "g.hex[data-hex='56'][data-unit-id='1-14'][data-rank='7']"
-    assert_selector "g.hex[data-hex='57'][data-unit-id='1-15'][data-rank='8']"
-    assert_selector "g.hex[data-rank='0'] .unit-shade[fill='url(#shade-1-0)']", count: 2
-    assert_selector "g.hex[data-rank]", count: 19
+    # trebuchet and catapult on the front row above it (56, 57). Every piece
+    # of yours takes the one blue rim, whatever it is worth.
+    assert_selector "g.hex[data-hex='66'][data-unit-id='1-17'][data-unit='king'][data-tier='medium'] .unit-shade[fill='url(#shade-1)']"
+    assert_selector "g.hex[data-hex='56'][data-unit-id='1-14'][data-unit='trebuchet'][data-tier='large']"
+    assert_selector "g.hex[data-hex='57'][data-unit-id='1-15'][data-unit='catapult'][data-tier='large']"
+    assert_selector "g.hex[data-unit='mountain'][data-tier='large'] .unit-shade[fill='url(#shade-1)']", count: 2
+    assert_selector "g.hex[data-tier]", count: 19
+    assert_selector "g.hex.has-unit .unit-shade[fill='url(#shade-1)']", count: 19
     screenshot("crown-forward")
 
-    # Picking the king up again marks it selected; its heavy shade gives way
+    # Picking the king up again marks it selected; its shade gives way
     # so the orange shows.
     find("g.hex[data-hex='66']").click
     assert_selector "g.hex[data-hex='66'].is-selected"
@@ -46,9 +47,9 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     unmark(56)
     assert_operator shade_opacity(56), :==, 1.0
 
-    # The last move is a glow, never a ring, whatever the unit is worth: a
-    # rabble (rank 1, the faintest shade) on hex 79 wears no edge.
-    assert_selector "g.hex[data-hex='79'][data-rank='1'][data-team='1']"
+    # The last move is a glow, never a ring, whatever the unit is: a rabble
+    # (the small tier) on hex 79 wears no edge.
+    assert_selector "g.hex[data-hex='79'][data-unit='rabble'][data-tier='small'][data-team='1']"
     mark(79, "is-last-move")
     assert_glow 79
     assert_no_edge 79
@@ -67,9 +68,10 @@ class OpeningsSystemTest < ApplicationSystemTestCase
 
     click_on "Ready"
     assert_selector "[data-controller=cyvasse-game][data-phase=play]"
-    assert_selector "g.hex[data-rank]", count: 38
-    assert_selector "g.hex[data-team='0'][data-rank='10'] .unit-shade[fill='url(#shade-0-10)']"
-    enemy_rabble = find("g.hex.has-unit[data-team='0'][data-rank='1']", match: :first)["data-hex"].to_i
+    assert_selector "g.hex[data-tier]", count: 38
+    assert_selector "g.hex[data-team='0'] .unit-shade[fill='url(#shade-0)']", count: 19
+    assert_selector "g.hex[data-team='0'][data-unit='king'][data-tier='medium']"
+    enemy_rabble = find("g.hex.has-unit[data-team='0'][data-unit='rabble']", match: :first)["data-hex"].to_i
     mark(enemy_rabble, "is-last-move")
     assert_glow enemy_rabble
     assert_no_edge enemy_rabble
