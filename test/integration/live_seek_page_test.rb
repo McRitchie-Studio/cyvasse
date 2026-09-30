@@ -1,7 +1,8 @@
 require "test_helper"
 
 # [component] The Play Now searching page: the countdown, the copy, Cancel,
-# and "Play the computer now", which starts the computer match at once.
+# "Play the computer now", which starts the computer match at once, and the
+# splash's faces.
 class LiveSeekPageTest < ActionDispatch::IntegrationTest
   setup do
     post live_seeks_path
@@ -30,5 +31,23 @@ class LiveSeekPageTest < ActionDispatch::IntegrationTest
     post computer_live_seek_path(@seek)
     assert_redirected_to match_path(@seek.reload.match)
     assert @seek.match.away_user.computer?
+  end
+
+  # The splash wears the versus card's faces: your avatar from players/avatar
+  # (a guest has no photo, so their piece), and quiet small-caps captions
+  # rather than the old YOU and COMPUTER pills.
+  test "the splash shows your piece avatar and quiet captions" do
+    get live_seek_path(@seek)
+    guest = @seek.user
+
+    assert_select "[data-live-seek-target=splash] [data-side=me]" do
+      assert_select "[data-avatar=piece][aria-label=?]", guest.player_name, 1
+      assert_select ".player-caption", "You"
+    end
+    assert_select "[data-live-seek-target=splash] [data-side=them]" do
+      assert_select "[data-live-seek-target=opponentAvatar] [data-avatar=pending]", 1
+      assert_select ".player-caption[data-live-seek-target=computerTag][hidden]", "Computer"
+    end
+    assert_select ".live-seek-tag, [data-live-seek-target=youInitial], [data-live-seek-target=opponentInitial]", 0
   end
 end
