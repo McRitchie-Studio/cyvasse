@@ -8,9 +8,12 @@ require "application_system_test_case"
 # with a soft halo, fading with the last move and pulsing with the selection.
 # The vector skin draws no disc and keeps the hex glow alone.
 #
-# Measured in pixels: orange pixels in a band about the disc's upper rim (the
-# side the art clip never cuts), on the marked hex against the same kind of
-# piece unmarked.
+# Measured in pixels: orange pixels in a band just outside the disc's upper
+# rim (the side the art clip never cuts), on the marked hex against the same
+# kind of piece unmarked. Since task cyvasse-pencil-team-rim the disc's own
+# edge is its team's colour and the orange ring (.unit-ring) draws just
+# outside it, so the band sits outside the disc and the ring's animation is
+# read off .unit-ring.
 #
 # PENCIL_GLOW_SHOTS=<dir> saves pencil-glow-<label>-<theme>.png of the board
 # (label from PENCIL_GLOW_LABEL, default "after").
@@ -47,8 +50,8 @@ class PencilGlowTest < ApplicationSystemTestCase
     assert_operator plain, :<, 0.05, "an unmarked piece's rim is plain parchment: #{plain}"
     assert_operator moved, :>, 0.35, "the moved piece's rim glows orange (#{moved} of the band, unmarked #{plain})"
 
-    assert_equal "cyvasse-last-move-rim", style("g.hex[data-hex='25'] .unit-disc")["animationName"]
-    assert_equal "none", style("g.hex[data-hex='70'] .unit-disc")["stroke"], "an unmarked disc draws no rim"
+    assert_equal "cyvasse-last-move-rim", style("g.hex[data-hex='25'] .unit-ring")["animationName"]
+    assert_equal "none", style("g.hex[data-hex='70'] .unit-ring")["display"], "an unmarked disc draws no orange ring"
 
     # The ring fades with the hex glow: near the end of its ten seconds, most
     # of the orange is gone.
@@ -63,7 +66,7 @@ class PencilGlowTest < ApplicationSystemTestCase
     mouse_away
     freeze_selection_at(0)
     shots("selected")
-    assert_equal "cyvasse-selected-rim", style("g.hex[data-hex='70'] .unit-disc")["animationName"]
+    assert_equal "cyvasse-selected-rim", style("g.hex[data-hex='70'] .unit-ring")["animationName"]
     freeze_selection_at(900) # the pulse's faintest point, half way through
     faint = rim_orange(70)
     assert_operator rim_orange(25), :<, 0.05, "their rabble, no longer the last move, is plain again"
@@ -91,7 +94,7 @@ class PencilGlowTest < ApplicationSystemTestCase
     sleep 3
     page.execute_script("#{CONTROLLER}.render()")
     progress = page.evaluate_script(<<~JS)
-      document.querySelector("svg.cyvasse-board g.hex[data-hex='25'] .unit-disc").getAnimations()
+      document.querySelector("svg.cyvasse-board g.hex[data-hex='25'] .unit-ring").getAnimations()
         .find((a) => a.animationName === "cyvasse-last-move-rim").effect.getComputedTiming().progress
     JS
     assert_operator progress, :>, 0.2, "the ring's fade runs from the move, not the redraw"
@@ -103,11 +106,11 @@ class PencilGlowTest < ApplicationSystemTestCase
     visit play_path(skin: "pencil")
     start_game("pencil")
     stage(POSITION, last_move: [ 26, 25 ])
-    disc = style("g.hex[data-hex='25'] .unit-disc")
+    disc = style("g.hex[data-hex='25'] .unit-ring")
     assert_equal "none", disc["animationName"]
     assert_in_delta 0.6, disc["strokeOpacity"].to_f, 0.01
     find("svg.cyvasse-board g.hex[data-hex='70']").click
-    disc = style("g.hex[data-hex='70'] .unit-disc")
+    disc = style("g.hex[data-hex='70'] .unit-ring")
     assert_equal [ "none", "1" ], disc.values_at("animationName", "strokeOpacity")
   ensure
     motion("no-preference")
@@ -131,8 +134,10 @@ class PencilGlowTest < ApplicationSystemTestCase
     assert_equal [ "inline", "cyvasse-last-move" ], glow.values_at("display", "animationName")
     disc = style("g.hex[data-hex='58'] .unit-disc")
     assert_equal [ "none", "none", "none" ], disc.values_at("fill", "stroke", "animationName")
+    assert_equal "none", style("g.hex[data-hex='58'] .unit-ring")["display"]
     find("svg.cyvasse-board g.hex[data-hex='59']").click
     assert_equal [ "none", "none" ], style("g.hex[data-hex='59'] .unit-disc").values_at("stroke", "animationName")
+    assert_equal "none", style("g.hex[data-hex='59'] .unit-ring")["display"]
     find(".cyvasse-legend summary").click
     assert_equal "none", page.evaluate_script("getComputedStyle(document.querySelector('.cyvasse-legend-swatch[data-swatch=selected] .cyvasse-legend-disc')).display")
   end
@@ -181,8 +186,9 @@ class PencilGlowTest < ApplicationSystemTestCase
   def freeze_last_move_at(ms) = freeze("cyvasse-last-move", ms)
   def freeze_selection_at(ms) = freeze("cyvasse-selected", ms)
 
-  # The share of pixels in a band about the disc's upper rim (from half past
-  # ten to half past one, the side no clip cuts) that read clearly orange.
+  # The share of pixels in a band just outside the disc's upper rim (from
+  # half past ten to half past one, the side no clip cuts), clear of its team
+  # rim, that read clearly orange.
   def rim_orange(hex)
     box = page.evaluate_script(<<~JS)
       (() => {
@@ -192,7 +198,7 @@ class PencilGlowTest < ApplicationSystemTestCase
         return { x: r.left + scrollX, y: r.top + scrollY, width: r.width, height: r.height }
       })()
     JS
-    pad = 6
+    pad = 8
     clip = { x: box["x"] - pad, y: box["y"] - pad, width: box["width"] + 2 * pad, height: box["height"] + 2 * pad, scale: 1 }
     # Within the viewport: capturing beyond it resizes the page, and with
     # classic scrollbars (CI's Linux Chrome) the board then shifts under the
@@ -213,7 +219,7 @@ class PencilGlowTest < ApplicationSystemTestCase
           const dx = (px + 0.5 - cx) / k, dy = (py + 0.5 - cy) / k;
           const d = Math.hypot(dx, dy);
           const angle = Math.atan2(-dy, dx) * 180 / Math.PI; // 0 = 3 o'clock, 90 = 12
-          if (angle < 45 || angle > 135 || Math.abs(d - radius) > 2) continue;
+          if (angle < 45 || angle > 135 || d - radius < 2 || d - radius > 4.5) continue;
           band++;
           const i = (py * img.width + px) * 4;
           if (orange(data[i], data[i + 1], data[i + 2])) hits++;
