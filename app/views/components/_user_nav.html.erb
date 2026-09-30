@@ -1,25 +1,23 @@
 <%# The signed-in right side of the navbar. This SHADOWS studio-engine's
-    components/_user_nav (a host view wins in this non-isolated engine), for
-    three things that partial has no setting for (task cyvasse-contrast-and-names):
+    components/_user_nav (a host view wins in this non-isolated engine) for ONE
+    reason: the name. The engine partial prints current_user.display_name, which
+    in Cyvasse is a real name first ("Guest 4821"), kept for email greetings and
+    the admin pages. The navbar shows the player's one public name instead,
+    User#player_name ("Guest_4821"), the name the board, the leaderboard and chat
+    show (task cyvasse-contrast-and-names; test/integration/navbar_account_test.rb).
+    studio-engine 0.79.0 has no setting, local or helper for that name.
 
-    - One theme toggle on a phone. The engine's navbar already draws one in
-      its phone row, so this one is desktop only, as the engine's own
-      signed-out bar does it.
-    - One tab stop. The name and the avatar are one link to the profile, not
-      two links to the same page.
-    - On a phone, the avatar alone, so the name never truncates to "Guest 55…".
-      The name stays in the link as screen-reader text.
-
-    The name is the player's one public name (User#player_name).
-
-    Cyvasse players have no balance, wallet or level, so the engine partial's
-    second row never rendered here; of its locals only extra_icons_html (the
-    engine's desktop sidebar button) is rendered, the rest are unused.
-    Delete this file once the engine partial does the above. %>
+    Everything else here the engine partial now does itself (0.79.0,
+    engine-navbar-phone-polish): the theme toggle md+ only, one account link,
+    the avatar alone on a phone with the name as screen-reader text, and the
+    desktop sidebar button through extra_icons_html. Cyvasse players have no
+    balance, wallet or level, so the engine's second row never renders here.
+    Keep this markup in step with the engine's signed-in branch, and delete
+    this file once the engine partial takes its display name from a hook. %>
 <% name = current_user.player_name %>
 <div class="flex items-center gap-2">
   <%# The engine's navbar hands its desktop link-sidebar button in here as
-      extra_icons_html (layouts/_navbar, studio-engine 0.78.0). Without it a
+      extra_icons_html (layouts/_navbar). Without it a
       desktop has no way into the sidebar: Inbox, Pieces, Rules, About, Admin. %>
   <%= local_assigns[:extra_icons_html] %>
   <%= render "components/admin_dropdown" unless respond_to?(:studio_sidebar_replaces_admin_menu?) && studio_sidebar_replaces_admin_menu? %>
