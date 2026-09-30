@@ -177,11 +177,12 @@ const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", u
 // deeper the shade reaches and the stronger it gets. Worth is the computer's
 // own ranking (KILL_PRIORITY, rabble up to king); mountains sit below it.
 const TEAM_SHADE = { 1: "#3b82f6", 0: "#dc2626" }
-// The last move's glow: [offset, colour, opacity] from the centre out.
+// The glow of the last move and of the selection: [offset, colour, opacity]
+// from the centre out. The last move's fades away; the selection's pulses.
 // Warm and strongest at the centre, easing off towards the edge, where a
 // moved unit's team shade shows through (the in-danger glow runs the other
 // way, orange from the edges in, and pulses).
-const LAST_MOVE_GLOW = [["0%", "#ffd27f", 0.72], ["45%", "#ffb04a", 0.5], ["80%", "#ff9a1f", 0.3], ["100%", "#ff8c1a", 0.22]]
+const HEX_GLOW = [["0%", "#ffd27f", 0.72], ["45%", "#ffb04a", 0.5], ["80%", "#ff9a1f", 0.3], ["100%", "#ff8c1a", 0.22]]
 const SHADE_RANKS = ["mountain", ...KILL_PRIORITY]
 const TOP_RANK = SHADE_RANKS.length - 1
 
@@ -585,10 +586,11 @@ export default class extends Controller {
       danger.append(el("stop", { offset, "stop-color": "#f97316", "stop-opacity": opacity }))
     }
     defs.append(danger)
-    // The last move: a soft orange glow from the centre (LAST_MOVE_GLOW). It
-    // fades away (game.css .last-move-glow).
-    const glow = el("radialGradient", { id: "last-move-glow", r: "58%" })
-    for (const [offset, color, opacity] of LAST_MOVE_GLOW) {
+    // The last move and the selection: a soft orange glow from the centre
+    // (HEX_GLOW). The last move's fades away, the selection's pulses
+    // (game.css .hex-glow).
+    const glow = el("radialGradient", { id: "hex-glow", r: "58%" })
+    for (const [offset, color, opacity] of HEX_GLOW) {
       glow.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
     }
     defs.append(glow)
@@ -617,7 +619,7 @@ export default class extends Controller {
       const polygon = el("polygon", { class: "hex-poly", points: corners })
       const texture = el("polygon", { class: "ring-texture", points: corners, fill: "url(#ring-texture)" })
       const shade = el("polygon", { class: "unit-shade", points: corners })
-      const glow = el("polygon", { class: "last-move-glow", points: corners, fill: "url(#last-move-glow)" })
+      const glow = el("polygon", { class: "hex-glow", points: corners, fill: "url(#hex-glow)" })
       const danger = el("polygon", { class: "danger-edge", points: dangerCorners, fill: "url(#danger-edge)" })
       const disc = el("circle", { class: "unit-disc", r: 27 })
       const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
@@ -1042,7 +1044,6 @@ export default class extends Controller {
     for (const { group } of this.hexNodes.values()) group.classList.remove("is-last-move")
     const node = this.hexNodes.get(hex)
     node.group.classList.add("is-selected")
-    node.polygon.style.fill = "orange"
     for (const i of this.actions.moves) this.hexNodes.get(i).group.classList.add("is-move")
     for (const i of this.actions.attacks) this.hexNodes.get(i).group.classList.add("is-attack")
     this.renderEdges()

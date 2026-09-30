@@ -132,7 +132,7 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     edges = edge_table
     assert_empty edges.select { |e| e["kind"].to_s.match?(/\A(last-move|team-)/) }, "the last move draws no edge"
     assert_equal before, edges.to_h { |e| [ e["between"], e["kind"] ] }, "every edge as it was before the move was marked"
-    assert_equal [ "inline" ], page.evaluate_script("[47, 48].map((h) => getComputedStyle(document.querySelector(`g.hex[data-hex='${h}'] .last-move-glow`)).display)").uniq
+    assert_equal [ "inline" ], page.evaluate_script("[47, 48].map((h) => getComputedStyle(document.querySelector(`g.hex[data-hex='${h}'] .hex-glow`)).display)").uniq
     assert_equal [ WHITE ], page.evaluate_script("[47, 48].map((h) => getComputedStyle(document.querySelector(`g.hex[data-hex='${h}'] .hex-poly`)).stroke)").uniq,
       "the hexes keep their thin white edges"
 

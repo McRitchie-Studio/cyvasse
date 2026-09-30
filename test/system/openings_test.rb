@@ -116,9 +116,9 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     page.execute_script("document.querySelector(\"g.hex[data-hex='#{hex}']\").classList.remove('is-last-move', 'is-attack'); #{CONTROLLER}.renderEdges()")
   end
 
-  # The last move's mark is a glow inside the hex (game.css .last-move-glow).
+  # The last move's mark is a glow inside the hex (game.css .hex-glow).
   def assert_glow(hex)
-    assert_equal "inline", page.evaluate_script("getComputedStyle(document.querySelector(\"g.hex[data-hex='#{hex}'] .last-move-glow\")).display")
+    assert_equal "inline", page.evaluate_script("getComputedStyle(document.querySelector(\"g.hex[data-hex='#{hex}'] .hex-glow\")).display")
   end
 
   # ... and it draws no highlight edge round the hex (cyvasse/edges): in play

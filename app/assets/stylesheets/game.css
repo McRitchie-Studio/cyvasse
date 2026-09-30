@@ -1,8 +1,8 @@
 /* The Cyvasse board at /play (games/show). Linked from that view only.
  *
  * The board keeps the legacy match screen's look in both themes: black hexes
- * with white edges, orange for the selected unit, and a soft orange glow for
- * the last move that fades away over ten seconds (.last-move-glow). Each
+ * with white edges, and a soft orange glow (.hex-glow) that pulses on the
+ * selected unit and fades away over ten seconds on the last move. Each
  * unit's hex is shaded blue (yours) or red (the computer's) from the edge in,
  * in place of the legacy ring outlines. The ring ripple paints hex fills
  * inline from the controller (gradients it defines in the board's <defs>);
@@ -68,24 +68,32 @@
   stroke: hsl(226 90% 76%);
 }
 
-/* The selection outranks the setup rows above (`.hex` adds the weight), so a
- * placed unit picked up to move again shows orange, not dark blue. */
-.cyvasse-board .hex.is-selected .hex-poly {
-  fill: orange;
-}
-
 /* The last move (the hex a unit left and the hex it reached): a soft orange
  * glow over the ground and the unit's team shade, fading to nothing over ten
  * seconds. The controller clears .is-last-move when the ten seconds are up
  * (cyvasse/last_move LAST_MOVE_MS) and sets --last-move-delay negative on a
  * redraw partway through, so the fade carries on rather than restarting. The
  * glow draws no edge (cyvasse/edges), so it never rings a hex. */
-.cyvasse-board .last-move-glow {
+.cyvasse-board .hex-glow {
   display: none;
   pointer-events: none;
 }
 
-.cyvasse-board .is-last-move .last-move-glow {
+/* The selected unit: the same glow, breathing slowly for as long as it is
+ * picked (opacity alone, so nothing moves or spills onto a neighbour). A
+ * selection clears the last-move marks, so the two never share a hex. It also
+ * lights a placed unit picked up again in setup, over the dark rows. */
+.cyvasse-board .hex.is-selected .hex-glow {
+  display: inline;
+  animation: cyvasse-selected-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes cyvasse-selected-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+.cyvasse-board .is-last-move .hex-glow {
   display: inline;
   animation: cyvasse-last-move 10s ease-in forwards;
   animation-delay: var(--last-move-delay, 0ms);
@@ -97,11 +105,17 @@
   100% { opacity: 0; }
 }
 
-/* Less motion: a steady, fainter glow, cleared at ten seconds all the same. */
+/* Less motion: a steady, fainter last-move glow, cleared at ten seconds all
+ * the same; a steady selection glow. */
 @media (prefers-reduced-motion: reduce) {
-  .cyvasse-board .is-last-move .last-move-glow {
+  .cyvasse-board .is-last-move .hex-glow {
     animation: none;
     opacity: 0.6;
+  }
+
+  .cyvasse-board .hex.is-selected .hex-glow {
+    animation: none;
+    opacity: 1;
   }
 }
 
@@ -938,8 +952,18 @@ html.dark [data-skin="pencil"] .dock-unit img {
   stroke-width: 1;
 }
 
-.cyvasse-legend-swatch[data-swatch="selected"] polygon { fill: orange; stroke: orange; }
-.cyvasse-legend-swatch[data-swatch="last-move"] polygon { fill: hsl(34 72% 42%); }
+/* The selection's swatch glows and pulses like the board's; the last move's
+ * is the same glow, dimmer and still. */
+.cyvasse-legend-swatch[data-swatch="selected"] polygon {
+  fill: url(#cyvasse-legend-glow-selected);
+  stroke: orange;
+  animation: cyvasse-selected-pulse 1.8s ease-in-out infinite;
+}
+.cyvasse-legend-swatch[data-swatch="last-move"] polygon { fill: url(#cyvasse-legend-glow-last-move); opacity: 0.7; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cyvasse-legend-swatch[data-swatch="selected"] polygon { animation: none; }
+}
 .cyvasse-legend-swatch[data-swatch="yours"] polygon { fill: hsl(217 60% 30%); }
 .cyvasse-legend-swatch[data-swatch="enemy"] polygon { fill: hsl(0 55% 28%); }
 .cyvasse-legend-swatch[data-swatch="move"] polygon { fill: hsl(240 44% 47%); }

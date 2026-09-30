@@ -2,7 +2,7 @@
 //
 // The last move (the hex a unit left, the hex it reached, and a unit's
 // utility move) glows soft orange and fades away over LAST_MOVE_MS, then
-// clears (game.css .last-move-glow). The board redraws often, so the mark's
+// clears (game.css .hex-glow). The board redraws often, so the mark's
 // clock belongs to the MOVE, not to a redraw: every redraw names the move it
 // is drawing (`key`), and only a new key starts the clock again. A redraw
 // partway through the fade is told how long ago the move landed, so the glow

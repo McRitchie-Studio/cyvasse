@@ -25,12 +25,12 @@ class LastMoveFadeTest < ApplicationSystemTestCase
 
     assert_selector "svg.cyvasse-board g.hex.is-last-move", count: 2
     [ 48, 58 ].each do |hex|
-      glow = style("g.hex[data-hex='#{hex}'] .last-move-glow")
+      glow = style("g.hex[data-hex='#{hex}'] .hex-glow")
       assert_equal [ "inline", "cyvasse-last-move" ], glow.values_at("display", "animationName")
-      assert_match(/url\("#last-move-glow"\)/, glow["fill"])
+      assert_match(/url\("#hex-glow"\)/, glow["fill"])
       assert_equal 'url("#hex-base")', style("g.hex[data-hex='#{hex}'] .hex-poly")["fill"], "no solid orange fill"
     end
-    stops = page.evaluate_script("[...document.querySelectorAll('#last-move-glow stop')].map((s) => Number(s.getAttribute('stop-opacity')))")
+    stops = page.evaluate_script("[...document.querySelectorAll('#hex-glow stop')].map((s) => Number(s.getAttribute('stop-opacity')))")
     assert stops.all? { |o| o <= 0.75 }, "a soft glow, not a solid fill: #{stops}"
     assert_equal stops.sort.reverse, stops, "strongest at the centre, easing off to the edge"
     assert_equal 1.0, page.evaluate_script("Number(getComputedStyle(document.querySelector(\"g.hex[data-hex='58'] .unit-shade\")).opacity)"),
@@ -81,7 +81,7 @@ class LastMoveFadeTest < ApplicationSystemTestCase
     motion("reduce")
     start_game
     stage(POSITION, last_move: [ 48, 58 ])
-    glow = style("g.hex[data-hex='48'] .last-move-glow")
+    glow = style("g.hex[data-hex='48'] .hex-glow")
     assert_equal [ "inline", "none" ], glow.values_at("display", "animationName")
     assert_in_delta 0.6, glow["opacity"].to_f, 0.01
     assert_no_selector "svg.cyvasse-board g.hex.is-last-move", wait: 12
@@ -90,7 +90,84 @@ class LastMoveFadeTest < ApplicationSystemTestCase
     page.execute_script("try { localStorage.clear() } catch {}")
   end
 
+  # [component] The selected unit wears the same soft glow, pulsing slowly
+  # (opacity only) until it is deselected; it is never the fading last move.
+  test "the selected hex glows and pulses, distinct from the last move, even on a last-move hex" do
+    start_game
+    # Your elephant on 59 stands on the last move's hex.
+    stage(POSITION, last_move: [ 48, 59 ])
+    assert_selector "svg.cyvasse-board g.hex.is-last-move[data-hex='59']"
+    find("svg.cyvasse-board g.hex[data-hex='59']").click
+    assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='59'][aria-pressed=true]"
+    mouse_away
+    screenshot("selected-pulse-after", prefix: "")
+
+    glow = style("g.hex[data-hex='59'] .hex-glow")
+    assert_equal [ "inline", "cyvasse-selected-pulse" ], glow.values_at("display", "animationName")
+    assert_match(/url\("#hex-glow"\)/, glow["fill"])
+    assert_equal 'url("#hex-base")', style("g.hex[data-hex='59'] .hex-poly")["fill"], "no solid orange fill"
+    assert_equal "", page.evaluate_script("document.querySelector(\"g.hex[data-hex='59'] .hex-poly\").style.fill")
+    assert_no_selector "svg.cyvasse-board g.hex.is-last-move", wait: 0
+    timing = page.evaluate_script(<<~JS)
+      (() => {
+        const s = getComputedStyle(document.querySelector("svg.cyvasse-board g.hex[data-hex='59'] .hex-glow"))
+        return [s.animationDuration, s.animationIterationCount]
+      })()
+    JS
+    assert_equal [ "1.8s", "infinite" ], timing
+    frames = page.evaluate_script(<<~JS)
+      [...document.styleSheets].flatMap((sheet) => { try { return [...sheet.cssRules] } catch { return [] } })
+        .filter((rule) => rule.type === CSSRule.KEYFRAMES_RULE && rule.name === "cyvasse-selected-pulse")
+        .flatMap((rule) => [...rule.cssRules].map((frame) => frame.style.cssText))
+    JS
+    assert_not_empty frames
+    assert frames.all? { |frame| frame.match?(/\Aopacity: [\d.]+;\z/) }, "the pulse is opacity alone, so nothing shifts: #{frames}"
+
+    # Deselected: the pulse stops; the move is still fresh, so its fading
+    # mark comes back (on its own clock), not the pulse.
+    find("body").send_keys(:escape)
+    assert_no_selector "svg.cyvasse-board g.hex.is-selected"
+    assert_selector "svg.cyvasse-board g.hex.is-last-move[data-hex='59']"
+    assert_equal "cyvasse-last-move", style("g.hex[data-hex='59'] .hex-glow")["animationName"]
+    assert_equal "none", style("g.hex[data-hex='70'] .hex-glow")["display"], "an unmarked hex has no glow"
+  ensure
+    page.execute_script("try { localStorage.clear() } catch {}")
+  end
+
+  test "less motion: the selected hex glows steady, no pulse" do
+    motion("reduce")
+    start_game
+    stage(POSITION)
+    find("svg.cyvasse-board g.hex[data-hex='59']").click
+    assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='59']"
+    glow = style("g.hex[data-hex='59'] .hex-glow")
+    assert_equal [ "inline", "none", "1" ], glow.values_at("display", "animationName", "opacity")
+    open_board_key
+    assert_equal "none", page.evaluate_script("getComputedStyle(document.querySelector('.cyvasse-legend-swatch[data-swatch=selected] polygon')).animationName")
+  ensure
+    motion("no-preference")
+    page.execute_script("try { localStorage.clear() } catch {}")
+  end
+
+  test "the board key's Selected swatch glows and pulses like the board" do
+    start_game
+    open_board_key
+    swatch = page.evaluate_script(<<~JS)
+      (() => {
+        const s = getComputedStyle(document.querySelector(".cyvasse-legend-swatch[data-swatch=selected] polygon"))
+        return [s.fill, s.animationName]
+      })()
+    JS
+    assert_equal [ 'url("#cyvasse-legend-glow-selected")', "cyvasse-selected-pulse" ], swatch
+    assert_selector "#cyvasse-legend-glow-selected stop", count: 3, visible: :all
+  end
+
   private
+
+  def open_board_key
+    find(".cyvasse-legend summary").click
+    assert_selector ".cyvasse-legend-panel", visible: true
+  end
 
   def start_game
     select "Crown Forward", from: "Opening"
@@ -137,10 +214,10 @@ class LastMoveFadeTest < ApplicationSystemTestCase
     JS
   end
 
-  def screenshot(name)
+  def screenshot(name, prefix: "last-move-")
     return unless ENV["SCREENSHOTS"]
 
     sleep 0.4
-    page.save_screenshot(ENV.fetch("SCREENSHOT_DIR", Rails.root.join("tmp/screenshots").to_s) + "/last-move-#{name}#{ENV['SKIN_SUFFIX']}.png")
+    page.save_screenshot(ENV.fetch("SCREENSHOT_DIR", Rails.root.join("tmp/screenshots").to_s) + "/#{prefix}#{name}.png")
   end
 end

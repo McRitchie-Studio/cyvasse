@@ -19,6 +19,16 @@
       <% board_legend.each do |entry| %>
         <li class="cyvasse-legend-entry" data-legend="<%= entry.key %>">
           <svg class="cyvasse-legend-swatch" data-swatch="<%= entry.key %>" viewBox="0 0 14 16" aria-hidden="true" focusable="false">
+            <%# The selection and the last move are the board's soft centre glow (game.css .hex-glow), drawn over the slate hex. %>
+            <% if entry.key.in?(%w[selected last-move]) %>
+              <defs>
+                <radialGradient id="cyvasse-legend-glow-<%= entry.key %>" r="58%">
+                  <stop offset="0%" stop-color="#ffd27f" />
+                  <stop offset="45%" stop-color="#f0a040" />
+                  <stop offset="100%" stop-color="#8a5a2c" />
+                </radialGradient>
+              </defs>
+            <% end %>
             <polygon points="7,1 13,4.5 13,11.5 7,15 1,11.5 1,4.5" />
           </svg>
           <span><%= entry.label %></span>
