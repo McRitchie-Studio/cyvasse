@@ -1,9 +1,9 @@
-Hi <%= @user.username %>,
+Hi <%= @user.player_name %>,
 
 <% if @first_move -%>
-Both armies are on the board, and you have the first move against <%= @opponent.username %>.
+Both armies are on the board, and you have the first move against <%= @opponent.player_name %>.
 <% else -%>
-<%= @opponent.username %> has moved. It is your turn (turn <%= @match.full_move %>).
+<%= @opponent.player_name %> has moved. It is your turn (turn <%= @match.full_move %>).
 <% end -%>
 
 Make your move: <%= @url %>

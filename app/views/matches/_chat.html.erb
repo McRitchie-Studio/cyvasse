@@ -3,7 +3,7 @@
     from, match_messages_path; the form posts into the same frame. Only the
     two players ever reach this page. %>
 <section class="card p-4 space-y-3" data-controller="chat" aria-labelledby="match-chat-heading">
-  <h2 id="match-chat-heading" class="text-sm font-semibold uppercase tracking-widest text-muted">Chat with <%= opponent.username %></h2>
+  <h2 id="match-chat-heading" class="text-sm font-semibold uppercase tracking-widest text-muted">Chat with <%= opponent.player_name %></h2>
   <%= turbo_frame_tag "match_chat_messages", src: match_messages_path(match),
         data: { chat_target: "frame", action: "turbo:frame-load->chat#loaded" } do %>
     <p class="text-sm text-muted">Loading messages…</p>
@@ -12,13 +12,13 @@
   <p class="text-sm chat-error" role="alert" hidden data-chat-target="error"></p>
   <%= form_with url: match_messages_path(match), class: "space-y-2",
         data: { turbo_frame: "match_chat_messages", action: "turbo:submit-start->chat#sending turbo:submit-end->chat#sent" } do |form| %>
-    <%= form.label :message, "Message #{opponent.username}", class: "sr-only" %>
+    <%= form.label :message, "Message #{opponent.player_name}", class: "sr-only" %>
     <%= form.text_area :message, rows: 2, required: true, maxlength: Message::MAX_LENGTH,
-          placeholder: "Message #{opponent.username}", class: "input-field w-full",
+          placeholder: "Message #{opponent.player_name}", class: "input-field w-full",
           data: { chat_target: "input", action: "keydown.enter->chat#submitOnEnter" } %>
     <div class="flex items-center justify-between gap-2">
       <p class="text-xs text-muted">
-        Only you and <%= opponent.username %> can read this, and site admins.
+        Only you and <%= opponent.player_name %> can read this, and site admins.
         <span class="hidden pointer-fine:inline">Enter sends; Shift+Enter starts a new line.</span>
       </p>
       <%= form.submit "Send", class: "btn btn-primary btn-sm" %>

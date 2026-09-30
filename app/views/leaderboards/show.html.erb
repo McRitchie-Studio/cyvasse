@@ -35,7 +35,7 @@
 
   <% if current_user&.guest? %>
     <p class="text-sm text-secondary">
-      Playing as <%= current_user.username %>.
+      Playing as <%= current_user.player_name %>.
       <%= link_to "Sign in", join_leaderboard_path, class: "underline underline-offset-2" %> to keep your points under your own name.
     </p>
   <% end %>

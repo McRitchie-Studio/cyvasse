@@ -13,7 +13,7 @@ class NavbarLinksSystemTest < ApplicationSystemTestCase
     @brienne = player("brienne")
     live_result(arya, @brienne, winner: arya)
     visit link_path(token: Studio::Link.create_magic_link(email: @brienne.email).token)
-    assert_text "Signed in as Brienne"
+    assert_text "Signed in as brienne"
   end
 
   teardown do

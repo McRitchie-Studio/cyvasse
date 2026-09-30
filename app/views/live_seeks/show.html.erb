@@ -6,7 +6,7 @@
          data-live-seek-ends-at-value="<%= @seek.ends_at.iso8601(3) %>"
          data-live-seek-server-time-value="<%= Time.current.iso8601(3) %>"
          data-live-seek-splash-ms-value="<%= splash_ms %>"
-         data-live-seek-you-value="<%= current_user.username %>">
+         data-live-seek-you-value="<%= current_user.player_name %>">
   <div data-live-seek-target="searching">
     <div class="live-seek-radar mx-auto mb-6" aria-hidden="true">
       <span></span><span></span><span></span>

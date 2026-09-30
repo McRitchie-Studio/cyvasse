@@ -184,11 +184,6 @@ module LiveMatch
     bot_stage == "moved" ? bot_plan["steps"].first.join(",") : last_move
   end
 
-  # The name a player sees for `user`: a computer player's full name.
-  def display_name_of(user)
-    (user.computer? && COMPUTER_NAMES[user.username]) || user.username
-  end
-
   private
 
   def settle_setup(rng)

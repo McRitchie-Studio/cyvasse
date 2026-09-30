@@ -1,5 +1,5 @@
-<% them = @match.display_name_of(@opponent) %>
-<% content_for(:title, "#{current_user.username} vs #{them} · Cyvasse") %>
+<% them = @opponent.player_name %>
+<% content_for(:title, "#{current_user.player_name} vs #{them} · Cyvasse") %>
 <% preload_modules "game" %>
 <% content_for(:head) do %>
   <%= stylesheet_link_tag "game", "data-turbo-track": "reload" %>
@@ -64,11 +64,11 @@
       <% if @state[:can_accept] %>
         <div class="card p-4 space-y-3">
           <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">A challenge</h2>
-          <p class="text-sm text-secondary"><%= @opponent.username %> wants a game. Accept, then set up your army.</p>
+          <p class="text-sm text-secondary"><%= @opponent.player_name %> wants a game. Accept, then set up your army.</p>
           <div class="flex flex-wrap gap-2">
             <%= button_to "Accept", accept_match_path(@match), class: "btn btn-primary" %>
             <%= button_to "Decline", match_path(@match), method: :delete, class: "btn btn-secondary",
-                  form: { data: { turbo_confirm: "Decline #{@opponent.username}'s challenge?" } } %>
+                  form: { data: { turbo_confirm: "Decline #{@opponent.player_name}'s challenge?" } } %>
           </div>
         </div>
       <% end %>

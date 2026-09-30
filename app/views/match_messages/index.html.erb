@@ -6,7 +6,7 @@
     <p class="text-sm chat-error mb-2" role="alert" data-chat-error><%= @error %></p>
   <% end %>
   <% if @messages.empty? %>
-    <p class="text-sm text-secondary" data-chat-empty>No messages yet. Say hello to <%= @match.opponent_of(current_user).username %>.</p>
+    <p class="text-sm text-secondary" data-chat-empty>No messages yet. Say hello to <%= @match.opponent_of(current_user).player_name %>.</p>
   <% else %>
     <ol class="chat-log" data-chat-log>
       <%= render partial: "messages/message", collection: @messages, as: :message, locals: { viewer: current_user } %>

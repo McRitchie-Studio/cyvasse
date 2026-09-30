@@ -64,7 +64,7 @@ class PlayNowSystemTest < ApplicationSystemTestCase
     assert_text(/match found/i, wait: 0.5)
     assert_selector "[data-live-seek-target=computerTag]", text: /computer/i
     portrait = find("[data-live-seek-target=opponentInitial] img[data-avatar=bot-portrait]")
-    assert_equal LiveSeek.last.match.display_name_of(LiveSeek.last.match.away_user), portrait[:alt]
+    assert_equal LiveSeek.last.match.away_user.player_name, portrait[:alt]
     splash_screenshots
     assert_selector "[data-controller=cyvasse-match]", wait: 8
     assert_current_path(%r{/matches/\d+})

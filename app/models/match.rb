@@ -62,9 +62,9 @@ class Match < ApplicationRecord
     opponent = User.find_by_username(username)
     raise Refused, "No player is called #{username.to_s.strip.presence || 'that'}." unless opponent
     raise Refused, "You cannot challenge yourself." if opponent.id == challenger.id
-    raise Refused, "#{opponent.username} was one of the old site's computer players. Play the computer on the Play page." if opponent.computer?
+    raise Refused, "#{opponent.player_name} was one of the old site's computer players. Play the computer on the Play page." if opponent.computer?
     if where(home_user: challenger, away_user: opponent, match_status: PENDING).exists?
-      raise Refused, "You have already challenged #{opponent.username}."
+      raise Refused, "You have already challenged #{opponent.player_name}."
     end
 
     match = create!(home_user: challenger, away_user: opponent, match_status: PENDING, match_against: "human",
@@ -75,7 +75,7 @@ class Match < ApplicationRecord
 
   def accept!(user)
     change_on_clock(user) do
-      raise Refused, "Only #{away_user.username} can accept this challenge." unless seat(user) == :away
+      raise Refused, "Only #{away_user.player_name} can accept this challenge." unless seat(user) == :away
       raise Refused, "This challenge is no longer open." unless match_status == PENDING
 
       update!(match_status: ACCEPTED, time_of_last_move: Time.current)
@@ -144,7 +144,7 @@ class Match < ApplicationRecord
     change_on_clock(user) do
       raise Refused, "This match is not in play." unless in_progress?
       raise Refused, "A computer player has taken your seat for this match." if live? && bot_seat?(seat(user))
-      raise Refused, "It is #{user_to_move.username}'s turn." unless your_turn?(user)
+      raise Refused, "It is #{user_to_move.player_name}'s turn." unless your_turn?(user)
 
       apply_turn(steps)
     end
@@ -259,8 +259,8 @@ class Match < ApplicationRecord
       status: match_status,
       phase: if in_progress? then "play" elsif finished? then "over" else "setup" end,
       version: updated_at.to_f.to_s,
-      you: { username: user.username, ready: ready?(user), guest: user.guest? },
-      opponent: { username: display_name_of(opponent_of(user)), ready: ready?(opponent_of(user)) },
+      you: { username: user.player_name, ready: ready?(user), guest: user.guest? },
+      opponent: { username: opponent_of(user).player_name, ready: ready?(opponent_of(user)) },
       seat: seat(user),
       can_accept: pending? && seat(user) == :away,
       can_set_up: pregame? && !ready?(user) && !(pending? && seat(user) == :away),
