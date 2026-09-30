@@ -1,0 +1,37 @@
+<%# The sign-in email's body (UserMailer#magic_link) inside the text-led
+    layouts/mailer shell. One modest button in the brand gold, and the plain
+    link right under it, for a client that shows no buttons and a reader who
+    would rather see where a link goes before opening it. No images, no
+    emoji, no urgency. The button is the brand gold (#C08A2E, theme_primary)
+    under near-black type, 7:1; white on that gold is under 3:1. Links are the
+    same gold, deepened to #7A561B so they read on white. %>
+<h1 style="margin:0 0 16px;font-size:20px;line-height:1.35;font-weight:600;color:#24211c;">
+  <% if @greeting_name %>Hi <%= @greeting_name %>, here's your <%= @app_name %> sign-in link<% else %>Here's your <%= @app_name %> sign-in link<% end %>
+</h1>
+
+<p style="margin:0 0 20px;">
+  Someone, hopefully you, asked to sign in to <%= @app_name %> at <%= @site_host %>.
+  Open the link below to finish signing in. If you're new, it creates your account; there's no password to remember.
+</p>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">
+  <tr>
+    <td bgcolor="#C08A2E" style="border-radius:6px;padding:10px 20px;">
+      <a href="<%= @magic_url %>" style="display:inline-block;font-size:15px;font-weight:600;color:#1f1a12;text-decoration:none;border-radius:6px;">Sign in to <%= @app_name %></a>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0 0 20px;font-size:14px;color:#4a463e;">
+  Or paste this link into your browser:<br>
+  <a href="<%= @magic_url %>" style="color:#7a561b;word-break:break-all;"><%= @magic_url %></a>
+</p>
+
+<p style="margin:0 0 20px;font-size:14px;color:#4a463e;">
+  The link works once and only for a short while. If it has stopped working,
+  ask for a new one on the sign-in page.
+</p>
+
+<p style="margin:0 0 8px;font-size:14px;color:#4a463e;">
+  Didn't ask to sign in? You can ignore this email. Nobody can sign in without the link.
+</p>

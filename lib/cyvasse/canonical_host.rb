@@ -3,12 +3,20 @@
 # Cyvasse moved from cyvasse.mcritchie.studio to its own domain, cyvasse.xyz
 # (task cyvasse-canonical-domain). The bare domain is canonical: Heroku serves
 # https://cyvasse.xyz (an ALIAS record at the apex), and www.cyvasse.xyz, like
-# the old host, redirects to it. Everything that builds an
-# absolute URL reads the host from here: the routes' and mailers'
-# default_url_options (config/environments/production.rb, ApplicationMailer),
-# and Cyvasse::CanonicalHostRedirect, which 301s every other host here.
-# Later work (canonical tags, a sitemap, Open Graph image URLs) builds on
-# Cyvasse.canonical_host and Cyvasse.canonical_url rather than a new constant.
+# the old host, redirects to it. Pages build their absolute URLs on it: the
+# routes' default_url_options (config/environments/production.rb), canonical
+# and Open Graph tags, the sitemap, and Cyvasse::CanonicalHostRedirect, which
+# 301s every other host here. They read Cyvasse.canonical_host and
+# Cyvasse.canonical_url rather than a new constant.
+#
+# MAIL DOES NOT. Every URL written into an email is built on the email link
+# host instead (Cyvasse.email_link_host, below; task
+# trustworthy-sign-in-email). A domain registered the day before reads as a
+# phishing domain to Gmail: a sign-in link on cyvasse.xyz landed in spam with
+# DKIM, SPF and DMARC all passing. So mail keeps the established
+# cyvasse.mcritchie.studio, whose GET the redirect 301s to the canonical host
+# with path and query intact, and the player still confirms and is signed in
+# on the canonical host.
 #
 # The move is GATED in production, because cyvasse.xyz may not resolve yet
 # (its public DNS waited on a DNSSEC change at the registry). Until
@@ -22,6 +30,12 @@
 #                                      the redirect is off
 #   elsewhere    CANONICAL_HOST, else nil: a desk or a test keeps the request
 #                host, and nothing redirects
+#
+# The email link host, which CANONICAL_REDIRECT never moves:
+#
+#   production   EMAIL_LINK_HOST, else cyvasse.mcritchie.studio
+#   elsewhere    EMAIL_LINK_HOST, else nil: the environment's own mailer
+#                options stand (localhost on a desk, example.com in a test)
 #
 # The scheme is always https: a canonical host is a public TLS host.
 #
@@ -56,10 +70,29 @@ module Cyvasse
       host(env: env, production: production) if enforced?(env: env, production: production)
     end
 
+    # The host every URL in an email is built on. Never the canonical host
+    # unless EMAIL_LINK_HOST names it.
+    def self.email_host(env: ENV, production: Rails.env.production?)
+      configured = normalized(env["EMAIL_LINK_HOST"])
+      return configured if configured || !production
+
+      LEGACY
+    end
+
+    # { host:, protocol: } for mail's default_url_options, or nil where none is set.
+    def self.email_url_options(host: email_host)
+      url_options(host: host)
+    end
+
     def self.configured(env)
-      env["CANONICAL_HOST"].to_s.strip.downcase.presence
+      normalized(env["CANONICAL_HOST"])
     end
     private_class_method :configured
+
+    def self.normalized(value)
+      value.to_s.strip.downcase.presence
+    end
+    private_class_method :normalized
 
     # { host:, protocol: } for default_url_options, or nil where none is set.
     def self.url_options(host: self.host)
@@ -81,5 +114,9 @@ module Cyvasse
 
   def self.canonical_url(path = "/")
     CanonicalHost.url(path)
+  end
+
+  def self.email_link_host
+    CanonicalHost.email_host
   end
 end
