@@ -19,10 +19,17 @@ class MatchLayoutSystemTest < ApplicationSystemTestCase
       .transform_keys(&:to_sym)
   end
 
-  def assert_panel_holds_the_noise
+  # docked: a phone's setup, whose army sheet carries the clock, so the timer
+  # card's own is not shown as a second one (task cyvasse-play-layout-fit).
+  def assert_panel_holds_the_noise(docked: false)
     within("aside.match-panel") do
-      assert_selector "[data-cyvasse-match-target=clock]", visible: true
-      assert_selector "[data-cyvasse-match-target=clockLabel]", text: "Set up your army"
+      if docked
+        assert_selector ".cyvasse-army .cyvasse-army-clock", text: /\A\d+s\z/
+        assert_no_selector "[data-cyvasse-match-target=clock]", visible: :visible
+      else
+        assert_selector "[data-cyvasse-match-target=clock]", visible: true
+        assert_selector "[data-cyvasse-match-target=clockLabel]", text: "Set up your army"
+      end
       assert_link "← My games"
       assert_link "How to play"
       assert_button "Forfeit match"
@@ -65,12 +72,11 @@ class MatchLayoutSystemTest < ApplicationSystemTestCase
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
     begin
       visit match_path(@match)
-      assert_panel_holds_the_noise
+      assert_panel_holds_the_noise(docked: true)
       versus, board, panel = [ ".match-versus-card", ".cyvasse-board-wrap", "aside.match-panel" ].map { box(_1) }
       assert_operator versus[:bottom], :<=, board[:top], "the versus card sits above the board"
       assert_operator board[:bottom], :<=, panel[:top], "the panel sits below the board"
       assert_operator versus[:right], :<=, 390
-      assert_clock_spans_the_panel
       scroll, client = page_widths
       assert_operator scroll, :<=, client, "no sideways scroll at 390px"
       page.save_screenshot(Rails.root.join("tmp/screenshots/versus-card-phone.png")) if ENV["SCREENSHOTS"]
