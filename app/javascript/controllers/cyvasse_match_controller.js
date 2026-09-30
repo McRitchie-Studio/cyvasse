@@ -1,5 +1,7 @@
 import GameController from "controllers/cyvasse_game_controller"
 import { Game, PLAYER } from "cyvasse/game"
+import { fullMove } from "cyvasse/turns"
+import { liveNotice } from "cyvasse/live_notice"
 
 // The board for an online match (matches/show): the /play board, driven by
 // the server instead of the computer.
@@ -85,6 +87,7 @@ export default class extends GameController {
     this.opponentTarget.textContent = state.opponent.username
     this.renderDeadline()
     this.render()
+    this.showBoardWhenSetupOpens()
     this.showComputerStep()
     if (arriving) this.animateArrival()
     this.startLiveClock()
@@ -94,7 +97,8 @@ export default class extends GameController {
     } else if (state.phase === "over") {
       this.banner(this.outcomeText(), null, { stay: true })
     } else if (announce && state.phase === "play") {
-      this.banner(state.your_turn ? `Turn ${state.turn} · Your move` : `Turn ${state.turn} · ${state.opponent.username} to move`)
+      const turn = fullMove(state.turn)
+      this.banner(state.your_turn ? `Turn ${turn} · Your move` : `Turn ${turn} · ${state.opponent.username} to move`)
     }
     this.poll()
   }
@@ -239,6 +243,7 @@ export default class extends GameController {
     if (this.game.phase === "setup" && !this.state.can_set_up) {
       for (const { group } of this.hexNodes.values()) group.classList.remove("is-deploy", "is-drop")
       this.paintGround()
+      this.labelHexes()
     }
     // "Ready" waits for a full army, and for a setup the server still takes.
     this.startButtonTarget.disabled = !this.state.can_set_up || !this.game.readyToStart
@@ -263,8 +268,11 @@ export default class extends GameController {
     if (state.phase === "over") {
       text = this.outcomeText()
     } else if (state.phase === "play") {
-      if (!state.your_turn) text = `Turn ${state.turn}: waiting for ${them} to move.`
-      else text = this.game.jump === 2 ? `Turn ${state.turn}: your cavalry jumps again.` : `Turn ${state.turn}: your move.`
+      const turn = fullMove(state.turn)
+      if (!state.your_turn) text = `Turn ${turn}: waiting for ${them} to move.`
+      else text = this.game.jump === 2 ? `Turn ${turn}: your cavalry jumps again.` : `Turn ${turn}: your move.`
+      const picked = state.your_turn ? this.pickedNote() : ""
+      if (picked) text = `${text} ${picked}`
     } else if (state.can_accept) {
       text = `${them} challenged you. Accept to set up your army.`
     } else if (state.can_set_up) {
@@ -276,7 +284,7 @@ export default class extends GameController {
     } else {
       text = `Your army is in place. Waiting for ${them} to set up.`
     }
-    this.statusTarget.textContent = text
+    this.setStatus(text)
   }
 
   renderDeadline() {
@@ -314,6 +322,7 @@ export default class extends GameController {
     const clock = live?.clock
     const them = this.state.opponent.username
     this.clockTarget.hidden = !live || this.state.phase === "over" || (!clock && !live.thinking)
+    if (this.hasArmyClockTarget) this.armyClockTarget.hidden = true
     if (this.clockTarget.hidden) return
 
     this.clockTarget.classList.toggle("is-thinking", !!live.thinking)
@@ -325,7 +334,9 @@ export default class extends GameController {
       return
     }
 
-    const remaining = Math.max(0, (Date.parse(clock.ends_at) - (Date.now() + (this.clockOffset || 0))) / 1000)
+    // A Play Now setup clock starts after the versus splash (LiveMatch
+    // setup_grace): a board opened early holds at the full clock until then.
+    const remaining = Math.min(clock.seconds, Math.max(0, (Date.parse(clock.ends_at) - (Date.now() + (this.clockOffset || 0))) / 1000))
     const mine = clock.kind === "setup" ? this.state.can_set_up : this.state.your_turn
     const warning = remaining <= clock.warning
     let label
@@ -338,6 +349,12 @@ export default class extends GameController {
     this.clockLabelTarget.textContent = label
     this.clockSecondsTarget.textContent = `${Math.ceil(remaining)}s`
     this.clockBarTarget.style.width = `${Math.min(100, (remaining / clock.seconds) * 100)}%`
+    // The docked army sheet's copy of the setup clock (games/_army_card).
+    if (this.hasArmyClockTarget && clock.kind === "setup" && mine) {
+      this.armyClockTarget.hidden = false
+      this.armyClockTarget.textContent = this.clockSecondsTarget.textContent
+      this.armyClockTarget.classList.toggle("is-warning", warning)
+    }
 
     // Out of time: ask the server now rather than at the next poll.
     if (remaining === 0 && this.firedFor !== clock.ends_at) {
@@ -347,25 +364,12 @@ export default class extends GameController {
     }
   }
 
-  // The strike and seat notices. Each one but the computer's hold on this
-  // player's seat can be dismissed; that one ends with "Take back my seat".
+  // The strike and seat notices (cyvasse/live_notice). Each one but the
+  // computer's hold on this player's seat can be dismissed; that one ends
+  // with "Take back my seat". A finished match shows none.
   renderLiveNotice() {
     if (!this.hasNoticeTarget) return
-    const live = this.state.live
-    const them = this.state.opponent.username
-    let text = ""
-    let held = false
-    if (live) {
-      if (live.taken_over.you) {
-        text = "You missed two clocks, so a computer player has taken your seat. Take it back to play on."
-        held = true
-      } else if (live.taken_over.opponent) text = `${them} missed two clocks, so a computer player has taken their seat.`
-      else if (live.took_back?.you) text = "You took back your seat. Miss one more clock and a computer player takes it again."
-      else if (live.took_back?.opponent) text = `${them} took back their seat from the computer player.`
-      else if (live.auto_set_up.you && live.strikes.you === 1) text = "Time ran out, so your army was placed for you. Miss one more clock and a computer player takes your seat."
-      else if (live.strikes.you === 1) text = "You missed a clock and a move was made for you. Miss one more and a computer player takes your seat."
-      else if (live.strikes.opponent === 1) text = `${them} missed a clock.`
-    }
+    const { text, held } = liveNotice(this.state.live, this.state.phase, this.state.opponent.username)
     const shown = text && (held || !this.dismissedNotices().includes(text))
     if (this.hasNoticeTextTarget) this.noticeTextTarget.textContent = text
     else this.noticeTarget.textContent = text

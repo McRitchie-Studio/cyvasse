@@ -152,8 +152,7 @@
 }
 
 .rules-prose a,
-.about-page a,
-.tutorial-card figcaption a {
+.about-page a {
   color: rgb(var(--color-primary-rgb));
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -162,9 +161,22 @@
 /* The gold primary is 2.9:1 on the light page, under WCAG AA's 4.5:1 for
  * text; its 700 shade is 5.4:1. Dark mode keeps the brighter gold. */
 html:not(.dark) .rules-prose a,
-html:not(.dark) .about-page a,
-html:not(.dark) .tutorial-card figcaption a {
+html:not(.dark) .about-page a {
   color: rgb(var(--color-primary-700-rgb));
+}
+
+/* A Special Rules card marks the stats its rule is about with a gold pill on
+ * the label and the value (the old screenshots circled them by hand). */
+.unit-stat-marked {
+  justify-self: start;
+  padding: 0 0.375rem;
+  margin-left: -0.375rem;
+  border-radius: 0.25rem;
+  background: rgb(var(--color-primary-rgb) / 0.25);
+}
+
+dd.unit-stat-marked {
+  margin-left: -0.375rem;
 }
 
 /* A unit card's art tile: the parchment .piece-tile above, at a fixed size. */

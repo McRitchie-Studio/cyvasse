@@ -8,9 +8,10 @@ Rails 4.1.4) rebuilt as a managed McRitchie Studio satellite. The epic plan is
 So far the app holds auth, theme and error logging from
 [studio-engine](https://github.com/McRitchie-Studio/studio-engine), a public
 landing page, the original art, a public `/pieces` gallery of it, and the
-original site's `/rules` (with the tutorial's special-rules cards) and `/about`
-pages, their copy lightly edited. Unit stats for `/rules` live in
-`app/models/rulebook.rb`. And the game itself: `/play`, a public game against
+original site's `/rules` (with the tutorial's special-rules cards, now drawn
+from live stats) and `/about` pages, their copy lightly edited. Unit stats for
+`/rules` live in `app/models/rulebook.rb`; its army counts come from the
+engine's `CyvasseRules::Units::ARMY`. And the game itself: `/play`, a public game against
 the computer, played entirely in the browser, in whichever piece skin the
 player picked; `/matches`, online matches between signed-in players, a turn
 at a time; and messages between players: a chat on each match, an `/inbox`,
@@ -37,7 +38,7 @@ Imported from the legacy repo and served through Propshaft
 | `pieces/pencil/*.png` | The pencil skin, 11 pieces | `app/assets/images/pieces/` |
 | `pieces/vector/*.svg` | The coloured vector skin, 11 pieces (verbatim) | `public/images/svgs/` |
 | `backgrounds/`, `title/`, `hex.svg` | Page backgrounds, title wordmarks, the hex outline | `app/assets/images/cyvasse_*.png`, `hex.svg` |
-| `tutorial/`, `thanks/` | Tutorial figures and the gSchool thanks photos | `public/images/tutorial/`, `public/images/thanks/` |
+| `thanks/` | The gSchool thanks photos | `app/assets/images/thanks/` |
 | `backgrounds/home/*.webp` | The home page's background gallery: one action shot per piece, a 2:1 wide crop and a `-mobile` portrait crop each | New: captured from `/play` (below) |
 
 The home page's background (`HomeGallery`, `pages/_home_gallery`,
@@ -62,7 +63,8 @@ compress a new one before adding it. `public/favicon.png`, `public/favicon.ico`
 vector elephant, the legacy site's share image; `public/icon-maskable.png` is
 the same art padded onto parchment so a round mask never crops it. Left
 behind: user uploads, the Game of Thrones actor photos, `dragonOld.svg`,
-`human.svg`, `unFilteredSVGs/`, and the tutorial `draft1/` drafts.
+`human.svg`, `unFilteredSVGs/`, the tutorial `draft1/` drafts, and the tutorial
+screenshots, whose baked-in stats had gone stale.
 
 ## The game
 
@@ -179,6 +181,14 @@ whenever either player opens My games or the match, and on any late move,
 resignation, acceptance or army (a stale page cannot overturn the forfeit), so
 it needs no scheduler; `bin/rails matches:expire` sweeps every match and may
 be run daily by one.
+
+**The live setup clock.** A live match gives both players 60 s to set up
+(`LiveMatch::SETUP_CLOCK`). A match made by Play Now starts that clock after
+the "You vs them" splash (`LiveSeek.splash_time`, 5 s), not when the match is
+made: `Match.start_live!(..., setup_grace:)` sets `clock_started_at` that far
+ahead, so the deadline is one server time and both players get the same 60 s
+once their boards open. On a phone (640px and under) the army card docks as
+a sheet under the board during setup (`game.css`, "phone setup dock").
 
 **The computer's pace.** The computer plays in steps a player can follow:
 it selects a unit after 2-5 s, moves it 3-5 s later, and makes a cavalry

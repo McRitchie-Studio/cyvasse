@@ -57,4 +57,26 @@ class RulebookTest < ActiveSupport::TestCase
     two = Rulebook::Unit.new(piece: Piece.all.first, movement: "1", strength: "1", range: nil, trumps: %w[Elephant Dragon])
     assert_equal "Elephant and Dragon", Rulebook.trump_list(two)
   end
+
+  test "each cavalry unit carries its own first jump and the shared second" do
+    assert_equal [ 3, Rulebook::CAVALRY_SECOND_JUMP ], Rulebook.fetch("lighthorse").jumps
+    assert_equal [ 2, Rulebook::CAVALRY_SECOND_JUMP ], Rulebook.fetch("heavyhorse").jumps
+    assert_nil Rulebook.fetch("rabble").jumps
+    assert_nil Rulebook.fetch("dragon").jumps
+  end
+
+  test "fetch and class_of find a unit by slug" do
+    assert_equal "Trebuchet", Rulebook.fetch("trebuchet").name
+    assert_equal "Range", Rulebook.class_of(Rulebook.fetch("trebuchet"))
+    assert_raises(KeyError) { Rulebook.fetch("wizard") }
+  end
+
+  # Counted from the engine's army list, so the page cannot say "10 military
+  # pieces" again (production audit #6).
+  test "the army is 19 pieces: 17 units of 10 kinds and 2 mountains" do
+    assert_equal 19, Rulebook.army_size
+    assert_equal 17, Rulebook.army_unit_count
+    assert_equal 10, Rulebook.unit_kind_count
+    assert_equal 2, Rulebook.mountain_count
+  end
 end

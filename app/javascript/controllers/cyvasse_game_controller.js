@@ -5,10 +5,12 @@ import { botDelays } from "cyvasse/pacing"
 import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
 import { UNIT_TYPES, THREAT_GROUPS } from "cyvasse/units"
 import { Banner, passNotice } from "cyvasse/banner"
+import { fullMove } from "cyvasse/turns"
 import { threats } from "cyvasse/threats"
 import { EDGES, hexClaim, resolveEdges, threatRims, PERIMETER_STYLE } from "cyvasse/edges"
 import { playIntent, setupIntent } from "cyvasse/selection"
 import { smartLineup, smartSetupMode, SMART_LABELS, recentPicks, rememberPick } from "cyvasse/smart_setup"
+import { hexLabel, hexStates, selectionNote } from "cyvasse/hex_label"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -184,11 +186,12 @@ function shadeStops(rank) {
   return [[`${clear}%`, 0], ["100%", edge]]
 }
 
-const CONTROLS = "button, a, input, label, select, textarea, summary, [role=button]"
+// The board key (games/_threat_toggle) counts as a control: reading it keeps the picked piece.
+const CONTROLS = "button, a, input, label, select, textarea, summary, [role=button], .cyvasse-legend"
 
 export default class extends Controller {
   static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent", "hint", "threatToggle",
-    "army", "smartButton", "armyCount", "fallen"]
+    "army", "smartButton", "armyCount", "armyClock", "fallen"]
   static values = { skin: { type: String, default: "vector" }, images: Object, skins: Object, pace: { type: Number, default: 1 } }
 
   connect() {
@@ -198,6 +201,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.dockObserver?.disconnect()
     this.cursorEvents?.abort()
     this.clearTimers()
     this.bannerBox.hide()
@@ -218,6 +222,8 @@ export default class extends Controller {
     this.setupControlsTarget.hidden = false
     this.hideBanner()
     this.render()
+    this.setupBoardShown = false
+    this.showBoardWhenSetupOpens()
   }
 
   // "✨ Smart Setup", "✨ Place All", "✨ New Setup" (cyvasse/smart_setup):
@@ -279,7 +285,7 @@ export default class extends Controller {
     if (this.game.phase === "over") return this.announceWinner()
 
     const whose = this.game.offense === PLAYER ? "Your move" : "Opponent’s move"
-    this.banner(`${passed ? (this.game.offense === PLAYER ? "Opponent passes · " : "You pass · ") : ""}Turn ${this.game.turn} · ${whose}`)
+    this.banner(`${passed ? (this.game.offense === PLAYER ? "Opponent passes · " : "You pass · ") : ""}Turn ${fullMove(this.game.turn)} · ${whose}`)
     if (this.game.offense === COMPUTER) this.computerTurn()
   }
 
@@ -308,7 +314,8 @@ export default class extends Controller {
 
   announceWinner() {
     if (this.game.winner === null) return this.banner("Neither side can move. A draw.", null, { stay: true })
-    const text = this.game.winner === PLAYER ? `You win, at turn ${this.game.turn}.` : `You were defeated, at turn ${this.game.turn}.`
+    const turn = fullMove(this.game.turn)
+    const text = this.game.winner === PLAYER ? `You win, at turn ${turn}.` : `You were defeated, at turn ${turn}.`
     this.banner(text, null, { stay: true })
   }
 
@@ -382,6 +389,65 @@ export default class extends Controller {
     if (this.game.phase !== "setup") return
     this.selectedUnitId = event.currentTarget.dataset.unitId
     this.render()
+    this.showBoardAboveDock()
+  }
+
+  // ---- The phone setup dock (game.css, "phone setup dock") -------------------
+  // On a phone the army card is a sheet fixed to the bottom of the screen
+  // during setup. Its measured height (--dock-sheet) pads the page, so the
+  // panel under the board scrolls clear of it, and sets the board's scroll
+  // margin, so the board is never left under it.
+
+  watchDock() {
+    this.dockObserver?.disconnect()
+    if (!this.hasArmyTarget || !window.ResizeObserver) return
+    this.dockObserver = new ResizeObserver(() => this.measureDock())
+    this.dockObserver.observe(this.armyTarget)
+  }
+
+  get docked() {
+    return this.hasArmyTarget && getComputedStyle(this.armyTarget).position === "fixed"
+  }
+
+  measureDock() {
+    const height = this.docked ? Math.ceil(this.armyTarget.getBoundingClientRect().height) : 0
+    if (height > 0) this.element.style.setProperty("--dock-sheet", `${height}px`)
+    else this.element.style.removeProperty("--dock-sheet")
+  }
+
+  // Setup opening on a phone: the player's own five rows are the board's
+  // bottom, under the sheet until the page scrolls. Bring the board above
+  // the sheet once, as a pick does, after the sheet has laid out, so those
+  // rows are in view before the first pick.
+  showBoardWhenSetupOpens() {
+    if (this.setupControlsTarget.hidden || this.setupBoardShown) return
+    this.setupBoardShown = true
+    requestAnimationFrame(() => {
+      this.measureDock()
+      this.showBoardAboveDock()
+    })
+  }
+
+  // A unit picked from the sheet: bring the whole board into view between
+  // the pinned navbar and the sheet, once, so every placement after needs no
+  // scrolling. By hand, not scrollIntoView: the page's root clips sideways
+  // (overflow-x: clip), and Chrome then scrolls it into view not at all.
+  showBoardAboveDock() {
+    if (!this.docked) return
+    const board = this.boardTarget.getBoundingClientRect()
+    const pinned = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0
+    const top = pinned + 4
+    const bottom = this.armyTarget.getBoundingClientRect().top - 4
+    // The sheet's edge first: the navbar collapses as the page scrolls, which
+    // lifts the board further, so the room under it is only known afterwards.
+    // The board is capped to fit the collapsed room (game.css). The strip
+    // over the board may tuck under the navbar; the board itself may not.
+    let by = 0
+    if (board.bottom > bottom) by = board.bottom - bottom
+    else if (board.top < top) by = Math.max(board.top - top, board.bottom - bottom)
+    if (Math.abs(by) < 1) return
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    window.scrollBy({ top: by, behavior: still ? "auto" : "smooth" })
   }
 
   setupClick(hex) {
@@ -571,6 +637,7 @@ export default class extends Controller {
     on("pointerleave", () => this.moveCursor(this.hoverCursor, null))
     on("focusin", (e) => this.moveCursor(this.focusCursor, e.target.matches?.(":focus-visible") ? e.target.closest("[data-hex]") : null))
     on("focusout", () => this.moveCursor(this.focusCursor, null))
+    this.watchDock()
 
     // What a screen reader says after a threatened unit's name (renderThreats).
     // Hidden text, joined to the name with aria-labelledby (which reads hidden
@@ -664,7 +731,6 @@ export default class extends Controller {
         delete node.group.dataset.rank
         node.shade.removeAttribute("fill")
       }
-      node.group.setAttribute("aria-label", unit ? `${unit.team === PLAYER ? "Your" : "Enemy"} ${unit.type.name.toLowerCase()}` : `Hex ${index}`)
       if (unit) {
         node.image.setAttribute("href", this.imagesValue[unit.type.codename])
       } else {
@@ -692,12 +758,50 @@ export default class extends Controller {
     }
 
     this.paintGround()
+    this.labelHexes()
     this.renderThreats()
     this.renderHint()
     this.renderDock()
     this.renderStatus()
     this.renderGraveyards()
     this.renderInfo(this.selectedUnitId ? game.unit(this.selectedUnitId) : null)
+  }
+
+  // Each hex's aria-label (cyvasse/hex_label): what stands on it, and while a
+  // unit of the player's is picked, what a click there would do. The picked
+  // unit's hex is aria-pressed; no other hex carries the attribute. Keyboard
+  // play hears the board this way; the status line says what was picked.
+  labelHexes() {
+    const game = this.game
+    const pieceAt = (index) => game.pieceAt(index)
+    let states
+    if (game.phase === "setup") {
+      const selected = this.selectedUnitId && game.unit(this.selectedUnitId)
+      const drops = [...this.hexNodes].filter(([, { group }]) => group.classList.contains("is-drop")).map(([index]) => index)
+      states = selected ? hexStates({ dropHexes: drops, selectedHex: selected.hex ?? null }) : new Map()
+    } else {
+      states = hexStates({ hexes: this.hexNodes.keys(), pieceAt, selectedHex: this.selectedHex, actions: this.actions })
+    }
+    for (const [index, { group }] of this.hexNodes) {
+      const state = states.get(index)
+      const label = hexLabel(index, pieceAt(index), state)
+      if (group.getAttribute("aria-label") !== label) group.setAttribute("aria-label", label)
+      if (state === "selected") group.setAttribute("aria-pressed", "true")
+      else group.removeAttribute("aria-pressed")
+    }
+  }
+
+  // The status line's word on the player's picked unit, or "" (selectionNote).
+  pickedNote() {
+    if (this.selectedHex == null || !this.actions) return ""
+    const unit = this.game.pieceAt(this.selectedHex)
+    return unit?.team === PLAYER ? selectionNote(unit, this.actions) : ""
+  }
+
+  // The status line is the board's one live region: write it only on a
+  // change, so a redraw that says the same thing is not read out again.
+  setStatus(text) {
+    if (this.statusTarget.textContent !== text) this.statusTarget.textContent = text
   }
 
   // Each hex's resting fill, from the classes render() just set. It is the
@@ -839,11 +943,14 @@ export default class extends Controller {
     } else if (game.phase === "over") {
       text = game.winner === PLAYER ? "You win." : game.winner === COMPUTER ? "You were defeated." : "A draw."
     } else if (game.offense === PLAYER) {
-      text = game.jump === 2 ? `Turn ${game.turn}: your cavalry jumps again.` : `Turn ${game.turn}: your move.`
+      const turn = fullMove(game.turn)
+      text = game.jump === 2 ? `Turn ${turn}: your cavalry jumps again.` : `Turn ${turn}: your move.`
+      const picked = this.pickedNote()
+      if (picked) text = `${text} ${picked}`
     } else {
-      text = `Turn ${game.turn}: the opponent is thinking.`
+      text = `Turn ${fullMove(game.turn)}: the opponent is thinking.`
     }
-    this.statusTarget.textContent = this.notice && game.phase === "play" ? `${this.notice} ${text}` : text
+    this.setStatus(this.notice && game.phase === "play" ? `${this.notice} ${text}` : text)
   }
 
   // The fallen card stays hidden until a unit of either side falls.
@@ -910,8 +1017,10 @@ export default class extends Controller {
     for (const i of this.actions.moves) this.hexNodes.get(i).group.classList.add("is-move")
     for (const i of this.actions.attacks) this.hexNodes.get(i).group.classList.add("is-attack")
     this.renderEdges()
+    this.labelHexes()
     this.ripple(unit)
     this.renderHint()
+    this.renderStatus()
   }
 
   clearSelection() {
