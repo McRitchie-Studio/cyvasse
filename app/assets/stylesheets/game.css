@@ -1069,6 +1069,19 @@ html.dark [data-skin="pencil"] .dock-unit img {
   line-height: 1.25;
 }
 
+/* With no room below its "?", the key opens above it (board_key controller),
+ * which sets a max-height when neither side has room for all of it; the
+ * panel then scrolls inside itself, never off the screen. */
+.cyvasse-legend[data-placement="above"] .cyvasse-legend-panel {
+  top: auto;
+  bottom: calc(100% + 0.375rem);
+}
+
+.cyvasse-legend-panel {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* In the match's timer card the key sits at the left of a wrapped row. */
 .match-panel-status .cyvasse-legend-panel {
   right: auto;

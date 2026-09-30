@@ -93,14 +93,17 @@ html:root:not(.dark) {
 /* A quiet word under a player's name, "Computer" or "You": small caps, not a
  * pill. Shared by the match's versus card (matches/_versus) and the Play Now
  * splash (live_seeks/show), so the two read alike. Sets no display, so a
- * `hidden` caption stays hidden. */
+ * `hidden` caption stays hidden. Quiet by size and case, not by fading: the
+ * muted ink at 0.8 opacity was 3.69:1 light and 3.48:1 dark (production UX
+ * audit #12). The secondary ink at full strength clears AA on every surface
+ * in both themes (test/lib/light_mode_contrast_test.rb). */
 .player-caption {
   font-size: 0.75rem;
   font-weight: 500;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.08em;
   line-height: 1.1;
-  opacity: 0.8;
+  color: var(--color-text-secondary);
 }
 
 /* A player's name (task cyvasse-splash-name-fit), on the splash and the
@@ -391,16 +394,20 @@ html.dark .unit-card [data-skin="pencil"] > img {
 }
 
 .unit-trumps .unit-stat-link {
-  display: inline-flex;
   padding: 0.125rem;
 }
 
-/* A Special Rules card a stat link lands on (#rule-range and so on) clears
- * the sticky navbar, and flashes a gold ring for 1.5s (rule_links_controller)
- * so the eye finds it; under reduced motion the jump is instant and nothing
+/* Every anchor on /rules (a Special Rules card a stat link lands on,
+ * #rule-range and so on, and each section and unit card) clears the sticky
+ * navbar by its real height: --nav-h, which the engine's head script
+ * measures off the header and keeps current as it collapses. A fixed 5rem
+ * left a card under the 102px phone navbar (production UX audit #11); the
+ * fallback, before the first measurement, is taller than the tallest bar.
+ * A card also flashes a gold ring for 1.5s (rule_links_controller) so the
+ * eye finds it; under reduced motion the jump is instant and nothing
  * flashes. */
-.special-rule-card {
-  scroll-margin-top: 5rem;
+.rules-page [id] {
+  scroll-margin-top: calc(var(--nav-h, 7rem) + 0.75rem);
 }
 
 .special-rule-card:focus {
@@ -444,6 +451,23 @@ html.dark .unit-card [data-skin="pencil"] > img {
   width: 2.25rem;
   height: 2.25rem;
   object-fit: contain;
+}
+
+/* Each trump is its piece's art over the piece's name, in small caps. */
+.unit-trump {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.unit-trump-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: var(--color-text-secondary);
 }
 
 .about-portrait {

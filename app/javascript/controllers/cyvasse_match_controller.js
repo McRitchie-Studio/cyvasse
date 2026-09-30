@@ -1,6 +1,6 @@
 import GameController from "controllers/cyvasse_game_controller"
 import { Game, PLAYER } from "cyvasse/game"
-import { pointsLine } from "cyvasse/game_over"
+import { pointsLine, refreshNavRank } from "cyvasse/game_over"
 import { fullMove } from "cyvasse/turns"
 import { liveNotice } from "cyvasse/live_notice"
 
@@ -96,6 +96,7 @@ export default class extends GameController {
     this.startLiveClock()
 
     if (ended) {
+      refreshNavRank(document, this.state.live?.board_rank)
       this.openGameOver()
     } else if (state.phase === "over") {
       this.banner(this.outcomeText(), null, { stay: true })

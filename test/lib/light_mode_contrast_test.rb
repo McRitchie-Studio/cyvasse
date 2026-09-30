@@ -69,4 +69,24 @@ class LightModeContrastTest < ActiveSupport::TestCase
     assert_includes toggle, "aria-pressed:bg-primary-700"
     assert_not_includes toggle, "aria-pressed:bg-primary "
   end
+  # UX audit #2 (#12): the "You" and "Computer" captions (matches/_versus,
+  # live_seeks/show) read the secondary ink at full strength, which clears AA
+  # on every surface in both themes; the muted ink at 0.8 opacity did not.
+  test "the player captions read the secondary ink, unfaded, in both views" do
+    %w[light dark].each do |mode|
+      vars = mode == "light" ? @theme.light_mode_vars : @theme.dark_mode_vars
+      ink = vars.fetch("--color-text-secondary")
+      (mode == "light" ? @light_surfaces : @dark_surfaces).each do |ground|
+        assert_operator ratio(ink, ground), :>=, AA, "#{mode}: caption ink #{ink} on #{ground}"
+      end
+    end
+    rule = @css[/^\.player-caption \{(.*?)\}/m, 1].to_s
+    assert_match "color: var(--color-text-secondary)", rule
+    assert_no_match(/opacity/, rule)
+    %w[app/views/matches/_versus.html.erb app/views/live_seeks/show.html.erb].each do |view|
+      markup = Rails.root.join(view).read
+      assert_operator markup.scan("player-caption text-secondary").size, :>=, 1, view
+      assert_no_match(/player-caption text-muted/, markup, view)
+    end
+  end
 end

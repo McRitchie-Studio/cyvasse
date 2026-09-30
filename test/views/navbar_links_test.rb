@@ -51,4 +51,24 @@ class NavbarLinksViewTest < ActionView::TestCase
     assert_select "#{NAV} a[href='/matches']", 2
     assert_select "#{NAV} a[href='/matches'][aria-current]", 0
   end
+
+  # [component] After a game the match page writes the new rank into the
+  # navbar (cyvasse/game_over refreshNavRank, production UX audit #14). Its
+  # selector finds both rows' Leaderboard links in this navbar, and the badge
+  # it adds for a newly ranked player is the engine's own.
+  test "the game-over rank refresh finds both Leaderboard links and draws the engine's badge" do
+    arya, brienne = player("arya"), player("brienne")
+    live_result(arya, brienne, winner: arya)
+    render_navbar_for(brienne)
+
+    js = Rails.root.join("app/javascript/cyvasse/game_over.js").read
+    selector = js[/NAV_LEADERBOARD = "([^"]+)"/, 1]
+    assert_equal "header[data-pin=nav] a[href='/leaderboard']", selector
+    links = css_select(selector)
+    assert_equal 2, links.size, "the desktop bar and the phone row"
+    links.each { |a| assert_equal "#2", a.at_css("span").text }
+
+    badge_class = js[/NAV_BADGE_CLASS = ((?:"[^"]*"\s*\+?\s*)+)/m, 1].scan(/"([^"]*)"/).join
+    assert_equal StudioNavbarHelper::NAVBAR_BADGE_CLASS, badge_class
+  end
 end
