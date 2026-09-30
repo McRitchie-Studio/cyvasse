@@ -39,7 +39,7 @@ Imported from the legacy repo and served through Propshaft
 | `pieces/vector/*.svg` | The coloured vector skin, 11 pieces (verbatim) | `public/images/svgs/` |
 | `backgrounds/`, `title/`, `hex.svg` | Page backgrounds, title wordmarks, the hex outline | `app/assets/images/cyvasse_*.png`, `hex.svg` |
 | `thanks/` | The gSchool thanks photos | `app/assets/images/thanks/` |
-| `backgrounds/home/*.webp` | The home page's background gallery: one action shot per piece, a 2:1 wide crop and a `-mobile` portrait crop each | New: captured from `/play` (below) |
+| `backgrounds/home/*.webp` | The home page's background gallery: one action shot per piece, a 2:1 wide crop and a `-mobile` portrait crop each, at 1x and `-2x` | New: captured from `/play` (below) |
 | `backgrounds/rules/*.webp` | The `/rules` banner: the enemy King at the end of a Dragon's lane, a 3:1 wide crop and a 16:9 `-mobile` crop | New: captured from `/play` (below) |
 
 The home page's background (`HomeGallery`, `pages/_home_gallery`,
@@ -47,10 +47,13 @@ The home page's background (`HomeGallery`, `pages/_home_gallery`,
 seconds from a random first piece. The hero is full bleed: the page puts it in
 the layout's `:hero` slot, edge to edge between the navbar and `<main>`'s
 centred container (never a `100vw` breakout, which counts the scrollbar and
-scrolls the page sideways). The wide crop is 1800px, so on a 2x laptop screen
-it is drawn at about half the display's resolution; the 70% scrim hides most of
-the softness. Only the first carries its `src` and is
-preloaded; each later one loads a slide ahead of its turn, and
+scrolls the page sideways). Each crop comes at 1x and 2x (wide 1800 and
+3600px, portrait 720 and 1440px, at most 150 KB and 250 KB), offered as a
+`srcset` with width descriptors and `sizes="100vw"`, so a 2x laptop gets the
+sharp file and a 1x screen the light one. Only the first slide carries its
+`srcset` and is preloaded, by the same set (`imagesrcset`/`imagesizes`, no
+`href`), so the browser fetches one file for it; each later one loads a slide
+ahead of its turn, and
 `prefers-reduced-motion` holds the first still. The shots are real board
 states staged in `test/capture/home_gallery_capture.rb`, one scene per piece,
 in the vector skin. Re-capture them (Chrome and `cwebp` needed; a re-run is
@@ -381,10 +384,15 @@ hex), and `test/javascript/openings_test.js` holds each to the rules: a whole
 army on the player's rows, and, all but the King's Gambit, a king that no
 enemy dragon can reach on the first turn.
 
-On the board every unit's hex is shaded in its team's colour from the edge
-in (blue yours, red theirs), and the more the piece is worth the deeper and
-stronger the shade: mountains faintest, then rabble up to the king, in the
-order the computer values them (`KILL_PRIORITY` in `cyvasse/ai.js`).
+On the board every unit's hex carries a faint rim of its team's colour from
+the edge in (blue yours, red theirs), the same for every piece. How much a
+piece matters shows in the size of its art instead, in three tiers
+(`sizeTier` in `cyvasse/units.js`, scaled in `app/assets/stylesheets/game.css`):
+rabble, spearman and crossbowman are small; the king and both horses a bit
+bigger; the trebuchet, catapult, elephant, dragon and mountains biggest. In the
+pencil skin the parchment disc and its drawing scale together. The art is
+clipped to its hex's outline, so no piece reaches a neighbour, and it never
+takes a click: the hex under it is the whole hit target.
 
 ## Leaderboard
 

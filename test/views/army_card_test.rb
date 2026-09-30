@@ -20,6 +20,15 @@ class ArmyCardTest < ActionView::TestCase
     end
     buttons = css_select(".cyvasse-army button").map { |b| b.text.strip }
     assert_equal [ "✨ Smart Setup", "Ready" ], buttons, "Smart Setup comes first"
+    assert_select ".cyvasse-army > button.cyvasse-ready + .cyvasse-dock", 1, "Ready comes before the units (task cyvasse-sidebar-reorder)"
+    assert_select ".cyvasse-army-status", 0, "/play keeps its status in the header"
+  end
+
+  test "a match's card shows the status copy under the heading, for the eye only" do
+    render partial: "games/army_card", locals: { board: "cyvasse-match", status: true }
+
+    assert_select ".cyvasse-army > h2 + p.sr-only + p.cyvasse-army-status[aria-hidden=true][data-cyvasse-match-target=armyStatus]", 1
+    assert_select "[aria-live], [role=status]", false
   end
 
   test "the card adds no second live region and the sparkle is hidden from screen readers" do

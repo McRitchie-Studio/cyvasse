@@ -23,6 +23,8 @@ import { liveNotice } from "cyvasse/live_notice"
 //   seatUrl   POST, take back a seat the computer took over
 //   returnTo  a guest's way back here after signing in (the game-over modal)
 
+const ARMY_IN_PLACE = "Your army is in place. Press Ready to lock it in."
+
 const REASON_TEXT = {
   king: { 1: "You captured the king. You win.", 0: "Your king fell. You were defeated." },
   resigned: { 1: "Your opponent resigned. You win.", 0: "You resigned." },
@@ -279,7 +281,14 @@ export default class extends GameController {
     } else if (state.can_set_up) {
       const army = this.game.teamUnits(PLAYER)
       const placed = army.filter((unit) => unit.status !== "unplaced").length
-      text = placed < army.length ? `Place your army: ${placed} of ${army.length} placed.` : "Your army is in place. Press Ready to lock it in."
+      if (placed < army.length) {
+        text = `Place your army: ${placed} of ${army.length} placed.`
+      } else {
+        // A placed army is announced, not shown: the enabled Ready says it
+        // for the eye (task cyvasse-sidebar-reorder), so the army card's copy
+        // goes blank, keeping its two lines so nothing under it moves.
+        return this.setStatus(ARMY_IN_PLACE, "")
+      }
     } else if (state.status === "pending") {
       text = `Your army is in place. Waiting for ${them} to accept.`
     } else {

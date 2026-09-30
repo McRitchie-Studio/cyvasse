@@ -103,21 +103,59 @@
 }
 
 /* The art fills about four fifths of its hex (the box is 56 x 60 around the
- * centre; the vector art carries its own margin). The pencil art runs to the
- * edge of its canvas, so it is drawn smaller, inside its parchment disc.
- * An SVG element scales about the user-space origin, the hex centre. */
+ * centre; the vector art carries its own margin). An SVG element scales about
+ * the user-space origin, the hex centre, so every size below grows the art
+ * evenly about the middle of its hex. The art never takes a click: the hex
+ * polygon under it is the whole hit target, whatever the art's size.
+ *
+ * Size tiers (units.js sizeTier, set on the hex as data-tier): small pieces
+ * (rabble, spearman, crossbowman) keep the vector art's own size; medium ones
+ * (king, light and heavy horse) draw 1.1 times it, large ones (trebuchet,
+ * catapult, elephant, dragon, mountain) 1.25 times, but never past --art-fit,
+ * the most that art can grow before its drawing leaves the box of its hex's
+ * white outline (58 x 67 around the centre). */
 .cyvasse-board .unit-image {
   pointer-events: none;
+  --tier-scale: 1;
+  --art-fit: 9;
+  transform: scale(min(var(--tier-scale), var(--art-fit)));
 }
+
+.cyvasse-board .hex[data-tier="medium"] .unit-image { --tier-scale: 1.1; }
+.cyvasse-board .hex[data-tier="large"] .unit-image { --tier-scale: 1.25; }
+
+/* Vector art that already fills its canvas, capped from its drawn pixels.
+ * The dragon's wings and tail, the elephant's rider and the trebuchet's arm
+ * reach their hex's slanted edges at or near full size, so they grow only a
+ * little. The controller clips every piece's art to its hex outline
+ * (#hex-art-clip), so nothing reaches a neighbour; these caps keep the clip
+ * to a trim of wing tips rather than a visible crop. The
+ * mountain stands on a flat, full-width snow foot that runs past the hex's
+ * lower edges into the hexes below if it grows much, so it draws only a
+ * little larger than it did (0.86). The dragon, elephant and mountain so grow less than a medium
+ * piece does, but each still draws larger than any medium piece: they fill
+ * most of their canvas, where the king and the horses leave a wide margin
+ * (test/system/piece_size_tiers_test.rb holds both). */
+[data-skin="vector"] .cyvasse-board .hex[data-unit="dragon"] .unit-image { --art-fit: 1.06; }
+[data-skin="vector"] .cyvasse-board .hex[data-unit="elephant"] .unit-image { --art-fit: 1.08; }
+[data-skin="vector"] .cyvasse-board .hex[data-unit="mountain"] .unit-image { --art-fit: 0.9; }
+[data-skin="vector"] .cyvasse-board .hex[data-unit="trebuchet"] .unit-image { --art-fit: 1.18; }
+
+/* The pencil skin draws its piece as a token: black linework on a parchment
+ * disc, the art at 0.84 of the disc. The large token's disc already fills its
+ * hex side to side (radius 28 of the hex's 29), so the pencil tiers step down
+ * from it, by the same ratios: the disc and its art scale together, to 0.8,
+ * 0.88 and 1 of the large token. */
+[data-skin="pencil"] .cyvasse-board .unit-disc {
+  --token-scale: 0.83;
+  transform: scale(var(--token-scale));
+}
+
+[data-skin="pencil"] .cyvasse-board .hex[data-tier="medium"] .unit-disc { --token-scale: 0.913; }
+[data-skin="pencil"] .cyvasse-board .hex[data-tier="large"] .unit-disc { --token-scale: 1.0375; }
 
 [data-skin="pencil"] .cyvasse-board .unit-image {
-  transform: scale(0.84);
-}
-
-/* A mountain's art runs to the foot of its canvas; drawn a little smaller
- * it sits inside the hex's lower edge in both skins (rank 0 is a mountain). */
-.cyvasse-board .hex[data-rank="0"] .unit-image {
-  transform: scale(0.86);
+  transform: scale(calc(0.84 * 0.83 * var(--tier-scale)));
 }
 
 /* A hex the ripple has lit (.is-lit) carries a faint diagonal hatch over its
@@ -175,8 +213,8 @@
   stroke-dasharray: 3 3;
 }
 
-/* A unit's hex is shaded in its team's colour from the edge in, deeper the
- * more the piece is worth (the gradients are built in the controller). */
+/* A unit's hex carries a faint rim of its team's colour from the edge in, the
+ * same for every piece (one gradient per team, built in the controller). */
 .cyvasse-board .unit-shade {
   display: none;
   pointer-events: none;
@@ -186,7 +224,7 @@
   display: inline;
 }
 
-/* A heavy shade would mute the orange of the selected unit, the last move and
+/* The shade would mute the orange of the selected unit, the last move and
  * the red of a hex under attack: those hexes let the cue through. */
 .cyvasse-board .is-selected .unit-shade,
 .cyvasse-board .is-last-move .unit-shade,
@@ -524,6 +562,31 @@ html.dark [data-skin="pencil"] .dock-unit img {
     grid-template-areas: "board versus" "board panel";
     row-gap: 1rem;
   }
+
+  /* The board sits high, its top near the versus card's (task
+   * cyvasse-sidebar-reorder). The banner keeps its own row above the board,
+   * never over it; the start-over strip, which on a match holds only the
+   * hint, shares that row instead of adding one: the hint at the left, the
+   * banner centred and drawn over it (it takes no clicks), and the pair
+   * lifted into the page's top padding (main's py-6). */
+  .match-layout > .cyvasse-board-wrap {
+    margin-top: -1.5rem;
+  }
+
+  .match-layout .cyvasse-board-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2.75rem; /* the banner slot's height */
+    margin: 0;
+  }
+
+  /* Drawn over the hint's row, so it must let clicks through to the hint. */
+  .match-layout .cyvasse-banner-slot {
+    z-index: 1;
+    pointer-events: none;
+  }
 }
 
 .match-panel .live-clock {
@@ -534,10 +597,31 @@ html.dark [data-skin="pencil"] .dock-unit img {
   display: none;
 }
 
-/* During setup the status line runs to two lines once the army is placed;
- * keep room for both from the start, so the army card under it never jumps. */
-[data-phase="setup"] .match-panel-status [data-cyvasse-match-target="status"] {
-  min-height: 2lh;
+/* The timer card holds only what is on: with no clock, switches, deadline
+ * or notice (a correspondence match in setup), it is not drawn at all. */
+.match-panel > .match-panel-status:not(:has(> :not([hidden]))) {
+  display: none;
+}
+
+.match-panel-status .cyvasse-threat-toggles {
+  margin-left: 0;
+  font-size: 0.875rem;
+}
+
+/* The status line, the board's one live region, sits under the army or unit
+ * card. While the army card is up it shows the line's copy (armyStatus), so
+ * the line is read, not shown: it never moves, so nothing is announced twice
+ * or lost (task cyvasse-sidebar-reorder). */
+.match-panel:has(> .cyvasse-setup-controls:not([hidden]) .cyvasse-army-status) > .match-status-line {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .match-actions {
@@ -551,11 +635,6 @@ html.dark [data-skin="pencil"] .dock-unit img {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 1rem;
-}
-
-.match-links .cyvasse-threat-toggles {
-  margin-left: 0;
-  font-size: 0.875rem;
 }
 
 /* One forfeit shows at a time, by the status the board keeps current. It
@@ -659,41 +738,52 @@ html.dark [data-skin="pencil"] .dock-unit img {
   .cyvasse-board.is-arrival .hex .unit-shade { transition: none; }
 }
 
-/* The "Your army" card (games/_army_card). One grid, five rows: heading,
- * lead, dock, Ready, tail. The lead and tail rows are each one button tall
- * whatever they hold, and the dock keeps a slot per unit, so no state change
- * moves Ready, the dock or anything under the card. With nothing placed the
- * Smart Setup button leads, filled; after that it sits in the tail, hollow,
- * and the lead shows the count. Ready stays muted until the army is placed. */
+/* The "Your army" card (games/_army_card). One grid: the heading, a
+ * match's status (two lines kept, so a longer line never pushes what is
+ * under it), Smart Setup beside Ready, then the dock (task
+ * cyvasse-sidebar-reorder: Ready leads the card rather than trailing the
+ * dock). Every slot keeps its size and Smart Setup keeps one place in every
+ * mode, so no state change moves Ready, the dock or anything under the
+ * card. With nothing placed Smart Setup is filled; after that it is hollow
+ * and reads Place All, then New Setup. Ready stays muted until the army is
+ * placed. The status says the count, so the count shows only in the phone
+ * dock. */
 .cyvasse-army {
   --army-slot: 2.75rem;
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto var(--army-slot) auto var(--army-slot) var(--army-slot);
-  grid-template-areas: "heading" "lead" "dock" "ready" "tail";
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto auto var(--army-slot) auto;
+  grid-template-areas: "heading heading" "status status" "smart ready" "dock dock";
+}
+
+.cyvasse-army:not(:has(.cyvasse-army-status)) {
+  grid-template-rows: auto var(--army-slot) auto;
+  grid-template-areas: "heading heading" "smart ready" "dock dock";
 }
 
 .cyvasse-army > h2 { grid-area: heading; }
 .cyvasse-army .cyvasse-dock { grid-area: dock; }
 .cyvasse-army .cyvasse-ready { grid-area: ready; }
-.cyvasse-army .cyvasse-smart { grid-area: tail; }
-.cyvasse-army[data-army-mode="smart"] .cyvasse-smart { grid-area: lead; }
+.cyvasse-army .cyvasse-smart { grid-area: smart; }
+
+.cyvasse-army-status {
+  grid-area: status;
+  min-height: 2lh;
+  margin: 0;
+  text-align: center;
+}
 
 .cyvasse-army .btn {
   width: 100%;
   height: var(--army-slot);
+  padding-inline: 0.5rem;
+  white-space: nowrap;
 }
 
 .cyvasse-army-count {
-  grid-area: lead;
-  align-self: center;
-  text-align: center;
+  display: none;
   margin: 0;
-}
-
-.cyvasse-army[data-army-mode="smart"] .cyvasse-army-count {
-  visibility: hidden;
 }
 
 .cyvasse-ready,
@@ -875,8 +965,8 @@ html.dark [data-skin="pencil"] .dock-unit img {
   line-height: 1.25;
 }
 
-/* In the match panel the key sits at the left of a wrapped row. */
-.match-actions .cyvasse-legend-panel {
+/* In the match's timer card the key sits at the left of a wrapped row. */
+.match-panel-status .cyvasse-legend-panel {
   right: auto;
   left: 0;
   width: min(17rem, calc(100vw - 2rem));
@@ -929,7 +1019,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
   /* The switches wrap on a phone and the "?" can land at the left of its
    * own row, so the panel hangs from the strip's right edge, not the "?". */
   .cyvasse-board-bar,
-  .match-actions {
+  .match-panel-status {
     position: relative;
   }
 
@@ -938,7 +1028,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
   }
 
   .cyvasse-legend-panel,
-  .match-actions .cyvasse-legend-panel {
+  .match-panel-status .cyvasse-legend-panel {
     left: auto;
     right: 0;
     grid-template-columns: minmax(0, 1fr);
@@ -1032,6 +1122,12 @@ html.dark [data-skin="pencil"] .dock-unit img {
     grid-template-areas: "heading meta" "dock dock" "smart ready";
   }
 
+  /* The sheet keeps to the count and the clock; the status copy stays out,
+   * and the status line itself is read from the page as ever. */
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-army-status {
+    display: none;
+  }
+
   .cyvasse-setup-controls .cyvasse-army > h2 {
     align-self: center;
     text-align: left;
@@ -1039,6 +1135,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
   }
 
   .cyvasse-setup-controls .cyvasse-army .cyvasse-army-count {
+    display: block;
     grid-area: meta;
     justify-self: start;
     line-height: 1.25rem;
@@ -1066,10 +1163,6 @@ html.dark [data-skin="pencil"] .dock-unit img {
    * keeps #dc2626, 4.83:1 on the white card. */
   html.dark .cyvasse-setup-controls .cyvasse-army .cyvasse-army-clock.is-warning {
     color: var(--color-danger-ink);
-  }
-
-  .cyvasse-setup-controls .cyvasse-army[data-army-mode] .cyvasse-smart {
-    grid-area: smart;
   }
 
   .cyvasse-setup-controls .cyvasse-army .cyvasse-dock {
