@@ -162,6 +162,28 @@ class MessagesTest < ActionDispatch::IntegrationTest
     assert_select "a[href='/conversations']", /Chat\s*2/, "the navbar badge counts the two people's messages, not the computer's"
   end
 
+  test "the hub's queries do not grow with its rows" do
+    count = lambda do
+      queries = 0
+      counter = ->(*, payload) { queries += 1 unless payload[:name] == "SCHEMA" || payload[:cached] }
+      ActiveSupport::Notifications.subscribed(counter, "sql.active_record") { get conversations_path }
+      queries
+    end
+    Message.post_in_match!(@match, @brienne, "one")
+    log_in_as(@arya)
+    few = count.call
+
+    %w[davos edd fennel gilly].each do |name|
+      person = make_player(name)
+      Message.post_in_match!(Match.challenge!(person, "arya"), person, "hi from #{name}")
+      Match.challenge!(make_player("#{name}_x"), "arya")
+    end
+    many = count.call
+    assert_select "#chat_conversations li", 5
+    assert_select "[data-say-hi]", 4
+    assert_equal few, many
+  end
+
   test "a player who has played no human gets the empty hub with Play Now" do
     get conversations_path
     assert_response :redirect, "signed out: sent to sign in"

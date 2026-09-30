@@ -250,7 +250,7 @@ class User < ApplicationRecord
   def played_humans
     other = Arel.sql(self.class.sanitize_sql_array([ "CASE WHEN home_user_id = ? THEN away_user_id ELSE home_user_id END", id ]))
     latest = Match.involving(self).group(other).order(Arel.sql("MAX(matches.id) DESC")).pluck(other)
-    people = User.humans.where(id: latest - [ id ]).index_by(&:id)
+    people = User.humans.with_attached_avatar.where(id: latest - [ id ]).index_by(&:id)
     latest.filter_map { |user_id| people[user_id] }
   end
 

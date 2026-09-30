@@ -94,7 +94,8 @@ class Conversation
   private_class_method :summary_columns
 
   def self.hydrate(rows)
-    users = User.where(id: rows.flat_map { |row| [ row.low_user_id, row.high_user_id ] }.uniq).index_by(&:id)
+    # Avatars preloaded: the Chat hub draws one per row (players/_avatar).
+    users = User.with_attached_avatar.where(id: rows.flat_map { |row| [ row.low_user_id, row.high_user_id ] }.uniq).index_by(&:id)
     messages = Message.where(id: rows.map(&:last_message_id)).index_by(&:id)
     matches = Match.where(id: rows.flat_map(&:match_ids).uniq).index_by(&:id)
 
