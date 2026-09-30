@@ -178,7 +178,10 @@ const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", u
 // own ranking (KILL_PRIORITY, rabble up to king); mountains sit below it.
 const TEAM_SHADE = { 1: "#3b82f6", 0: "#dc2626" }
 // The last move's glow: [offset, colour, opacity] from the centre out.
-const LAST_MOVE_GLOW = [["0%", "#ffc46b", 0.62], ["45%", "#ffa53a", 0.34], ["80%", "#ff9a1f", 0.22], ["100%", "#ff9a1f", 0.46]]
+// Warm and strongest at the centre, easing off towards the edge, where a
+// moved unit's team shade shows through (the in-danger glow runs the other
+// way, orange from the edges in, and pulses).
+const LAST_MOVE_GLOW = [["0%", "#ffd27f", 0.72], ["45%", "#ffb04a", 0.5], ["80%", "#ff9a1f", 0.3], ["100%", "#ff8c1a", 0.22]]
 const SHADE_RANKS = ["mountain", ...KILL_PRIORITY]
 const TOP_RANK = SHADE_RANKS.length - 1
 
@@ -585,9 +588,8 @@ export default class extends Controller {
       danger.append(el("stop", { offset, "stop-color": "#f97316", "stop-opacity": opacity }))
     }
     defs.append(danger)
-    // The last move: a soft orange glow, brightest at the centre, easing off
-    // and gathering a little again at the rim, so it still shows round a
-    // pencil unit's parchment disc. It fades away (game.css .last-move-glow).
+    // The last move: a soft orange glow from the centre (LAST_MOVE_GLOW). It
+    // fades away (game.css .last-move-glow).
     const glow = el("radialGradient", { id: "last-move-glow", r: "58%" })
     for (const [offset, color, opacity] of LAST_MOVE_GLOW) {
       glow.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
