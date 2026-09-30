@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { Game, PLAYER, COMPUTER } from "cyvasse/game"
-import { chooseAction, KILL_PRIORITY } from "cyvasse/ai"
+import { chooseAction } from "cyvasse/ai"
 import { botDelays } from "cyvasse/pacing"
 import { HEXES, hexAt, inPlayerZone } from "cyvasse/board"
 import { UNIT_TYPES, THREAT_GROUPS } from "cyvasse/units"
@@ -170,21 +170,13 @@ function threatsWanted(group) {
 
 const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", unique: "Unique", mountain: "Mountain" }
 
-// Every unit's hex is shaded in its team's colour from the edge in towards
-// the centre (blue yours, red theirs), and the more a piece is worth the
-// deeper the shade reaches and the stronger it gets. Worth is the computer's
-// own ranking (KILL_PRIORITY, rabble up to king); mountains sit below it.
+// Every unit's hex carries a faint rim of its team's colour from the edge in
+// (blue yours, red theirs), the same for every piece: it says whose piece it
+// is, nothing more. How much a piece matters now shows in the size of its art
+// (units.js sizeTier, scaled in game.css); the rim no longer deepens with the
+// piece's worth (Alex, September 29, 2026).
 const TEAM_SHADE = { 1: "#3b82f6", 0: "#dc2626" }
-const SHADE_RANKS = ["mountain", ...KILL_PRIORITY]
-const TOP_RANK = SHADE_RANKS.length - 1
-
-// Rank 0 is a faint rim; the top rank floods in to near the centre.
-function shadeStops(rank) {
-  const t = rank / TOP_RANK
-  const clear = Math.round(62 - t * 50)
-  const edge = (0.3 + t * 0.7).toFixed(2)
-  return [[`${clear}%`, 0], ["100%", edge]]
-}
+const SHADE_STOPS = [["58%", 0], ["100%", 0.45]]
 
 // The board key (games/_threat_toggle) counts as a control: reading it keeps the picked piece.
 const CONTROLS = "button, a, input, label, select, textarea, summary, [role=button], .cyvasse-legend"
@@ -538,13 +530,11 @@ export default class extends Controller {
     svg.replaceChildren()
     const defs = el("defs", {})
     for (const [team, color] of Object.entries(TEAM_SHADE)) {
-      SHADE_RANKS.forEach((_, rank) => {
-        const gradient = el("radialGradient", { id: `shade-${team}-${rank}`, r: "60%" })
-        for (const [offset, opacity] of shadeStops(rank)) {
-          gradient.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
-        }
-        defs.append(gradient)
-      })
+      const gradient = el("radialGradient", { id: `shade-${team}`, r: "60%" })
+      for (const [offset, opacity] of SHADE_STOPS) {
+        gradient.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
+      }
+      defs.append(gradient)
     }
     for (const hue of new Set(Object.values(MOVE_HUE))) {
       for (const [table, entries] of Object.entries(HSL_TABLES)) {
@@ -724,11 +714,12 @@ export default class extends Controller {
       node.group.dataset.unitId = unit?.id ?? ""
       node.group.dataset.team = unit ? unit.team : ""
       if (unit) {
-        const rank = SHADE_RANKS.indexOf(unit.type.codename)
-        node.group.dataset.rank = rank
-        node.shade.setAttribute("fill", `url(#shade-${unit.team}-${rank})`)
+        node.group.dataset.unit = unit.type.codename
+        node.group.dataset.tier = unit.type.sizeTier
+        node.shade.setAttribute("fill", `url(#shade-${unit.team})`)
       } else {
-        delete node.group.dataset.rank
+        delete node.group.dataset.unit
+        delete node.group.dataset.tier
         node.shade.removeAttribute("fill")
       }
       if (unit) {
