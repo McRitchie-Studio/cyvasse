@@ -19,18 +19,23 @@
 // It assumes the enemy moves first, whoever's king stands nearer the middle:
 // an online opponent can always stand its king forward.
 
-import { COMPUTER_ZONE } from "cyvasse/board";
+import { COMPUTER_ZONE, distance, hexAt } from "cyvasse/board";
 import { legalActions } from "cyvasse/rules";
+import { potentialRange } from "cyvasse/potential_range";
 import { UNIT_TYPES } from "cyvasse/units";
 
-const ATTACKERS = Object.freeze(Object.keys(UNIT_TYPES).filter((codename) => codename !== "mountain"));
+// The light horse first: it is the likeliest raider, so an unsafe army is
+// usually answered on the first attacker tried.
+const ATTACKERS = Object.freeze(
+  ["lighthorse", ...Object.keys(UNIT_TYPES).filter((codename) => !["mountain", "lighthorse"].includes(codename))]
+);
 const ENEMY = "enemy";
 
 // `army` is [{ hex, type }] (a Game's team units, or a parsed lineup), all
 // one side, standing on the player's rows. Answers the enemy's first turns
 // that take the king: [{ attacker, from, via, to }] (`via` is a cavalry unit's
 // first-jump hex, or null), empty when the king is safe.
-export function kingThreats(army) {
+export function kingThreats(army, { limit = Infinity } = {}) {
   const king = army.find((u) => u.type.codename === "king");
   if (!king) throw new Error("the army has no king");
   const own = new Map(army.map((u) => [u.hex, { team: "own", type: u.type }]));
@@ -39,11 +44,13 @@ export function kingThreats(army) {
   for (const codename of ATTACKERS) {
     const type = UNIT_TYPES[codename];
     for (const from of COMPUTER_ZONE) {
+      if (!withinReach(type, from, king.hex)) continue;
       const board = new Map(own);
       board.set(from, { team: ENEMY, type });
       const first = legalActions(position(board), from);
       if (first.attacks.includes(king.hex)) {
         threats.push({ attacker: codename, from, via: null, to: king.hex });
+        if (threats.length >= limit) return threats;
         continue;
       }
       if (type.rank !== "cavalry") continue;
@@ -54,6 +61,7 @@ export function kingThreats(army) {
         const second = legalActions(position(after), via, { jump: 2 });
         if (second.attacks.includes(king.hex)) {
           threats.push({ attacker: codename, from, via, to: king.hex });
+          if (threats.length >= limit) return threats;
           break;
         }
       }
@@ -63,7 +71,16 @@ export function kingThreats(army) {
 }
 
 export function kingSafe(army) {
-  return kingThreats(army).length === 0;
+  return kingThreats(army, { limit: 1 }).length === 0;
+}
+
+// A cheap bound, before the real walk: a unit never takes anything farther
+// than it could reach on an empty board (its move, plus a cavalry unit's
+// second jump, or its shot), and the dragon only along its six lines.
+function withinReach(type, from, target) {
+  if (type.codename === "dragon") return potentialRange(hexAt(from), type.moveRange, { dragon: true }).has(target);
+  const reach = type.rank === "range" ? Math.max(type.attackRange, type.moveRange) : type.moveRange + type.secondJump;
+  return distance(hexAt(from), hexAt(target)) <= reach;
 }
 
 function position(board) {
