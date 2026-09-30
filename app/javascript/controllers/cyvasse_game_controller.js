@@ -9,6 +9,7 @@ import { fullMove } from "cyvasse/turns"
 import { threats } from "cyvasse/threats"
 import { EDGES, hexClaim, resolveEdges, threatRims, PERIMETER_STYLE } from "cyvasse/edges"
 import { LastMoveMarker, lastMoveKey } from "cyvasse/last_move"
+import { hexCorners, artClipCorners, pointsAttribute } from "cyvasse/art_clip"
 import { playIntent, setupIntent } from "cyvasse/selection"
 import { smartLineup, smartSetupMode, SMART_LABELS, recentPicks, rememberPick } from "cyvasse/smart_setup"
 import { hexLabel, hexStates, selectionNote } from "cyvasse/hex_label"
@@ -593,15 +594,21 @@ export default class extends Controller {
     this.hexNodes = new Map()
     this.hexCentres = new Map()
 
-    const FULL = [[0, -H / 2], [W / 2, -H / 4], [W / 2, H / 4], [0, H / 2], [-W / 2, H / 4], [-W / 2, -H / 4]]
-    const cornersAt = (scale) => FULL.map(([x, y]) => `${(x * scale).toFixed(2)},${(y * scale).toFixed(2)}`).join(" ")
+    const FULL = hexCorners(W, H)
+    const cornersAt = (scale) => pointsAttribute(hexCorners(W, H, scale))
     const corners = cornersAt(0.97)
     // Inset, inside the band a highlight edge draws over.
     const dangerCorners = cornersAt(0.935)
-    // The art is clipped to its hex's outline: however large its size tier
-    // draws it (game.css), no wing, arm or snow foot reaches a neighbour.
+    // The art, and the pencil skin's parchment disc, stand on their hex
+    // (cyvasse/art_clip): cut along its right, lower-right and lower-left
+    // outline, free to rise over the hexes behind it, up and to the left.
+    // The paint order does the rest: hexes draw in reading order, rows top to
+    // bottom and each row left to right, so a piece's art covers the hexes
+    // behind it and the hexes in front of it cover nothing of it (the clip
+    // keeps it off them). Every highlight border, the threat outline among
+    // them, draws after every hex (.hex-edges below), over all the art.
     const artClip = el("clipPath", { id: "hex-art-clip" })
-    artClip.append(el("polygon", { points: corners }))
+    artClip.append(el("polygon", { points: pointsAttribute(artClipCorners(W, H, { scale: 0.97 })) }))
     defs.append(artClip)
 
     for (const hex of HEXES) {
@@ -619,8 +626,8 @@ export default class extends Controller {
       const disc = el("circle", { class: "unit-disc", r: 27 })
       const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
       const art = el("g", { class: "unit-art", "clip-path": "url(#hex-art-clip)" })
-      art.append(image)
-      group.append(polygon, texture, shade, glow, danger, disc, art)
+      art.append(disc, image)
+      group.append(polygon, texture, shade, glow, danger, art)
       svg.append(group)
       this.hexNodes.set(hex.index, { group, polygon, shade, glow, disc, image })
       this.hexCentres.set(hex.index, { x: cx, y: cy, row: hex.y })
