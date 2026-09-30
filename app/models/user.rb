@@ -27,6 +27,8 @@ class User < ApplicationRecord
   # Saved army lineups (piece 10b), three slots; they go with the player.
   has_many :setups, dependent: :delete_all
   has_many :live_seeks, dependent: :delete_all
+  # A computer player's remote-runner tokens (BotToken); they go with it.
+  has_many :bot_tokens, dependent: :delete_all
   # The account that absorbed this guest (GuestClaim), when the guest was kept.
   belongs_to :merged_into, class_name: "User", optional: true
 

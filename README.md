@@ -206,6 +206,38 @@ so a computer turn is instant.
 as they are. The users unique index is on the exact username, as the legacy
 uniqueness was; the model refuses a new name that collides in any case.
 
+## Remote computer players (bot API)
+
+A computer player can be played by a program running off the server: Tyrion's
+runner first (the design is `mcritchie-studio/docs/agents/agents/tyrion/runtime.md`).
+It speaks JSON to `/api/bot` with `Authorization: Bearer <token>`, never a
+session, and may do only what a signed-in player could do from a browser, in
+its own matches (anyone else's is a 404). It polls outward; nothing on the
+runner's machine needs to be reachable.
+
+| Call | What |
+|---|---|
+| `GET /api/bot/inbox?after=<message id>` | Its unfinished matches, each with the `action` waiting on it (`setup`, `move` or none), and the chat messages sent to it after the cursor (answer's `cursor`). Settles live clocks, and is the runner's heartbeat |
+| `GET /api/bot/matches/:id` | `Match#state_for` from its seat |
+| `POST /api/bot/matches/:id/setup` | `{ lineup }`, through `Match#set_up!` |
+| `POST /api/bot/matches/:id/moves` | `{ steps }`, through `Match#play!`, checked by the rules like any turn |
+| `POST /api/bot/matches/:id/messages` | `{ message }`, under the chat's rules |
+
+`BotToken` keeps only the SHA-256 digest; only a computer player
+(`User#computer?`) may hold one, and a revoked token or one whose account is no
+longer a computer player answers 401. Calls are rate-limited per token (300 a
+minute). Tokens are an operator act:
+
+```bash
+bin/rails "bot_tokens:issue[tyrion]"   # prints the token once, alone on stdout
+bin/rails bot_tokens:list              # ids, owners, last heard; never tokens
+bin/rails "bot_tokens:revoke[<id>]"
+```
+
+Nothing seats a remote player yet: Play Now still gives its computer seat to
+the in-app bot (`away_bot`), whose seat the API cannot play. Switching Play Now
+to a runner that has been heard from (`BotToken.heard_from?`) is the next piece.
+
 ## Legacy import
 
 `bin/rails legacy:import` (`LegacyImport`, `lib/tasks/legacy.rake`) loads the
