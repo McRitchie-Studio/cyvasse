@@ -706,8 +706,9 @@ Gmail spam with DKIM, SPF and DMARC all passing. So mail links the established
 | desks, tests | `EMAIL_LINK_HOST`, else `nil`: the environment's own mailer options (`localhost:<port>` on a desk) |
 
 It feeds the mailers' `default_url_options` (`config/environments/production.rb`,
-and `ApplicationMailer#default_url_options`, read per mail, so the engine's
-`UserMailer` and every mailer inherit it), always over `https`.
+and `ApplicationMailer#default_url_options`, read per mail, so every mailer
+inherits it: the app's `UserMailer` and `MatchMailer`, and the engine's
+`Studio::ProfileMailer` and `Studio::NewsletterMailer`), always over `https`.
 `CANONICAL_REDIRECT` never moves it. Keep `cyvasse.mcritchie.studio` on the
 Heroku app while mail links it.
 
