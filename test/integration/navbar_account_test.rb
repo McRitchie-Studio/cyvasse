@@ -6,7 +6,7 @@ require "test_helper"
 # avatar alone; the name and the avatar are one link, so one tab stop. The
 # name is the player's public name (User#player_name), as everywhere else.
 #
-# Visibility is read from the classes: an element is off on a phone when an
+# Visibility is read from the classes: an element is off on a phone when it or an
 # ancestor carries `hidden`, and off on a desktop when one carries `md:hidden`
 # or a `hidden` that no `md:flex` undoes. test/system/contrast_test.rb looks
 # at the same navbar in a browser at 390px.
@@ -25,6 +25,12 @@ class NavbarAccountTest < ActionDispatch::IntegrationTest
 
     assert_equal 1, toggles.count { |toggle| shown_on_phone?(toggle) }, "one toggle in a phone's tab order"
     assert_equal 1, toggles.count { |toggle| shown_on_desktop?(toggle) }, "one toggle in a desktop's tab order"
+  end
+
+  test "the link sidebar opens from the navbar on a phone and on a desktop" do
+    triggers = css_select("header[data-pin=nav] [data-link-sidebar-trigger]")
+    assert_equal 1, triggers.count { |trigger| shown_on_phone?(trigger) }, "the phone row's sidebar button"
+    assert_equal 1, triggers.count { |trigger| shown_on_desktop?(trigger) }, "the desktop bar's sidebar button (the engine's extra_icons_html)"
   end
 
   test "the name and the avatar are one link to the profile" do
@@ -51,7 +57,7 @@ class NavbarAccountTest < ActionDispatch::IntegrationTest
   private
 
   def ancestor_classes(node)
-    node.ancestors.filter_map { |el| el["class"]&.split if el.respond_to?(:[]) }
+    [ node, *node.ancestors ].filter_map { |el| el["class"]&.split if el.respond_to?(:[]) }
   end
 
   def shown_on_phone?(node)
