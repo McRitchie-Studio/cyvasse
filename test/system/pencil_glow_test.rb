@@ -67,6 +67,20 @@ class PencilGlowTest < ApplicationSystemTestCase
     faint = rim_orange(70)
     assert_operator rim_orange(25), :<, 0.05, "their rabble, no longer the last move, is plain again"
     assert_operator faint, :>, 0.3, "the selected blue piece's rim is orange even at the pulse's faintest (#{faint})"
+
+    # For the eye only: a large piece (your elephant), its ring cut with its
+    # disc along the tile's right and lower sides.
+    if ENV["PENCIL_GLOW_SHOTS"]
+      find("body").send_keys(:escape)
+      find("svg.cyvasse-board g.hex[data-hex='59']").click
+      mouse_away
+      freeze_selection_at(0)
+      shots("selected-large")
+      stage(POSITION, last_move: [ 48, 58 ])
+      mouse_away
+      freeze_last_move_at(0)
+      shots("last-move-large")
+    end
   end
 
   test "pencil, less motion: the rings are steady, the last move's fainter" do
