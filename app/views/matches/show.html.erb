@@ -101,8 +101,11 @@
 
       <%= render "games/fallen_card", board: "cyvasse-match", them: them %>
 
-      <%# Chatting with a computer player goes nowhere. %>
-      <%= render "matches/chat", match: @match, opponent: @opponent unless @opponent.computer? %>
+      <%# Chat with a person, or with a computer player whose remote runner
+          reads it (ChatHelper#match_chat?). %>
+      <% if match_chat?(@match, @opponent) %>
+        <%= render "matches/chat", match: @match, opponent: @opponent %>
+      <% end %>
 
       <%= render "matches/actions", match: @match, opponent_name: them, can_accept: @state[:can_accept] %>
     </aside>

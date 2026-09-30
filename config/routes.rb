@@ -56,8 +56,9 @@ Rails.application.routes.draw do
       post :resign
       post :seat, action: :take_back_seat
     end
-    # The match's chat (piece 12): its two players only.
-    resources :messages, only: %i[index create], controller: "match_messages"
+    # Sending in the match's chat (piece 12): its two players only. The chat
+    # itself renders on the match page (matches/_chat).
+    resources :messages, only: :create, controller: "match_messages"
   end
   # A computer player's remote runner (task tyrion-bot-api): bearer-token JSON,
   # its own matches only (Api::Bot::BaseController).
@@ -73,11 +74,17 @@ Rails.application.routes.draw do
       end
     end
   end
-  # A player's conversations, newest first, and each one's whole thread with
-  # a reply box. A conversation is addressed by the other player's user id.
-  get "inbox", to: "conversations#index", as: :inbox
-  resources :conversations, only: :show do
-    post :messages, on: :member, action: :reply, as: :reply
+  # The Chat hub (task cyvasse-live-chat): a player's conversations, newest
+  # first, and each one's whole thread, live, with a composer. A conversation
+  # is addressed by the other player's user id. The old Inbox address
+  # redirects here, query and all (an email's ?ref= rides along).
+  get "inbox", to: redirect { |_params, request| [ "/conversations", request.query_string.presence ].compact.join("?") }, as: :inbox
+  resources :conversations, only: %i[index show] do
+    member do
+      post :messages, action: :reply, as: :reply
+      get :messages, as: :messages
+      post :read
+    end
   end
   # Every conversation that ever happened, and the match each message was in,
   # and the old public message board (piece 15): admins only; anyone else

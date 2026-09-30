@@ -73,7 +73,7 @@ class MessageBoardTest < ActionDispatch::IntegrationTest
   test "no player-facing page shows a board post" do
     Message.post_in_match!(@match, @brienne, "hello arya")
     log_in_as(@arya)
-    [ root_path, matches_path, match_path(@match), match_messages_path(@match), inbox_path,
+    [ root_path, matches_path, match_path(@match), conversations_path,
       conversation_path(@brienne.id), play_path, rules_path, about_path, pieces_path ].each do |path|
       get path
       assert_response :success, path
@@ -92,14 +92,13 @@ class MessageBoardTest < ActionDispatch::IntegrationTest
     log_in_as(@arya)
     assert_equal 1, @arya.unread_messages_count, "only the message with words counts"
 
-    # The inbox first: reading the chat marks its messages read.
-    get inbox_path
-    assert_select "[data-conversation=?]", @brienne.id.to_s, /1 message/
-    assert_select "[data-conversation=?] .unread-dot", @brienne.id.to_s, "1"
+    # The hub first: opening the thread marks its messages read.
+    get conversations_path
+    assert_select "[data-conversation=?] .unread-dot", @brienne.id.to_s, /1/
     assert_select "[data-conversation=?]", @brienne.id.to_s, /real words/, "the preview is the newest message with words"
 
-    get match_messages_path(@match)
-    assert_select ".chat-message", 1
+    get match_path(@match)
+    assert_select "[data-match-chat] .chat-message", 1
     assert_select "[data-message-id=?]", blank_in_match.id.to_s, 0
 
     get conversation_path(@brienne.id)
@@ -119,13 +118,17 @@ class MessageBoardTest < ActionDispatch::IntegrationTest
     assert_select "h2", /Chat \(1\)/
   end
 
-  test "a conversation of blank messages alone is not listed and is a 404" do
+  test "a conversation of blank messages alone is not listed, and with someone never played is a 404" do
     legacy_blank(@brienne, @arya, " ", match: nil)
+    stranger = make_player("stranger")
+    legacy_blank(stranger, @arya, " ", match: nil)
     log_in_as(@arya)
-    get inbox_path
+    get conversations_path
     assert_select "[data-conversation]", 0
-    get conversation_path(@brienne.id)
+    get conversation_path(stranger.id)
     assert_response :not_found
+    get conversation_path(@brienne.id)
+    assert_select "[data-thread] .chat-message", 0, "played: an empty thread to say hi in"
 
     log_in_as(@admin)
     get admin_conversations_path

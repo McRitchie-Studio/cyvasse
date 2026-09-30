@@ -13,8 +13,10 @@ class ConversationThreadTest < ActiveSupport::TestCase
     @new_game = Match.challenge!(@brienne, "arya")
   end
 
+  # History as the legacy import writes it: saved without the rules a new
+  # message meets (User#can_message? among them), which this does not test.
   def say(from, to, text, at:, match: nil)
-    Message.create!(sender: from, receiver: to, message: text, match: match, created_at: at, updated_at: at)
+    Message.new(sender: from, receiver: to, message: text, match: match, created_at: at, updated_at: at).tap { _1.save!(validate: false) }
   end
 
   def thread(**sizes) = ConversationThread.new(@arya, @brienne, **sizes)

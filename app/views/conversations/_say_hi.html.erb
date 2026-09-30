@@ -1,0 +1,10 @@
+<%# Someone the player has played and not yet messaged. Locals: person. %>
+<li id="say_hi_<%= person.id %>" data-say-hi="<%= person.id %>">
+  <%= link_to conversation_path(person.id, anchor: "latest"),
+        class: "flex items-center gap-3 p-3 sm:p-4 hover:bg-[var(--color-surface-alt)] focus-visible:bg-[var(--color-surface-alt)]" do %>
+    <%= render "players/avatar", user: person, size: "w-10 h-10 text-base" %>
+    <span class="min-w-0 flex-1 font-semibold text-heading truncate"><%= person.player_name %></span>
+    <span class="btn btn-secondary btn-sm shrink-0" aria-hidden="true">Say hi</span>
+    <span class="sr-only">: say hi</span>
+  <% end %>
+</li>

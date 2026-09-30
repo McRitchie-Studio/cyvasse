@@ -1,17 +1,17 @@
 require "application_system_test_case"
 
-# [e2e] The navbar's My games and Leaderboard links in a real browser: the
-# desktop bar carries both, the Leaderboard with the player's rank, and a
+# [e2e] The navbar's My games, Chat and Leaderboard links in a real browser:
+# the desktop bar carries them, the Leaderboard with the player's rank, and a
 # click lands on the page and marks it current; at 390px the phone row shows
-# them with no sideways page scroll. SCREENSHOTS=1 saves each to
+# them, Chat with its widest badge ("9+"), with no sideways page scroll. SCREENSHOTS=1 saves each to
 # tmp/screenshots/nav-links-*.png.
 class NavbarLinksSystemTest < ApplicationSystemTestCase
   include LiveResults
 
   setup do
-    arya = player("arya")
+    @arya = player("arya")
     @brienne = player("brienne")
-    live_result(arya, @brienne, winner: arya)
+    live_result(@arya, @brienne, winner: @arya)
     visit link_path(token: Studio::Link.create_magic_link(email: @brienne.email).token)
     assert_text "Signed in as brienne"
   end
@@ -34,12 +34,13 @@ class NavbarLinksSystemTest < ApplicationSystemTestCase
     screenshot("desktop")
   end
 
-  test "390px: the phone row shows both links with no sideways scroll" do
+  test "390px: the phone row shows the links with no sideways scroll" do
+    10.times { |i| Message.send_direct!(@arya, @brienne, "gg #{i}") }
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
                                     width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
     visit leaderboard_path
     row = find("nav[aria-label=Main]", visible: true)
-    assert_equal "My games Leaderboard #2", row.text.squish
+    assert_equal "My games Chat 9+ Leaderboard #2", row.text.squish
     assert_selector "nav[aria-label=Main]", visible: true, count: 1
 
     scroll, client = page_widths

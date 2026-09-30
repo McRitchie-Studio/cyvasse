@@ -1,0 +1,10 @@
+<%# "Load earlier messages": a lazy Turbo frame above the thread's list that,
+    clicked, loads the messages before `before` (conversations#messages)
+    and a frame for the ones before those. Locals: thread (ChatThread). %>
+<%= turbo_frame_tag "chat_earlier_#{thread.dom_id}_#{thread.first_id}", class: "block", data: { chat_target: "earlier" } do %>
+  <p class="text-center">
+    <%= link_to "Load earlier messages", messages_conversation_path(thread.other.id, before: thread.first_id),
+          class: "text-sm underline underline-offset-2 text-secondary hover:text-primary",
+          data: { action: "chat#loadingEarlier" } %>
+  </p>
+<% end %>

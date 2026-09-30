@@ -1,0 +1,5 @@
+<%# The navbar Chat link's contents, sent live by ChatBroadcasts#badge to
+    replace what the engine drew (studio_navbar_link_tag): the label, then
+    the unread badge when there is one. Locals: count. %>
+<% text = NavbarLinks.label(count) %>
+Chat<% if text %><span class="<%= StudioNavbarHelper::NAVBAR_BADGE_CLASS %>"><%= text %></span><% end %>
