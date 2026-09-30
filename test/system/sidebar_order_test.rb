@@ -29,7 +29,14 @@ class SidebarOrderTest < ApplicationSystemTestCase
       visit match_path(match)
       assert_controllers_connected "cyvasse-match"
       assert_selector ".cyvasse-dock .dock-unit", count: 19
-      assert_selector "[data-cyvasse-match-target=clockLabel]", text: "Set up your army"
+      if phone
+        # The docked sheet carries the setup clock; the timer card's own is
+        # not shown under it as a second one (task cyvasse-play-layout-fit).
+        assert_selector ".cyvasse-army .cyvasse-army-clock", text: /\A\d+s\z/
+        assert_no_selector "[data-cyvasse-match-target=clock]", visible: :visible
+      else
+        assert_selector "[data-cyvasse-match-target=clockLabel]", text: "Set up your army"
+      end
 
       assert_selector ".cyvasse-army-status", text: "Place your army: 0 of 19 placed.", visible: !phone
       assert_equal "1px", find(".match-status-line", visible: :all).style("width")["width"], "the status line is read, not shown"

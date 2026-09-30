@@ -208,6 +208,8 @@ export default class extends Controller {
     this.lastMoveMarker?.stop()
     this.dockObserver?.disconnect()
     clearTimeout(this.setupFitTimer)
+    clearTimeout(this.playFitTimer)
+    this.playFitQuery?.removeEventListener("change", this.onPlayFitTurn)
     this.cursorEvents?.abort()
     this.clearTimers()
     this.bannerBox.hide()
@@ -228,8 +230,9 @@ export default class extends Controller {
     this.opponentTarget.textContent = this.game.computer.name
     this.setupControlsTarget.hidden = false
     this.hideBanner()
-    this.render()
     this.setupBoardShown = false
+    this.playBoardShown = false
+    this.render()
     this.showBoardWhenSetupOpens()
   }
 
@@ -466,6 +469,47 @@ export default class extends Controller {
     if (!recheck) return
     clearTimeout(this.setupFitTimer)
     this.setupFitTimer = setTimeout(() => this.showBoardForSetup({ recheck: false }), still ? 300 : 700)
+  }
+
+  // ---- The play layouts (game.css, "play layouts") --------------------------
+  // A phone on its side plays with the board beside the sidebar, sized to the
+  // screen's height ("side" in --play-fit). The page above it (the title on
+  // /play) would leave the board's foot off the screen, so as the game opens
+  // (or opens already under way) the page scrolls once to put the board, its
+  // banner row and all, under the pinned navbar; the board's column then
+  // sticks there. Turning the phone on its side mid-game does the same.
+
+  get playFit() {
+    return getComputedStyle(this.element).getPropertyValue("--play-fit").trim()
+  }
+
+  showBoardWhenPlayOpens() {
+    if (this.game.phase === "setup" || this.playBoardShown) return
+    this.playBoardShown = true
+    if (!this.playFitQuery && window.matchMedia) {
+      this.playFitQuery = window.matchMedia("(orientation: landscape)")
+      this.onPlayFitTurn = () => requestAnimationFrame(() => this.showBoardForPlay())
+      this.playFitQuery.addEventListener("change", this.onPlayFitTurn)
+    }
+    requestAnimationFrame(() => this.showBoardForPlay())
+  }
+
+  showBoardForPlay({ recheck = true } = {}) {
+    if (this.game.phase === "setup" || this.playFit !== "side") return
+    const wrap = this.boardTarget.closest(".cyvasse-board-wrap") || this.boardTarget
+    const board = this.boardTarget.getBoundingClientRect()
+    const by = setupScrollBy({
+      fit: "side",
+      board: { top: wrap.getBoundingClientRect().top, bottom: board.bottom },
+      pinned: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0,
+      viewportHeight: window.innerHeight
+    })
+    if (!by) return
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    window.scrollBy({ top: by, behavior: still ? "auto" : "smooth" })
+    if (!recheck) return
+    clearTimeout(this.playFitTimer)
+    this.playFitTimer = setTimeout(() => this.showBoardForPlay({ recheck: false }), still ? 300 : 700)
   }
 
   setupClick(hex) {
@@ -804,6 +848,7 @@ export default class extends Controller {
     this.renderStatus()
     this.renderGraveyards()
     this.renderInfo(this.selectedUnitId ? game.unit(this.selectedUnitId) : null)
+    this.showBoardWhenPlayOpens()
     this.announceLineup()
   }
 
