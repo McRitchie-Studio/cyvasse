@@ -1,6 +1,7 @@
 # Cyvasse
 
-Cyvasse, the hex strategy game, revived at https://cyvasse.mcritchie.studio.
+Cyvasse, the hex strategy game, revived at https://www.cyvasse.xyz (the old
+https://cyvasse.mcritchie.studio redirects there; see [Canonical host](#canonical-host)).
 Alex's first app (2014–15, [`amcritchie/Cyvasse`](https://github.com/amcritchie/Cyvasse),
 Rails 4.1.4) rebuilt as a managed McRitchie Studio satellite. The epic plan is
 `/Users/alex/projects/.agents/epics/cyvasse-revival.md`.
@@ -500,7 +501,9 @@ reports results to the hub's email analytics as beacons: `signed_in` on the
 first full page a signed-in player sees, `played_match` when a game starts or
 an online army is accepted. `EMAIL_ANALYTICS_URL` names the hub; production
 defaults to `https://mcritchie.studio`, anywhere else to `http://localhost:3000`,
-so a desk or a test never reports to production.
+so a desk or a test never reports to production. The beacons are images with an
+absolute hub URL, so they need no CORS and work from any host Cyvasse is on; an
+old-host link's `?ref=` rides the 301 to `www.cyvasse.xyz` and is kept there.
 
 ## Messages
 
@@ -578,14 +581,49 @@ admin in directly. Online-match mail (a challenge, "your move") rides the same
 outbox, so it lands in that inbox too. To play yourself on a desk, sign in as
 two of the seeded identities in two browsers (or one private window).
 
+## Canonical host
+
+Cyvasse has one public host, **`https://www.cyvasse.xyz`**, and one place that
+names it: `Cyvasse.canonical_host` (`lib/cyvasse/canonical_host.rb`). Anything
+that builds an absolute URL (links in mail, canonical tags, a sitemap, Open
+Graph image URLs) reads it, or `Cyvasse.canonical_url("/path")`, and never
+spells a host of its own.
+
+| Environment | `Cyvasse.canonical_host` |
+|---|---|
+| production | `CANONICAL_HOST`, else `www.cyvasse.xyz` (the default lives in code; no config var is needed) |
+| desks, tests | `CANONICAL_HOST`, else `nil`: links use the request host and nothing redirects |
+
+It feeds the routes' and mailers' `default_url_options`
+(`config/environments/production.rb`, and `ApplicationMailer#default_url_options`,
+read per mail), always over `https`. A magic link is built in the request, so it
+carries the host the player is on, which after the redirect is the canonical one.
+
+`Cyvasse::CanonicalHostRedirect` (`lib/cyvasse/canonical_host_redirect.rb`,
+first in the middleware stack) sends a GET or HEAD on any other host, the old
+`cyvasse.mcritchie.studio`, the herokuapp host or anything else, a **301** to the
+same path and query on the canonical host, so the `?ref=` tokens in emails
+already sent survive the hop. It never redirects:
+
+- anything but GET and HEAD (a redirected POST loses its body; no form or
+  webhook breaks),
+- `/up`, which the deploy gates and the release smoke probe on the herokuapp host,
+- `/api/` (the bot runner's bearer-token calls) and `/cable` (the websocket).
+
+The bare `cyvasse.xyz` forwards to `https://www.cyvasse.xyz` at the registrar
+(Squarespace domain forwarding); if it ever reaches the dyno, the middleware
+redirects it too. A player who arrives from the old host is signed out, since
+their cookie belonged to that host, and signs in fresh on the new one.
+
 ## Auth and hub SSO
 
 Sign-in is passwordless: the engine's magic link, and Google through the engine's
 `OmniauthCallbacksController` (`User.from_omniauth` links a Google identity to an
 existing email only once Google has verified it). Google is on only where its OAuth
 client is configured (`config/initializers/omniauth.rb`): `GOOGLE_CLIENT_ID` and
-`GOOGLE_CLIENT_SECRET` set, with `https://cyvasse.mcritchie.studio/auth/google_oauth2/callback`
-registered on the client. Unset, the app is magic link only and draws no Google
+`GOOGLE_CLIENT_SECRET` set, with `https://www.cyvasse.xyz/auth/google_oauth2/callback`
+registered on the client (the redirect URI follows the host the player signs in
+on, which is always the canonical one). Unset, the app is magic link only and draws no Google
 button. Google always lands on the home page; the sign-in modal passes
 `?return_to=`, and the home page sends the player on to it once. Wallet sign-in is
 off by design.
@@ -600,6 +638,10 @@ opt-in switch (`config/initializers/session_store.rb`):
   `SECRET_KEY_BASE`; either one alone signs players out of the hub.
 - Unset, the cookie is `_cyvasse_session` on the request host. Sign-in still
   works; the "Continue as" button just never appears.
+- On `www.cyvasse.xyz` hub SSO cannot work at all: the hub's cookie lives on
+  `.mcritchie.studio`, a different site. The flag's domain is a list, so there
+  the cookie stays host-only and sign-in still works; only the old host, which
+  now redirects every page, could ever share it.
 
 ## Email sign-in handoff and onboarding
 
@@ -645,7 +687,7 @@ outcomes and where the onboarding loses people.
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | production (optional) | Google sign-in; both unset, the app is magic link only |
 | `MS_HANDOFF_PUBLIC_KEY` | production | the hub's ES256 (P-256) public key, PEM, for the email sign-in handoff; unset, the handoff fails closed. The private half lives only on the hub (1Password, credential-filing SOP) |
 | `SECRET_KEY_BASE` | production | session and cookie encryption; the hub's value when SSO is on. The app keeps no `credentials.yml.enc` |
-| `APP_HOST` | production | public host for links, default `cyvasse.mcritchie.studio` |
+| `CANONICAL_HOST` | production (optional) | overrides the public host, default `www.cyvasse.xyz` ([Canonical host](#canonical-host)). `APP_HOST` is retired and read by nothing |
 | `APP_PORT` | desks | the desk's port, default 3600 |
 | `STUDIO_SSO_SHARED_COOKIE` | production | `true` joins the hub's SSO cookie (above) |
 | `CYVASSE_SESSION_KEY` | desks | renames the dev cookie so two stacks on localhost do not collide |
@@ -657,8 +699,8 @@ outcomes and where the onboarding loses people.
 creates `matches`, `messages` and the users username/record columns). The release
 conductor's post-deploy command is `bin/rails users:seed_identities`, which
 idempotently seeds only the three identities above. The Heroku
-app, Postgres and the `cyvasse.mcritchie.studio` domain are epic piece 8 and do
-not exist yet. Object storage: none provisioned; Active Storage uses local disk
+app `cyvasse` serves `www.cyvasse.xyz` and the old `cyvasse.mcritchie.studio`
+(which redirects; [Canonical host](#canonical-host)). Object storage: none provisioned; Active Storage uses local disk
 until an upload feature needs a bucket.
 
 ## Engine upkeep
