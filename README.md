@@ -631,9 +631,10 @@ two of the seeded identities in two browsers (or one private window).
 
 Cyvasse has one public host, **`https://cyvasse.xyz`**, and one place that
 names it: `Cyvasse.canonical_host` (`lib/cyvasse/canonical_host.rb`). Anything
-that builds an absolute URL (links in mail, canonical tags, a sitemap, Open
+a page builds an absolute URL for (the routes, canonical tags, a sitemap, Open
 Graph image URLs) reads it, or `Cyvasse.canonical_url("/path")`, and never
-spells a host of its own.
+spells a host of its own. **Mail is the exception**: see
+[Email link host](#email-link-host).
 
 | Environment | `Cyvasse.canonical_host` | Redirect |
 |---|---|---|
@@ -648,7 +649,7 @@ Turn it on only after the target answers:
 
 ```bash
 curl -sS -o /dev/null -w "%{http_code}\n" https://cyvasse.xyz/up   # must print 200
-heroku config:set CANONICAL_REDIRECT=1 -a cyvasse                    # restarts the dynos; links and redirect move together
+heroku config:set CANONICAL_REDIRECT=1 -a cyvasse                    # restarts the dynos; page links and the redirect move together; mail stays on the email link host
 ```
 
 If the apex is still waiting on DNS, `www.cyvasse.xyz` can go first:
@@ -661,10 +662,8 @@ followed a 301 keep it for up to an hour (`private, max-age=3600`). The flip
 signs everyone out (the old cookie stays on the old host), guests' in-session
 games included, so flip at a quiet moment.
 
-It feeds the routes' and mailers' `default_url_options`
-(`config/environments/production.rb`, and `ApplicationMailer#default_url_options`,
-read per mail), always over `https`. A magic link is built in the request, so it
-carries the host the player is on, which after the redirect is the canonical one.
+It feeds the routes' `default_url_options` (`config/environments/production.rb`),
+always over `https`.
 
 `Cyvasse::CanonicalHostRedirect` (`lib/cyvasse/canonical_host_redirect.rb`,
 first in the middleware stack) sends a GET or HEAD on any other host, the old
@@ -685,6 +684,53 @@ The bare domain is canonical: `cyvasse.xyz` reaches Heroku by an ALIAS record
 at the apex, and `www.cyvasse.xyz`, also on the Heroku app, is redirected by the
 middleware like any other host. A player who arrives from the old host is signed out, since
 their cookie belonged to that host, and signs in fresh on the new one.
+
+### Email link host
+
+Every URL written into an email (the sign-in link, the match mail, any image)
+is built on **`Cyvasse.email_link_host`**, never on the canonical host (task
+trustworthy-sign-in-email). A domain registered the day before reads as a
+phishing domain: on 2026-09-30 a sign-in email linking `cyvasse.xyz` went to
+Gmail spam with DKIM, SPF and DMARC all passing. So mail links the established
+`cyvasse.mcritchie.studio`, and the redirect above carries the click on:
+
+1. the email links `https://cyvasse.mcritchie.studio/l/<token>`;
+2. that GET 301s to `https://cyvasse.xyz/l/<token>`;
+3. the confirm page and its POST happen on `cyvasse.xyz`, and the session is set
+   there. An emailed `?ref=` rides the same hop into the `EmailReferral` cookie
+   (`test/integration/email_link_host_test.rb`).
+
+| Environment | `Cyvasse.email_link_host` |
+|---|---|
+| production, flag on or off | `EMAIL_LINK_HOST`, else `cyvasse.mcritchie.studio` |
+| desks, tests | `EMAIL_LINK_HOST`, else `nil`: the environment's own mailer options (`localhost:<port>` on a desk) |
+
+It feeds the mailers' `default_url_options` (`config/environments/production.rb`,
+and `ApplicationMailer#default_url_options`, read per mail, so the engine's
+`UserMailer` and every mailer inherit it), always over `https`.
+`CANONICAL_REDIRECT` never moves it. Keep `cyvasse.mcritchie.studio` on the
+Heroku app while mail links it.
+
+**Turning the redirect back on** with mail on the old host:
+
+```bash
+heroku config:get EMAIL_LINK_HOST -a cyvasse                         # empty is right: the default is cyvasse.mcritchie.studio
+curl -sS -o /dev/null -w "%{http_code}\n" https://cyvasse.xyz/up    # must print 200
+heroku config:set CANONICAL_REDIRECT=1 -a cyvasse
+curl -sSI https://cyvasse.mcritchie.studio/rules | grep -i '^location'  # https://cyvasse.xyz/rules
+```
+
+Then request a sign-in link and check the email links
+`https://cyvasse.mcritchie.studio/l/...`, and that opening it lands on the
+`cyvasse.xyz` confirm page. Back out with
+`heroku config:unset CANONICAL_REDIRECT -a cyvasse`; mail is unaffected either way.
+
+The sign-in email itself is Cyvasse's own (`app/mailers/user_mailer.rb`,
+`app/views/user_mailer/`, shadowing the engine's): text-led, no images, the
+player's username in the greeting and never a role word, one button with the
+plain link under it. The engine's `/admin/emails` banner, subject and copy
+settings do not apply to it; change the copy in those files. Its HTML and text
+are snapshotted in `test/snapshots/user_mailer/`.
 
 ## Search (SEO)
 
@@ -820,8 +866,9 @@ outcomes and where the onboarding loses people.
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | production (optional) | Google sign-in; both unset, the app is magic link only |
 | `MS_HANDOFF_PUBLIC_KEY` | production | the hub's ES256 (P-256) public key, PEM, for the email sign-in handoff; unset, the handoff fails closed. The private half lives only on the hub (1Password, credential-filing SOP) |
 | `SECRET_KEY_BASE` | production | session and cookie encryption; the hub's value when SSO is on. The app keeps no `credentials.yml.enc` |
-| `CANONICAL_REDIRECT` | production | `1` turns the move to the canonical host on: links build on it and every other host 301s there. Unset, production keeps `APP_HOST` (else `cyvasse.mcritchie.studio`) and redirects nothing ([Canonical host](#canonical-host)) |
+| `CANONICAL_REDIRECT` | production | `1` turns the move to the canonical host on: page links build on it and every other host 301s there (mail stays on `EMAIL_LINK_HOST`). Unset, production keeps `APP_HOST` (else `cyvasse.mcritchie.studio`) and redirects nothing ([Canonical host](#canonical-host)) |
 | `CANONICAL_HOST` | production (optional) | overrides the canonical host once `CANONICAL_REDIRECT=1`, default `cyvasse.xyz`; `APP_HOST` names the host only while the flag is unset |
+| `EMAIL_LINK_HOST` | production (optional) | the host every URL in mail is built on, default `cyvasse.mcritchie.studio`, whatever `CANONICAL_REDIRECT` says ([Email link host](#email-link-host)) |
 | `APP_PORT` | desks | the desk's port, default 3600 |
 | `STUDIO_SSO_SHARED_COOKIE` | production | `true` joins the hub's SSO cookie (above) |
 | `CYVASSE_SESSION_KEY` | desks | renames the dev cookie so two stacks on localhost do not collide |
