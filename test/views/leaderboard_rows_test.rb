@@ -2,7 +2,8 @@ require "test_helper"
 
 # [component] The leaderboard rows (leaderboards/_rows) and the landing card
 # (leaderboards/_card), rendered alone: the live board shows rank, points,
-# wins and games finished; the all-time board wins and losses.
+# wins and games finished; the all-time board wins and losses; each board's
+# short labels are spelled out in a key line and an <abbr title>.
 class LeaderboardRowsTest < ActionView::TestCase
   def row(name, rank:, points:, wins:, games:, losses: games - wins)
     Leaderboard::Row.new(rank:, user: User.new(id: rank, username: name), points:, wins:, games:, losses:)
@@ -25,6 +26,31 @@ class LeaderboardRowsTest < ActionView::TestCase
     assert_select "[data-leaderboard-row=Guest_4821] [data-stat=points]", /\A\s*1\s*pt\s*\z/
   end
 
+  test "the live labels are spelled out: a key line, and a title on each short label" do
+    render partial: "leaderboards/rows",
+           locals: { board: "live", rows: [ row("arya", rank: 1, points: 7, wins: 2, games: 3), row("Guest_4821", rank: 2, points: 1, wins: 0, games: 1) ] }
+
+    assert_select "[data-leaderboard-key]", 1 do |key|
+      assert_equal "pts points · W wins · G games finished", key.text.squish
+    end
+    assert_select "[data-leaderboard-row=arya]" do
+      assert_select "[data-stat=points] abbr[title=Points]", "pts"
+      assert_select "[data-stat=wins] abbr[title=Wins]", "W"
+      assert_select "[data-stat=games] abbr[title='Games finished']", "G"
+    end
+    assert_select "[data-leaderboard-row=Guest_4821] [data-stat=points] abbr[title=Point]", "pt"
+  end
+
+  test "the all-time labels are spelled out too" do
+    render partial: "leaderboards/rows", locals: { board: "all-time", rows: [ row("arya", rank: 1, points: nil, wins: 12, games: 15) ] }
+
+    assert_select "[data-leaderboard-key]", 1 do |key|
+      assert_equal "W wins · L losses", key.text.squish
+    end
+    assert_select "[data-stat=wins] abbr[title=Wins]", "W"
+    assert_select "[data-stat=losses] abbr[title=Losses]", "L"
+  end
+
   test "an all-time row shows wins and losses, no points" do
     render partial: "leaderboards/rows", locals: { board: "all-time", rows: [ row("arya", rank: 1, points: nil, wins: 12, games: 15) ] }
 
@@ -36,6 +62,7 @@ class LeaderboardRowsTest < ActionView::TestCase
   test "the landing card shows the live columns, or the Play Now invitation when empty" do
     render partial: "leaderboards/card", locals: { rows: [ row("arya", rank: 1, points: 3, wins: 1, games: 1) ] }
     assert_select "[data-leaderboard-card] [data-leaderboard-row=arya] [data-stat=points]", /3/
+    assert_select "[data-leaderboard-card] [data-leaderboard-key]", /pts points · W wins · G games finished/
     assert_select "[data-leaderboard-empty]", 0
 
     render partial: "leaderboards/card", locals: { rows: [] }

@@ -12,6 +12,25 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "User", User.new.display_name
   end
 
+  # [unit] One public name wherever a player's name renders (task
+  # cyvasse-contrast-and-names): the navbar once said "Guest 5573" where the
+  # splash, versus card and leaderboard said "Guest_5573".
+  test "player_name is the username as stored, never the guest's spaced name" do
+    guest = User.create_guest!(rng: Random.new(3))
+
+    assert_match(/\AGuest_\d{4}\z/, guest.player_name)
+    assert_equal guest.username, guest.player_name
+    refute_equal guest.name, guest.player_name
+  end
+
+  test "player_name is a named computer's full name, and the display name only without a username" do
+    computer = User.seed_computer_player!(LiveMatch::COMPUTER_NAMES.keys.first)
+    assert_equal LiveMatch::COMPUTER_NAMES.values.first, computer.player_name
+
+    assert_equal "carl", User.new(email: "carl@example.com", name: "Carl Test", username: "carl").player_name
+    assert_equal "Carl Test", User.new(email: "carl@example.com", name: "Carl Test").player_name
+  end
+
   test "new users are viewers, not admins" do
     user = User.create!(email: "carl@example.com", name: "Carl Test")
 

@@ -88,4 +88,37 @@ class MatchRecordTest < ActiveSupport::TestCase
     assert_equal false, stand_in.state_for(guest)[:live][:board_win]
     assert_equal false, won.state_for(qavo)[:live][:board_win]
   end
+  test "the live state tells the game-over modal the points this game earned, and a player's new rank" do
+    qavo = computer
+    won = live_result(@arya, qavo, winner: @arya)
+    lost = live_result(@arya, @brienne, winner: @brienne)
+    drawn = live_result(@brienne, @arya, winner: nil)
+    stand_in = live_result(@arya, @brienne, winner: @arya, home_bot: true, home_strikes: 2)
+    expired = live_result(@arya, @brienne, winner: nil, finish_reason: "expired")
+
+    assert_equal [ 3, 1, 1, 0, nil ], [ won, lost, drawn, stand_in, expired ].map { _1.state_for(@arya)[:live][:board_points] }
+    assert_equal 3, lost.state_for(@brienne)[:live][:board_points]
+    assert_equal 0, won.state_for(qavo)[:live][:board_points], "a computer player's seat counts for nobody"
+    assert_equal Leaderboard.rank_for(@arya).rank, won.state_for(@arya)[:live][:board_rank]
+    assert_nil stand_in.state_for(@arya)[:live][:board_rank], "no rank line under a game that earned nothing"
+  end
+
+  test "the game's points are the leaderboard's: a player's row sums them" do
+    qavo = computer
+    matches = [
+      live_result(@arya, qavo, winner: @arya), live_result(@arya, @brienne, winner: @brienne),
+      live_result(@brienne, @arya, winner: nil), live_result(@arya, @brienne, winner: @arya, home_bot: true, home_strikes: 2)
+    ]
+
+    assert_equal Leaderboard.rank_for(@arya).points, matches.sum { _1.state_for(@arya)[:live][:board_points].to_i }
+    assert_equal Leaderboard.rank_for(@brienne).points, matches.sum { _1.state_for(@brienne)[:live][:board_points].to_i }
+  end
+
+  test "a guest's win earns its points but no rank line: they are asked to sign in instead" do
+    guest = User.create_guest!(rng: Random.new(8))
+    live = live_result(guest, computer, winner: guest).state_for(guest)[:live]
+
+    assert_equal 3, live[:board_points]
+    assert_nil live[:board_rank]
+  end
 end

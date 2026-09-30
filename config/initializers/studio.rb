@@ -5,7 +5,8 @@ Studio.configure do |config|
   # Page changes present with the McRitchie Studio view transition
   # (layouts/studio/_smooth_load); Play Now's searching page and splash lean on it.
   config.smooth_load = true
-  config.welcome_message = ->(user) { "Welcome to Cyvasse, #{user.display_name}!" }
+  # A player's one public name everywhere (User#player_name).
+  config.welcome_message = ->(user) { "Welcome to Cyvasse, #{user.player_name}!" }
   # Magic link always; Google only where its OAuth client is configured
   # (CyvasseGoogleSignIn, config/initializers/omniauth.rb). Never :wallet, the
   # web3 bolt-on: Cyvasse signs no transactions.
@@ -24,6 +25,13 @@ Studio.configure do |config|
   # now (piece 3), but a palette drawn from it is a product call left open;
   # /admin/theme can override it at runtime.
   config.theme_primary = "#C08A2E"
+  # The success green, which fills btn-secondary under a white label. The
+  # engine's #4BAF50 is 2.78:1 under white, below WCAG AA's 4.5:1; this is the
+  # same green 28% deeper, 5.0:1 (task cyvasse-contrast-and-names). The gold
+  # needs two shades, a deep fill under white and a light-or-deep ink by theme,
+  # which one hex cannot say: app/assets/tailwind/application.css picks them
+  # from the engine's primary scale.
+  config.theme_success = "#367E3A"
   # The navbar's own links, My games and Leaderboard with the player's live
   # rank (NavbarLinks; task cyvasse-nav-links).
   config.navbar_links = ->(view) { NavbarLinks.call(view) }

@@ -1069,6 +1069,14 @@ html.dark [data-skin="pencil"] .dock-unit img {
     color: #dc2626;
   }
 
+  /* On the dark dock sheet (a bg-surface card) #dc2626 is 2.31:1. The dark
+   * theme takes the engine's danger ink, the red derived to clear WCAG AA
+   * 4.5:1 on every dark surface (task cyvasse-contrast-and-names). Light mode
+   * keeps #dc2626, 4.83:1 on the white card. */
+  html.dark .cyvasse-setup-controls .cyvasse-army .cyvasse-army-clock.is-warning {
+    color: var(--color-danger-ink);
+  }
+
   .cyvasse-setup-controls .cyvasse-army[data-army-mode] .cyvasse-smart {
     grid-area: smart;
   }

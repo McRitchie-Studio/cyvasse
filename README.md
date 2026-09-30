@@ -206,6 +206,65 @@ so a computer turn is instant.
 as they are. The users unique index is on the exact username, as the legacy
 uniqueness was; the model refuses a new name that collides in any case.
 
+## Remote computer players (bot API)
+
+A computer player can be played by a program running off the server: Tyrion's
+runner first (the design is `mcritchie-studio/docs/agents/agents/tyrion/runtime.md`).
+It speaks JSON to `/api/bot` with `Authorization: Bearer <token>`, never a
+session, and may do only what a signed-in player could do from a browser, in
+its own matches (anyone else's is a 404). It polls outward; nothing on the
+runner's machine needs to be reachable.
+
+| Call | What |
+|---|---|
+| `GET /api/bot/inbox?after=<message id>` | Its unfinished matches, each with the `action` waiting on it (`setup`, `move` or none), and the chat messages sent to it after the cursor (answer's `cursor`). Settles live clocks, and is the runner's heartbeat |
+| `GET /api/bot/matches/:id` | `Match#state_for` from its seat |
+| `POST /api/bot/matches/:id/setup` | `{ lineup }`, through `Match#set_up!` |
+| `POST /api/bot/matches/:id/moves` | `{ steps }`, through `Match#play!`, checked by the rules like any turn |
+| `POST /api/bot/matches/:id/messages` | `{ message }`, under the chat's rules |
+
+`BotToken` keeps only the SHA-256 digest; only a computer player
+(`User#computer?`) may hold one, and a revoked token or one whose account is no
+longer a computer player answers 401. Calls are rate-limited per token (300 a
+minute). Tokens are an operator act:
+
+```bash
+bin/rails "bot_tokens:issue[tyrion]"   # prints the token once, alone on stdout
+bin/rails bot_tokens:list              # ids, owners, last heard; never tokens
+bin/rails "bot_tokens:revoke[<id>]"
+```
+
+Nothing seats a remote player yet: Play Now still gives its computer seat to
+the in-app bot (`away_bot`), whose seat the API cannot play. Switching Play Now
+to a runner that has been heard from (`BotToken.heard_from?`) is the next piece.
+
+## Tyrion's runner
+
+`bin/tyrion` plays the `tyrion` computer player's matches from any machine
+that can reach the site, over the bot API (`/api/bot`, a bearer token from
+`bin/rails "bot_tokens:issue[tyrion]"`). It only calls out; nothing on its
+machine listens. The character, his setups and the threat model are in the hub
+(`mcritchie-studio/docs/agents/agents/tyrion/`).
+
+| File (`script/tyrion/`) | What |
+|---|---|
+| `brain.mjs` | His five setups and his turn search: every legal turn (both cavalry jumps) scored by material and temperament, charged for the opponent's best capture in reply. It imports the engine unchanged, so its turns are the server's legal turns |
+| `voice.mjs` | His chat prompt, stock lines, the filter every line passes (280 characters, no links, no emails, none of the runner's secrets) and the budget (one reply per message, 20 a match, 40 to one player a day) |
+| `chat.mjs` | Optional replies through the Claude API (`@anthropic-ai/sdk`, installed in `script/tyrion` on the runner machine only); the model has no tools, and a message asking for keys, cards or his instructions gets his stock answer instead of a model call |
+| `runner.mjs` | The loop: poll the inbox (every 2 s while a live match is on, 30 s otherwise), set up, move, talk |
+
+```bash
+CYVASSE_BOT_TOKEN=... bin/tyrion                     # stock lines only
+cd script/tyrion && npm install @anthropic-ai/sdk && cd -
+CYVASSE_BOT_TOKEN=... ANTHROPIC_API_KEY=... bin/tyrion   # with chat (TYRION_CHAT_MODEL, default claude-opus-5-5)
+```
+
+Give the model key its own workspace and a hard monthly spend limit: the
+budget above caps what one player can make him say, not what the key can
+spend. `test/javascript/tyrion_*_test.js` hold his setups to the rules (no
+first-turn king capture by a dragon, horse, elephant or rabble), his search to
+beating the legacy computer, and the runner to the API contract.
+
 ## Legacy import
 
 `bin/rails legacy:import` (`LegacyImport`, `lib/tasks/legacy.rake`) loads the

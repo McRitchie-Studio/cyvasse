@@ -27,6 +27,8 @@ class User < ApplicationRecord
   # Saved army lineups (piece 10b), three slots; they go with the player.
   has_many :setups, dependent: :delete_all
   has_many :live_seeks, dependent: :delete_all
+  # A computer player's remote-runner tokens (BotToken); they go with it.
+  has_many :bot_tokens, dependent: :delete_all
   # The account that absorbed this guest (GuestClaim), when the guest was kept.
   belongs_to :merged_into, class_name: "User", optional: true
 
@@ -186,10 +188,15 @@ class User < ApplicationRecord
     find_by(provider: auth.provider, uid: auth.uid) || (email && find_by(email:))
   end
 
-  # The name shown beside a message: the public username, or for an account
-  # that never chose one, its display name.
+  # A player's one public name, wherever a player's name renders: the navbar,
+  # the Play Now splash, the versus card, the leaderboard, My games, chat and
+  # messages (task cyvasse-contrast-and-names). A named computer player's full
+  # name (LiveMatch::COMPUTER_NAMES), else the username as stored
+  # ("Guest_4821" for a Play Now guest), else, for an account that never
+  # chose one, its display name. display_name stays the engine's (a real
+  # name first), for email greetings and the admin pages.
   def player_name
-    username.presence || display_name
+    (computer? && LiveMatch::COMPUTER_NAMES[username]) || username.presence || display_name
   end
 
   def unread_messages_count
