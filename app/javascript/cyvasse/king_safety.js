@@ -55,6 +55,7 @@ export function kingThreats(army, { limit = Infinity } = {}) {
       }
       if (type.rank !== "cavalry") continue;
       for (const via of [...first.moves, ...first.attacks]) {
+        if (distance(hexAt(via), hexAt(king.hex)) > type.secondJump) continue;
         const after = new Map(board);
         after.delete(from);
         after.set(via, { team: ENEMY, type });
