@@ -38,6 +38,7 @@ class PencilGlowTest < ApplicationSystemTestCase
     # Their rabble has just moved 26 -> 25.
     stage(POSITION, last_move: [ 26, 25 ])
     mouse_away
+    classic_scrollbars
     freeze_last_move_at(0)
     shots("last-move")
 
@@ -186,13 +187,17 @@ class PencilGlowTest < ApplicationSystemTestCase
     box = page.evaluate_script(<<~JS)
       (() => {
         const disc = document.querySelector("svg.cyvasse-board g.hex[data-hex='#{hex}'] .unit-disc")
+        disc.scrollIntoView({ block: "center", inline: "center" })
         const r = disc.getBoundingClientRect()
         return { x: r.left + scrollX, y: r.top + scrollY, width: r.width, height: r.height }
       })()
     JS
     pad = 6
     clip = { x: box["x"] - pad, y: box["y"] - pad, width: box["width"] + 2 * pad, height: box["height"] + 2 * pad, scale: 1 }
-    png = page.driver.browser.execute_cdp("Page.captureScreenshot", format: "png", captureBeyondViewport: true, clip: clip)["data"]
+    # Within the viewport: capturing beyond it resizes the page, and with
+    # classic scrollbars (CI's Linux Chrome) the board then shifts under the
+    # rect just read.
+    png = page.driver.browser.execute_cdp("Page.captureScreenshot", format: "png", clip: clip)["data"]
     page.evaluate_async_script(<<~JS, png, pad, box["width"] / 2.0)
       const [png, pad, radius, done] = arguments;
       (async () => {
@@ -226,6 +231,12 @@ class PencilGlowTest < ApplicationSystemTestCase
                  strokeOpacity: s.strokeOpacity, opacity: s.opacity, filter: s.filter }
       })()
     JS
+  end
+
+  # CI's Linux Chrome draws classic scrollbars; draw them on every machine, so
+  # a local run measures the layout CI does.
+  def classic_scrollbars
+    page.execute_script("const s = document.createElement('style'); s.textContent = '::-webkit-scrollbar { width: 15px; height: 15px; background: #888 } ::-webkit-scrollbar-thumb { background: #444 }'; document.head.append(s)")
   end
 
   def motion(value)
