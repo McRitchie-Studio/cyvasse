@@ -15,13 +15,19 @@ import { openingLineup } from "cyvasse/openings";
 import { hexAt } from "cyvasse/board";
 
 // His five, in the openings panel's drawing (front row 7 to back row 11).
-// Each is checked in test/javascript/tyrion_brain_test.js.
+// Each is checked in test/javascript/tyrion_brain_test.js. Three were moved
+// for the new stats of September 29, 2026 (cyvasse-stats-and-trumps-v3),
+// whose longer light horse and softer range units opened a first-turn raid on
+// the king: the Lannister Debt's left light horse steps to the front centre and
+// its left elephant fills the second row's gap; the Small Folk's left crossbow
+// fills its second row's centre; Blackwater's right elephant closes up beside
+// the left. The hub's game.md still draws the old five.
 export const SETUPS = Object.freeze({
   "the-drains": ["L.SE..ES.L", "H..R.D..H", "M.X..T.M", "R....CX", ".R...K"],
-  "lannister-debt": ["L.E.X..E.L", "H.STD..SH", "M.XKRC.M", "R.....R", "......"],
+  "lannister-debt": ["...LX..E.L", "H.STDE.SH", "M.XKRC.M", "R.....R", "......"],
   "too-far-forward": ["L.R..R...L", ".E.CTX.E.", "H..RX..H", "M.SKS.M", "..D..."],
-  "small-folk": ["S..E..E..S", ".X.L.L.X.", "R.HTCH.R", ".M.KD.M", "..R..."],
-  "blackwater": ["L.SE.EM...", "H.R.S..X.", "R.XC.T.H", "M.K..DL", "..R..."]
+  "small-folk": ["S..E..E..S", "...LXL.X.", "R.HTCH.R", ".M.KD.M", "..R..."],
+  "blackwater": ["L.SEE.M...", "H.R.S..X.", "R.XC.T.H", "M.K..DL", "..R..."]
 });
 
 // The Lannister Debt is his favourite and his gamble; it comes up most.

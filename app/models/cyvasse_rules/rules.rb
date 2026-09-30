@@ -28,11 +28,13 @@ module CyvasseRules
 
       potential_move = PotentialRange.call(origin, type.move_range, dragon: type.dragon?).to_a.sort
 
+      # Each cavalry unit's second jump is its own (Units::Type#second_jump).
       if type.cavalry? && jump == 1
-        preview = PotentialRange.call(origin, type.move_range + 2).to_a.sort
-        walk_move_rings(position, piece, rings, preview, type.move_range + 2, preview: true)
+        reach = type.move_range + type.second_jump
+        preview = PotentialRange.call(origin, reach).to_a.sort
+        walk_move_rings(position, piece, rings, preview, reach, preview: true)
       end
-      steps = type.cavalry? && jump == 2 ? 2 : type.move_range
+      steps = type.cavalry? && jump == 2 ? type.second_jump : type.move_range
       walk_move_rings(position, piece, rings, potential_move, steps)
 
       ring_of = ->(index) { rings.fetch(index, UNRINGED) }
@@ -67,23 +69,24 @@ module CyvasseRules
       end
     end
 
+    # Trumps work on offense only: the attacker takes a unit it trumps, and a
+    # defender's trumps never protect it (standardCode in rules.js).
     def self.standard_code(piece, occupant)
       return 1 unless occupant
       return 5 if occupant.type.mountain? || occupant.team == piece.team
 
       type = piece.type
-      code = occupant.type.defence > type.attack ? 5 : 4
-      code = 4 if type.trump.include?(occupant.type.codename)
-      code = 5 if occupant.type.trump.include?(type.codename)
-      code
+      return 4 if type.trump.include?(occupant.type.codename)
+
+      occupant.type.defence > type.attack ? 5 : 4
     end
 
+    # The dragon takes any enemy it meets: a foot soldier and flies on (3), a
+    # shooter or the dragon and stops there (4). See dragonCode in rules.js.
     def self.dragon_code(piece, occupant)
       return 1 unless occupant
       return 2 if occupant.type.mountain? || occupant.team == piece.team
-      if occupant.type.range? || occupant.type.dragon?
-        return %w[trebuchet catapult].include?(occupant.type.codename) ? 5 : 4
-      end
+      return 4 if occupant.type.range? || occupant.type.dragon?
 
       3
     end
@@ -106,7 +109,6 @@ module CyvasseRules
             elsif occupant && occupant.team != piece.team
               ring = step + (occupant.type.defence > type.attack ? 10 : 20)
               ring = step + 20 if type.trump.include?(occupant.type.codename)
-              ring = step + 10 if occupant.type.trump.include?(type.codename)
             end
             ring = step + 30 if around.include?(step + 29)
             rings[index] = ring

@@ -5,32 +5,31 @@
     into the image and went stale with every rule change (a Trebuchet that
     still moved 1 and shot 3). Every number in the copy is read from Rulebook
     too. A partial so the game screen can reuse it in a rules drawer. %>
-<% trebuchet = Rulebook.fetch("trebuchet")
-   light_horse = Rulebook.fetch("lighthorse")
-   heavy_horse = Rulebook.fetch("heavyhorse")
-   rules = [
-     [ "range", "Range Units", [ [ trebuchet, %i[movement range] ] ],
-       "Range units shoot from a distance, moving or shooting in a turn but never both, and they block the Dragon's flight. " \
-       "Any unit can take one, whatever the Strengths, unless the Range unit trumps it. " \
-       "The Trebuchet #{trebuchet.movement == "0" ? "cannot move" : "moves #{trebuchet.movement}"}, but it shoots #{trebuchet.range} hexes." ],
-     [ "cavalry", "Cavalry Units", [ [ light_horse, %i[movement] ], [ heavy_horse, %i[movement] ] ],
-       "Cavalry units move or attack twice a turn. The #{light_horse.name}'s first jump reaches #{light_horse.jumps.first} " \
-       "and the #{heavy_horse.name}'s reaches #{heavy_horse.jumps.first}; the second jump reaches " \
-       "#{Rulebook::CAVALRY_SECOND_JUMP} for both." ],
+<%# Each body is one or two short sentences, the one rule that matters; the
+    unit card under it shows the numbers (Alex, 2026-09-29: "cut into a 1/3").
+    The Cavalry card shows only the Heavy Horse ("people will get it"); the
+    Units list below has both horses. %>
+<% rules = [
+     [ "range", "Range Units", [ [ Rulebook.fetch("trebuchet"), %i[range] ] ],
+       "Range units shoot from a distance, and each turn they move or shoot, never both. " \
+       "They defend at Strength #{Rulebook::RANGE_DEFENCE}." ],
+     [ "cavalry", "Cavalry Units", [ [ Rulebook.fetch("heavyhorse"), %i[movement] ] ],
+       "Cavalry units move or attack twice a turn." ],
      [ "dragon", "Your Dragon", [ [ Rulebook.fetch("dragon"), %i[movement strength] ] ],
-       "A Dragon flies any distance in a straight line, and it can only be taken by a Trebuchet, a Catapult, another Dragon, " \
-       "or a King it strays too close to. Opposing Range units will block it, but not kill it." ],
-     [ "trump", "Trumps", [ [ Rulebook.fetch("spearman"), %i[trump] ] ],
-       "Some units trump others. For example, a Spearman will always defeat a Light Horse, " \
-       "even though the Light Horse has equal Strength to the Spearman." ]
+       "A Dragon flies any distance in a straight line, and only a Trebuchet, Catapult, King or Dragon can take it. " \
+       "Taking a Range unit ends its flight." ],
+     [ "trump", "Trumps", [ [ Rulebook.fetch("rabble"), %i[strength trump] ] ],
+       "Trumps work on attack only: a Rabble that attacks a King wins." ]
    ] %>
 <div class="grid gap-4 sm:grid-cols-2">
   <% rules.each do |key, title, featured, body| %>
-    <article class="card p-4 special-rule-card flex flex-col gap-3" data-rule="<%= key %>">
+    <%# #rule-<key> is the anchor a Units-list stat links to (pages/_unit_card),
+        and a deep link such as /rules#rule-trumps from anywhere. %>
+    <article id="rule-<%= key == "trump" ? "trumps" : key %>" tabindex="-1" class="card p-4 special-rule-card flex flex-col gap-3" data-rule="<%= key %>">
       <h3 class="text-lg font-bold text-heading"><%= title %></h3>
       <p class="text-secondary leading-relaxed text-sm"><%= body %></p>
-      <%# Two featured units (the horses) sit side by side, since each unit
-          card is a tall portrait column. %>
+      <%# Should a card feature two units, they sit side by side, since each
+          unit card is a tall portrait column. %>
       <div class="grid gap-3 mt-auto<%= " grid-cols-2" if featured.size > 1 %>">
         <% featured.each do |unit, highlight| %>
           <%= render "pages/unit_card", unit:, highlight: %>

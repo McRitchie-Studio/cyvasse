@@ -148,60 +148,42 @@
 }
 
 /* The art fills about four fifths of its hex (the box is 56 x 60 around the
- * centre; the vector art carries its own margin). An SVG element scales about
- * the user-space origin, the hex centre, so every size below grows the art
- * evenly about the middle of its hex. The art never takes a click: the hex
- * polygon under it is the whole hit target, whatever the art's size.
+ * centre; the vector art carries its own margin). The art never takes a
+ * click: the hex polygon under it is the whole hit target, whatever the art's
+ * size, and wherever a neighbour's art reaches over it.
+ *
+ * A piece stands on its tile (task cyvasse-piece-art-overlap): the controller
+ * clips its art along the hex's right, lower-right and lower-left sides and
+ * lets it rise over the hexes behind it, up and to the left (cyvasse/art_clip,
+ * #hex-art-clip). So the art grows about a point low in its hex, --art-anchor
+ * below the centre, where the figures stand: a larger piece rises, rather than
+ * pushing its feet into the cut along the bottom.
  *
  * Size tiers (units.js sizeTier, set on the hex as data-tier): small pieces
- * (rabble, spearman, crossbowman) keep the vector art's own size; medium ones
- * (king, light and heavy horse) draw 1.1 times it, large ones (trebuchet,
- * catapult, elephant, dragon, mountain) 1.25 times, but never past --art-fit,
- * the most that art can grow before its drawing leaves the box of its hex's
- * white outline (58 x 67 around the centre). */
-.cyvasse-board .unit-image {
+ * (rabble, spearman, crossbowman) draw 1.1 times the art's own size, medium
+ * ones (king, light and heavy horse) 1.2 times, large ones (trebuchet,
+ * catapult, elephant, dragon, mountain) 1.35 times. No art is capped: the
+ * clip that once trimmed a wide drawing at every side now frees the upper
+ * ones, and the cut along the bottom is the tile's own edge. */
+.cyvasse-board .unit-image,
+.cyvasse-board .unit-disc {
   pointer-events: none;
-  --tier-scale: 1;
-  --art-fit: 9;
-  transform: scale(min(var(--tier-scale), var(--art-fit)));
+  --tier-scale: 1.1;
+  --art-anchor: 14px;
+  --art-scale: var(--tier-scale);
+  transform: translateY(var(--art-anchor)) scale(var(--art-scale)) translateY(calc(-1 * var(--art-anchor)));
 }
 
-.cyvasse-board .hex[data-tier="medium"] .unit-image { --tier-scale: 1.1; }
-.cyvasse-board .hex[data-tier="large"] .unit-image { --tier-scale: 1.25; }
-
-/* Vector art that already fills its canvas, capped from its drawn pixels.
- * The dragon's wings and tail, the elephant's rider and the trebuchet's arm
- * reach their hex's slanted edges at or near full size, so they grow only a
- * little. The controller clips every piece's art to its hex outline
- * (#hex-art-clip), so nothing reaches a neighbour; these caps keep the clip
- * to a trim of wing tips rather than a visible crop. The
- * mountain stands on a flat, full-width snow foot that runs past the hex's
- * lower edges into the hexes below if it grows much, so it draws only a
- * little larger than it did (0.86). The dragon, elephant and mountain so grow less than a medium
- * piece does, but each still draws larger than any medium piece: they fill
- * most of their canvas, where the king and the horses leave a wide margin
- * (test/system/piece_size_tiers_test.rb holds both). */
-[data-skin="vector"] .cyvasse-board .hex[data-unit="dragon"] .unit-image { --art-fit: 1.06; }
-[data-skin="vector"] .cyvasse-board .hex[data-unit="elephant"] .unit-image { --art-fit: 1.08; }
-[data-skin="vector"] .cyvasse-board .hex[data-unit="mountain"] .unit-image { --art-fit: 0.9; }
-[data-skin="vector"] .cyvasse-board .hex[data-unit="trebuchet"] .unit-image { --art-fit: 1.18; }
+.cyvasse-board .hex[data-tier="medium"] :is(.unit-image, .unit-disc) { --tier-scale: 1.2; }
+.cyvasse-board .hex[data-tier="large"] :is(.unit-image, .unit-disc) { --tier-scale: 1.35; }
 
 /* The pencil skin draws its piece as a token: black linework on a parchment
- * disc, the art at 0.84 of the disc. The large token's disc already fills its
- * hex side to side (radius 28 of the hex's 29), so the pencil tiers step down
- * from it, by the same ratios: the disc and its art scale together, to 0.8,
- * 0.88 and 1 of the large token. */
-[data-skin="pencil"] .cyvasse-board .unit-disc {
-  --token-scale: 0.83;
-  transform: scale(var(--token-scale));
-}
-
-[data-skin="pencil"] .cyvasse-board .hex[data-tier="medium"] .unit-disc { --token-scale: 0.913; }
-[data-skin="pencil"] .cyvasse-board .hex[data-tier="large"] .unit-disc { --token-scale: 1.0375; }
-
-[data-skin="pencil"] .cyvasse-board .unit-image {
-  transform: scale(calc(0.84 * 0.83 * var(--tier-scale)));
-}
+ * disc (radius 27), the art at 0.84 of the disc, the disc at 0.83 of the art
+ * box. Disc and art grow together, by the same tiers, and take the same clip:
+ * a large token rises over the hexes behind it and is cut flat along its
+ * tile's right and lower sides. */
+[data-skin="pencil"] .cyvasse-board .unit-disc { --art-scale: calc(0.83 * var(--tier-scale)); }
+[data-skin="pencil"] .cyvasse-board .unit-image { --art-scale: calc(0.84 * 0.83 * var(--tier-scale)); }
 
 /* A hex the ripple has lit (.is-lit) carries a faint diagonal hatch over its
  * gradient, for texture. It sits under the unit shade and the art, and never

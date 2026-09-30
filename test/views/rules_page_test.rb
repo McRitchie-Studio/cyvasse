@@ -58,17 +58,21 @@ class RulesPageTest < ActionView::TestCase
     assert_match(/task :capture_rules_hero/, Rails.root.join("lib/tasks/home_gallery.rake").read)
   end
 
-  test "every unit class lays its cards out one, two, then three a row" do
+  # One, two, then three a row, in a wrapping flex row so a short last row
+  # sits centred (Alex, 2026-09-29); the browser check is in
+  # test/system/rules_page_layout_test.rb.
+  test "every unit class lays its cards out one, two, then three a row, a short row centred" do
     render template: "pages/rules"
 
     grids = css_select("#units .unit-class .unit-grid")
     assert_equal Rulebook.classes.size, grids.size
-    grids.each do |grid|
-      classes = grid["class"].split
-      assert_includes classes, "grid"
-      assert_includes classes, "sm:grid-cols-2"
-      assert_includes classes, "lg:grid-cols-3"
-    end
+    css = Rails.root.join("app/assets/tailwind/application.css").read
+    grid = css[/^\.unit-grid \{.*?\}/m]
+    assert_match(/display: flex;/, grid)
+    assert_match(/flex-wrap: wrap;/, grid)
+    assert_match(/justify-content: center;/, grid)
+    assert_match(%r{@media \(min-width: 40rem\) \{\s*\.unit-grid > \.unit-card \{\s*flex-basis: calc\(\(100% - 1rem\) / 2\);}, css)
+    assert_match(%r{@media \(min-width: 64rem\) \{\s*\.unit-grid > \.unit-card \{\s*flex-basis: calc\(\(100% - 2rem\) / 3\);}, css)
     total = Rulebook.classes.sum { _1.units.size }
     assert_select "#units .unit-grid > article.unit-card > .unit-card-body", total
     assert_select "#units .unit-card-body > .unit-card-name", total
@@ -89,25 +93,51 @@ class RulesPageTest < ActionView::TestCase
     refute_includes body.at_css("figure.unit-card-art")["class"].split, "piece-tile", "the art sits bare, off the parchment tile"
 
     stats = body.css("dl.unit-stats > div.unit-stat")
-    assert_equal %w[strength movement range trump], stats.map { _1["data-stat"] }, "Strength first"
+    assert_equal %w[range strength movement trump], stats.map { _1["data-stat"] }, "a range unit leads with Range"
     stats.each do |stat|
       assert_equal %w[dt dd], stat.element_children.map(&:name), "#{stat["data-stat"]}: label above value"
     end
-    assert_equal [ %w[Strength 1], %w[Movement 0], %w[Range 4] ],
+    assert_equal [ %w[Range 4], %w[Strength 1], %w[Movement 0] ],
                  stats.first(3).map { |stat| [ stat.at_css("dt").text.strip, stat.at_css("dd").text.strip ] }
     assert_includes stats.first.at_css("dd")["class"].split, "text-xl", "the value reads larger than its label"
 
     icons = stats.last.css("dd.unit-trumps img.unit-trump-icon")
-    assert_equal [ "Trumps Dragon", "Trumps Spearman", "Trumps Light Horse" ], icons.map { _1["alt"] }
+    # Since the new stats of September 29, 2026 the trebuchet trumps only the dragon.
+    assert_equal [ "Trumps Dragon" ], icons.map { _1["alt"] }
     assert_equal icons.map { _1["alt"] }, icons.map { _1["title"] }
-    assert_equal %w[dragon spearman lighthorse], icons.map { _1["data-trump"] }
+    assert_equal %w[dragon], icons.map { _1["data-trump"] }
     icons.each { |img| assert_match %r{/pieces/vector/#{img["data-trump"]}-}, img["src"], "the reader's skin" }
     assert_empty css_select(".unit-stat-marked"), "the Units list marks nothing"
   end
 
+  # [component] Alex, 2026-09-29: "On the Range units put the Range ahead of
+  # Strength, as Range is the most important in this class."
+  test "range units list Range, Strength, Movement, Trump; every other unit Strength first" do
+    Rulebook.classes.flat_map(&:units).each do |unit|
+      card = Nokogiri::HTML5.fragment(render(partial: "pages/unit_card", locals: { unit: }))
+      expected = unit.range ? %w[range strength movement trump] : %w[strength movement trump]
+      assert_equal expected, card.css("dl.unit-stats > div.unit-stat").map { _1["data-stat"] }, unit.slug
+    end
+    assert_equal %w[crossbowman catapult trebuchet], Rulebook.classes.flat_map(&:units).select(&:range).map(&:slug)
+  end
+
+  # [component] Alex, 2026-09-29: "Let's change this: straight lines". The
+  # Dragon's movement reads short, at a number's size, with the full meaning
+  # as its title and for screen readers.
+  test "the dragon's movement is a short value with an accessible full description" do
+    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("dragon") }
+
+    dd = css_select("dd[data-stat=movement]").sole
+    assert_equal "Moves any distance in a straight line", dd["title"]
+    assert_equal "Straight lines", dd.at_css("span[aria-hidden=true]").text
+    assert_equal "Moves any distance in a straight line", dd.at_css("span.sr-only").text
+    assert_no_match(/Moves in a straight line/, rendered)
+    assert_includes dd["class"].split, "text-xl"
+  end
+
   test "a unit that trumps nothing shows a dash, and the pencil skin reaches the trump icons" do
     view.define_singleton_method(:current_skin) { :pencil }
-    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("rabble") }
+    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("spearman") }
     assert_select "dd[data-stat=trump]", text: "—"
     assert_select "dd[data-stat=trump] img", 0
 
@@ -117,11 +147,11 @@ class RulesPageTest < ActionView::TestCase
   end
 
   test "a special rules card marks the stat its rule is about, label and value together" do
-    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("spearman"), highlight: %i[trump] }
+    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("rabble"), highlight: %i[trump] }
 
     assert_select ".unit-stat.unit-stat-marked", 1
     assert_select ".unit-stat-marked[data-stat=trump] > dt", text: "Trump"
-    assert_select ".unit-stat-marked[data-stat=trump] > dd img[alt='Trumps Light Horse']", 1
+    assert_select ".unit-stat-marked[data-stat=trump] > dd img[alt='Trumps King']", 1
   end
 
   test "the unit card CSS is one centred column, with no side-by-side container query left" do

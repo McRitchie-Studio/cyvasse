@@ -11,16 +11,28 @@
 // data: nothing ever branched on it, so it is written correctly here.
 //
 // Rule changes of September 29, 2026 (Alex), mirrored in
-// app/models/cyvasse_rules/units.rb and listed on /rules (Rulebook::CHANGES_2026):
-//   - the trebuchet reaches 4 hexes, not 3, and trumps the spearman and the
-//     light horse as well as the dragon. It still cannot take the king
-//     (strength 1 against 2, and no trump), and mountains still stop its
-//     shots (rules.js walkRangeRings);
+// app/models/cyvasse_rules/units.rb and listed on /rules (Rulebook::CHANGES_2026).
+// The first round:
+//   - the trebuchet reaches 4 hexes, not 3. Mountains still stop its shots
+//     (rules.js walkRangeRings);
 //   - the king trumps the dragon, so a dragon that comes within the king's
-//     move (two hexes, through an empty one) can be taken. The dragon can
-//     still take the king: its captures never read trumps (rules.js dragonCode);
+//     move (two hexes, through an empty one) can be taken;
 //   - the elephant moves 2 hexes, not 3. It is strong but slow, so it earns its
 //     place on the front line, across from the enemy, rather than as a raider.
+// The second round, "a new set of stats" (task cyvasse-stats-and-trumps-v3):
+//   - Strength is every unit's attack: rabble 1, trebuchet 1, king 2, light
+//     horse 2, crossbowman 2, spearman 3, heavy horse 3, catapult 3,
+//     elephant 4, dragon 5. A unit defends at its strength, except the three
+//     range units, which still defend at 1: any unit can take one;
+//   - a trump works on offense only: the trumping unit takes the unit it
+//     trumps when IT attacks, whatever the strengths, and gives no protection
+//     when it is attacked. The dragon, trumped by the trebuchet, can still take
+//     the trebuchet. Trumps: rabble > king, trebuchet > dragon, catapult >
+//     dragon, king > dragon, and no others (Alex, 21:48 MDT: "take out the
+//     spear trump of elephants"; the spearman trumps nothing);
+//   - cavalry jumps are per unit (`secondJump`): light horse 4 then 1, heavy
+//     horse 3 then 1 (were 3 then 2 and 2 then 2);
+//   - the catapult moves 1, not 2.
 
 // The board's two threat switches: these shoot; every other unit is melee.
 export const RANGED_UNITS = Object.freeze(["crossbowman", "trebuchet", "catapult"]);
@@ -38,17 +50,17 @@ export const SIZE_TIER_UNITS = Object.freeze({
 });
 
 export const UNIT_TYPES = Object.freeze({
-  rabble: unit("rabble", "Rabble", "vanguard", { attack: 1, defence: 1, moveRange: 3, attackRange: 0, flank: 2, trump: [] }),
-  spearman: unit("spearman", "Spearman", "vanguard", { attack: 2, defence: 2, moveRange: 2, attackRange: 0, flank: 1, trump: ["lighthorse"] }),
-  elephant: unit("elephant", "Elephant", "vanguard", { attack: 4, defence: 4, moveRange: 2, attackRange: 0, flank: 1, trump: [] }),
-  lighthorse: unit("lighthorse", "Light Horse", "cavalry", { attack: 2, defence: 2, moveRange: 3, attackRange: 0, flank: 1, trump: [] }),
-  heavyhorse: unit("heavyhorse", "Heavy Horse", "cavalry", { attack: 3, defence: 3, moveRange: 2, attackRange: 0, flank: 1, trump: [] }),
-  crossbowman: unit("crossbowman", "Crossbowman", "range", { attack: 2, defence: 1, moveRange: 1, attackRange: 2, flank: 0, trump: ["elephant"] }),
-  trebuchet: unit("trebuchet", "Trebuchet", "range", { attack: 1, defence: 1, moveRange: 0, attackRange: 4, flank: 0, trump: ["dragon", "spearman", "lighthorse"] }),
-  catapult: unit("catapult", "Catapult", "range", { attack: 3, defence: 1, moveRange: 2, attackRange: 3, flank: 0, trump: ["dragon"] }),
-  dragon: unit("dragon", "Dragon", "unique", { attack: 5, defence: 5, moveRange: 10, attackRange: 0, flank: 0, trump: [] }),
-  king: unit("king", "King", "unique", { attack: 2, defence: 2, moveRange: 2, attackRange: 0, flank: 0, trump: ["dragon"] }),
-  mountain: unit("mountain", "Mountain", "mountain", { attack: 9, defence: 9, moveRange: 0, attackRange: 0, flank: 0, trump: [] })
+  rabble: unit("rabble", "Rabble", "vanguard", { attack: 1, defence: 1, moveRange: 3, secondJump: 0, attackRange: 0, flank: 2, trump: ["king"] }),
+  spearman: unit("spearman", "Spearman", "vanguard", { attack: 3, defence: 3, moveRange: 2, secondJump: 0, attackRange: 0, flank: 1, trump: [] }),
+  elephant: unit("elephant", "Elephant", "vanguard", { attack: 4, defence: 4, moveRange: 2, secondJump: 0, attackRange: 0, flank: 1, trump: [] }),
+  lighthorse: unit("lighthorse", "Light Horse", "cavalry", { attack: 2, defence: 2, moveRange: 4, secondJump: 1, attackRange: 0, flank: 1, trump: [] }),
+  heavyhorse: unit("heavyhorse", "Heavy Horse", "cavalry", { attack: 3, defence: 3, moveRange: 3, secondJump: 1, attackRange: 0, flank: 1, trump: [] }),
+  crossbowman: unit("crossbowman", "Crossbowman", "range", { attack: 2, defence: 1, moveRange: 1, secondJump: 0, attackRange: 2, flank: 0, trump: [] }),
+  trebuchet: unit("trebuchet", "Trebuchet", "range", { attack: 1, defence: 1, moveRange: 0, secondJump: 0, attackRange: 4, flank: 0, trump: ["dragon"] }),
+  catapult: unit("catapult", "Catapult", "range", { attack: 3, defence: 1, moveRange: 1, secondJump: 0, attackRange: 3, flank: 0, trump: ["dragon"] }),
+  dragon: unit("dragon", "Dragon", "unique", { attack: 5, defence: 5, moveRange: 10, secondJump: 0, attackRange: 0, flank: 0, trump: [] }),
+  king: unit("king", "King", "unique", { attack: 2, defence: 2, moveRange: 2, secondJump: 0, attackRange: 0, flank: 0, trump: ["dragon"] }),
+  mountain: unit("mountain", "Mountain", "mountain", { attack: 9, defence: 9, moveRange: 0, secondJump: 0, attackRange: 0, flank: 0, trump: [] })
 });
 
 // The army, by the legacy data-index (1-based). Every stored setup string

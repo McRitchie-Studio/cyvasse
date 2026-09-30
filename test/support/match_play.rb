@@ -1,8 +1,10 @@
 # Shared by the match tests: two players and a real recorded game to play.
 #
 # The game is one the JavaScript engine played itself
-# (test/fixtures/files/rules_agreement.json, game 5: home moves first and
-# wins at turn 27), so every step posted below is one the browser would offer.
+# (test/fixtures/files/rules_agreement.json, game 5: home moves first, away
+# wins at turn 4), so every step posted below is one the browser would offer.
+# Game 2 (two turns) was passed over, and game 4 was tried and fails the
+# live-match and take-back-seat tests, whose computer moves play on from it.
 module MatchPlay
   RECORD = JSON.parse(Rails.root.join("test/fixtures/files/rules_agreement.json").read)
   GAME = RECORD.fetch("games").fetch(5)
