@@ -75,12 +75,61 @@ class RulesPageTest < ActionView::TestCase
     assert_select "#units .unit-card-body > dl.unit-stats", total
   end
 
-  test "a unit card lays itself out by its own width, stacking its stats when narrow" do
+  # [component] Alex's wireframe (cyvasse-rules-unit-card-layout): one
+  # centred column, art over name over stats, each stat a label above its
+  # value, and the trumps drawn as the trumped pieces' art.
+  test "a unit card stacks art, name and labelled stats, with trumps as piece art" do
+    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("trebuchet"), id: "unit-trebuchet" }
+
+    card = css_select("article#unit-trebuchet.unit-card[data-unit=trebuchet]").sole
+    body = card.at_css("> .unit-card-body")
+    assert_equal %w[figure h4 dl], body.element_children.map(&:name), "art, then name, then stats"
+    assert_equal "Trebuchet", body.at_css("h4.unit-card-name").text.strip
+    assert_equal "Trebuchet", body.at_css("figure.unit-card-art img")["alt"]
+
+    stats = body.css("dl.unit-stats > div.unit-stat")
+    assert_equal %w[movement strength range trump], stats.map { _1["data-stat"] }
+    stats.each do |stat|
+      assert_equal %w[dt dd], stat.element_children.map(&:name), "#{stat["data-stat"]}: label above value"
+    end
+    assert_equal [ %w[Movement 0], %w[Strength 1], %w[Range 4] ],
+                 stats.first(3).map { |stat| [ stat.at_css("dt").text.strip, stat.at_css("dd").text.strip ] }
+    assert_includes stats.first.at_css("dd")["class"].split, "text-xl", "the value reads larger than its label"
+
+    icons = stats.last.css("dd.unit-trumps img.unit-trump-icon")
+    assert_equal [ "Trumps Dragon", "Trumps Spearman", "Trumps Light Horse" ], icons.map { _1["alt"] }
+    assert_equal icons.map { _1["alt"] }, icons.map { _1["title"] }
+    assert_equal %w[dragon spearman lighthorse], icons.map { _1["data-trump"] }
+    icons.each { |img| assert_match %r{/pieces/vector/#{img["data-trump"]}-}, img["src"], "the reader's skin" }
+    assert_empty css_select(".unit-stat-marked"), "the Units list marks nothing"
+  end
+
+  test "a unit that trumps nothing shows a dash, and the pencil skin reaches the trump icons" do
+    view.define_singleton_method(:current_skin) { :pencil }
+    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("rabble") }
+    assert_select "dd[data-stat=trump]", text: "—"
+    assert_select "dd[data-stat=trump] img", 0
+
+    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("king") }
+    assert_select "dd[data-stat=trump] img[alt='Trumps Dragon'][src*='/pieces/pencil/dragon-']", 1
+  end
+
+  test "a special rules card marks the stat its rule is about, label and value together" do
+    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("spearman"), highlight: %i[trump] }
+
+    assert_select ".unit-stat.unit-stat-marked", 1
+    assert_select ".unit-stat-marked[data-stat=trump] > dt", text: "Trump"
+    assert_select ".unit-stat-marked[data-stat=trump] > dd img[alt='Trumps Light Horse']", 1
+  end
+
+  test "the unit card CSS is one centred column, with no side-by-side container query left" do
     css = Rails.root.join("app/assets/tailwind/application.css").read
-    assert_match(/^\.unit-card \{\s*container-type: inline-size;/, css)
-    narrow = css[/@container \(max-width: 16rem\) \{.*?\n\}/m]
-    assert narrow, "a narrow-card container query"
-    assert_match(/grid-template-areas: "art name" "stats stats"/, narrow)
+    body = css[/^\.unit-card-body \{.*?\}/m]
+    assert_match(/flex-direction: column;/, body)
+    assert_match(/align-items: center;/, body)
+    assert_match(/text-align: center;/, body)
+    assert_no_match(/@container/, css, "the art-beside-name layout is gone")
+    assert_match(/^\.unit-card \{\s*height: 100%;/, css, "cards fill their row")
     built = Rails.root.join("app/assets/builds/tailwind.css")
     assert_includes built.read, "lg\\:grid-cols-3", "Tailwind emits the thirds utility" if built.exist?
   end
