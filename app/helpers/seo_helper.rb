@@ -9,7 +9,7 @@
 # A page that never calls seo_page is noindex (see SeoPage).
 #
 # Every absolute URL is built on Cyvasse.canonical_url (the canonical-host
-# task's single source), so production says https://www.cyvasse.xyz whatever
+# task's single source), so production names the canonical host whatever
 # host the request came in on. Where no canonical host is set (a desk, a
 # test), the request's own origin stands in, so the tags still render whole.
 module SeoHelper
@@ -46,8 +46,10 @@ module SeoHelper
 
   def og_image_asset(page = current_seo_page)
     candidate = "og/#{page.key}.png"
-    Rails.application.assets.load_path.find(candidate) ? candidate : DEFAULT_OG_IMAGE
+    og_asset_exists?(candidate) ? candidate : DEFAULT_OG_IMAGE
   end
+
+  def og_asset_exists?(path) = Rails.application.assets.load_path.find(path).present?
 
   # A <script type="application/ld+json"> for one schema.org object. The JSON
   # is escaped for a script element (json_escape turns <, > and & into \u
