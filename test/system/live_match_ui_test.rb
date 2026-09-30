@@ -57,7 +57,7 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     assert_selector "[data-cyvasse-match-target=clockLabel]", text: "Set up your army"
     assert_selector "[data-cyvasse-match-target=clockSeconds]", text: /\A(59|60)s\z/
     assert_selector ".match-versus-bot", text: "Computer"
-    assert_text @match.display_name_of(@match.away_user)
+    assert_text @match.away_user.player_name
     assert_no_text "Chat with"
     assert_no_selector "[data-cyvasse-match-target=deadline]", visible: true
   end
@@ -65,7 +65,7 @@ class LiveMatchUiTest < ApplicationSystemTestCase
   test "[e2e] the versus card stacks you over the computer, its portrait beside its name, and fits a phone" do
     visit match_path(@match)
     bot = @match.away_user
-    them = @match.display_name_of(bot)
+    them = bot.player_name
     assert_selector "h1.match-versus [data-side=me] [data-avatar=piece] img[src*='pieces/vector/']"
     assert_selector "h1.match-versus [data-side=them] img[data-avatar=bot-portrait][alt='#{them}'][src*='bots/#{bot.username}-']"
     assert_no_selector "h1.match-versus [data-avatar=bot-fallback]"
@@ -179,7 +179,7 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     @match.update_columns(whos_turn: Match::AWAY, bot_due_at: 1.hour.from_now) unless @match.seat_to_move == :away
     visit match_path(@match)
     assert_selector ".live-clock.is-thinking [data-cyvasse-match-target=clockLabel]",
-                    text: "#{@match.display_name_of(@match.away_user)} is thinking…"
+                    text: "#{@match.away_user.player_name} is thinking…"
   end
 
   # Select our units in turn until one has somewhere to go, and take the

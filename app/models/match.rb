@@ -260,7 +260,7 @@ class Match < ApplicationRecord
       phase: if in_progress? then "play" elsif finished? then "over" else "setup" end,
       version: updated_at.to_f.to_s,
       you: { username: user.username, ready: ready?(user), guest: user.guest? },
-      opponent: { username: display_name_of(opponent_of(user)), ready: ready?(opponent_of(user)) },
+      opponent: { username: opponent_of(user).player_name, ready: ready?(opponent_of(user)) },
       seat: seat(user),
       can_accept: pending? && seat(user) == :away,
       can_set_up: pregame? && !ready?(user) && !(pending? && seat(user) == :away),

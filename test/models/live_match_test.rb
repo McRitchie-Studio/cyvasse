@@ -39,7 +39,7 @@ class LiveMatchTest < ActiveSupport::TestCase
 
     assert match.live?
     assert match.away_user.computer?
-    assert_includes LiveMatch::COMPUTER_NAMES.values, match.display_name_of(match.away_user)
+    assert_includes LiveMatch::COMPUTER_NAMES.values, match.away_user.player_name
     assert match.away_ready?
     assert_not match.home_ready?
     assert_equal Match::ACCEPTED, match.match_status
@@ -217,7 +217,7 @@ class LiveMatchTest < ActiveSupport::TestCase
     assert_equal 60, live[:clock][:seconds]
     assert_equal 10, live[:clock][:warning]
     assert live[:computer]
-    assert_equal match.display_name_of(match.away_user), match.state_for(@home)[:opponent][:username]
+    assert_equal match.away_user.player_name, match.state_for(@home)[:opponent][:username]
     assert_nil Match.challenge!(@home, "brienne").state_for(@home)[:live], "an ordinary match has no live state"
   end
 
