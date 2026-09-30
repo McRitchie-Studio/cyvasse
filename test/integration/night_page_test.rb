@@ -135,6 +135,8 @@ class NightPageTest < ActionDispatch::IntegrationTest
     assert(preloads.any? { |href| href.include?("night_countdown_controller") })
     assert(preloads.any? { |href| href.include?("night_clock") })
     assert(preloads.none? { |href| href.include?("cyvasse_game_controller") })
+    # A restored snapshot would freeze serverTime and tick a stale countdown.
+    assert_select "meta[name=turbo-cache-control][content=no-cache]"
   end
 
   test "the home page links to the night until it is over, and says so while it runs" do

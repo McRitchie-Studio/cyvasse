@@ -9,6 +9,8 @@
 <% hero = "backgrounds/home/dragon.webp"
    hero_mobile = "backgrounds/home/dragon-mobile.webp" %>
 <% content_for(:head) do %>
+  <%# The countdown ticks from serverTime: never restore a stale snapshot. %>
+  <meta name="turbo-cache-control" content="no-cache">
   <link rel="preload" as="image" href="<%= image_path(hero) %>" media="(min-width: 641px)" fetchpriority="high">
   <link rel="preload" as="image" href="<%= image_path(hero_mobile) %>" media="(max-width: 640px)" fetchpriority="high">
 <% end %>
