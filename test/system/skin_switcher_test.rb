@@ -29,7 +29,7 @@ class SkinSwitcherSystemTest < ApplicationSystemTestCase
     assert page.evaluate_script("window.__sameGame === true"), "the switch reloaded the page"
 
     visit rules_path
-    assert_selector "#units figure.piece-tile img[src*='/pieces/pencil/']", count: 11
+    assert_selector "#units figure.unit-card-art img[src*='/pieces/pencil/']", count: 11
     assert_selector ".skin-toggle button[data-skin=pencil][aria-pressed=true]"
 
     visit pieces_path
