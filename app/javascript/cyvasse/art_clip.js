@@ -29,12 +29,12 @@ export function hexCorners(width, height, scale = 1) {
 
 // The art's clip polygon around the hex's centre. It follows the hex's right,
 // lower-right and lower-left sides exactly, from the upper-right corner round
-// to the left corner. Past those two corners it runs on along the lines of
-// the neighbours' sides that meet there (the right neighbour's upper-left
-// side, the left neighbour's lower-right side), so the art never enters the
-// hex to the right or the hexes below, and then closes in a box `reach`
-// beyond the hex: over the upper-right, upper-left and left sides the art is
-// free.
+// to the lower-left corner. Past the upper-right corner it runs on along the
+// right neighbour's upper-left side; past the lower-left corner it runs on
+// along the line of the hex's own lower-left side, up into the left
+// neighbour. So the art never enters the hex to the right or the hexes below,
+// and the polygon then closes in a box `reach` beyond the hex: over the
+// upper-right, upper-left and left sides the art is free.
 export function artClipCorners(width, height, { scale = 1, reach = ART_REACH } = {}) {
   const [top, upperRight, lowerRight, bottom, lowerLeft] = hexCorners(width, height, scale);
   const out = reach * height;
