@@ -120,12 +120,13 @@ class SeoMetaTest < ActionDispatch::IntegrationTest
 
   test "the public pages render their words on the server, not only in script" do
     { "/" => "What is Cyvasse?", "/rules" => "Capture your opponent's king", "/pieces" => "The Pieces",
-      "/about" => "George R. R. Martin", "/leaderboard" => "Leaderboard", "/play" => nil }.each do |path, text|
+      "/about" => "George R. R. Martin", "/leaderboard" => "Live games since the relaunch",
+      # The board itself is drawn by script; its heading and panels are not.
+      "/play" => "Play Cyvasse" }.each do |path, text|
       get path
       body = page_doc.at_css("main")
-      body.css("script, template").each(&:remove)
-      assert_operator body.text.squish.length, :>, 40, "#{path} has server-rendered text"
-      assert_includes body.text.squish, text, path if text
+      body.css("script, template, style").each(&:remove)
+      assert_includes body.text.squish, text, "#{path} renders its words in the HTML"
     end
   end
 
