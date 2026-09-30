@@ -1,0 +1,62 @@
+<%# One conversation, live (task cyvasse-live-chat): the Chat hub's thread
+    and the match chat both render it. Locals: thread (a ChatThread), form_url
+    (where the composer posts), match (the match page's match, else nil),
+    log_class (extra classes for the scrolling list).
+
+    The page subscribes to the pair's stream (ChatStreams.pair, through
+    ChatStreamsChannel); ChatBroadcasts appends each new message to the list
+    by its id, which is the same on both pages. The chat controller marks the
+    reader's own messages, follows the newest, announces arrivals, marks
+    them read while the list is on screen, and catches up after the socket
+    comes back. The composer shows only when the reader may send
+    (User#can_message?); a legacy conversation with someone never played
+    stays readable without it. %>
+<% viewer = thread.viewer %>
+<% other = thread.other %>
+<% match = local_assigns[:match] %>
+<% can_send = viewer.can_message?(other, match:) %>
+<div class="space-y-3" data-controller="chat"
+     data-chat-viewer-id-value="<%= viewer.id %>"
+     data-chat-read-url-value="<%= read_conversation_path(other.id) %>"
+     data-chat-since-url-value="<%= messages_conversation_path(other.id) %>"
+     data-chat-unread-value="<%= thread.unread? %>"
+     data-chat-match-id-value="<%= match&.id %>">
+  <%= turbo_stream_from ChatStreams.pair(viewer, other), channel: ChatStreamsChannel, data: { chat_target: "source" } %>
+  <div class="chat-log <%= local_assigns[:log_class] %>" data-chat-target="log" tabindex="0" aria-label="Messages with <%= other.player_name %>">
+    <%= render "chat/earlier", thread: thread if thread.earlier? %>
+    <% if thread.empty? %>
+      <p id="<%= thread.dom_id %>_empty" class="text-sm text-secondary" data-chat-empty>No messages yet. Say hello to <%= other.player_name %>.</p>
+    <% end %>
+    <ol id="<%= thread.dom_id %>" class="chat-list" data-chat-log>
+      <%= render partial: "messages/message", collection: thread.messages, as: :message,
+            locals: { viewer:, show_match: true, match_link: ->(m) { m.player?(viewer) ? match_path(m) : nil } } %>
+    </ol>
+  </div>
+  <p class="sr-only" aria-live="polite" data-chat-target="announcer"></p>
+  <%= render "chat/error", thread_id: thread.dom_id, error: nil %>
+  <% if can_send %>
+    <%= form_with url: form_url, id: "latest", class: "space-y-2",
+          data: { chat_target: "form", action: "turbo:submit-start->chat#sending turbo:submit-end->chat#sent" } do |form| %>
+      <%= form.label :message, "Message #{other.player_name}", class: "sr-only" %>
+      <%= form.text_area :message, rows: 2, required: true, maxlength: Message::MAX_LENGTH,
+            placeholder: "Message #{other.player_name}", class: "input-field w-full",
+            data: { chat_target: "input", action: "keydown.enter->chat#submitOnEnter" } %>
+      <div class="flex items-center justify-between gap-2">
+        <p class="text-xs text-muted">
+          Only you and <%= other.player_name %> can read this, and site admins.
+          <span class="hidden pointer-fine:inline">Enter sends; Shift+Enter starts a new line.</span>
+        </p>
+        <%= form.submit "Send", class: "btn btn-primary btn-sm shrink-0" %>
+      </div>
+    <% end %>
+  <% else %>
+    <p class="text-sm text-secondary" data-chat-closed>
+      <% if other.computer? %>
+        <%= other.player_name %> chats only during a match against you.
+      <% else %>
+        You can read this conversation, but you can message only players you have played.
+        Challenge <%= other.player_name %> from <%= link_to "My games", matches_path, class: "underline underline-offset-2" %> to talk again.
+      <% end %>
+    </p>
+  <% end %>
+</div>

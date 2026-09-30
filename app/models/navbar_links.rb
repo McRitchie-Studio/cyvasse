@@ -1,5 +1,6 @@
-# The navbar's own links (task cyvasse-nav-links): My games and Leaderboard,
-# with the player's live rank as a badge. Handed to the engine navbar through
+# The navbar's own links (task cyvasse-nav-links): My games, Chat with the
+# player's unread messages as a badge (task cyvasse-live-chat; ChatBroadcasts
+# keeps it live), and Leaderboard with the player's live rank as a badge. Handed to the engine navbar through
 # Studio.navbar_links (config/initializers/studio.rb), which resolves them once
 # per render pass, so the rank is one query a page.
 #
@@ -9,6 +10,9 @@
 module NavbarLinks
   MATCHES = "/matches".freeze
   LEADERBOARD = "/leaderboard".freeze
+  CHAT = "/conversations".freeze
+  # The badge shows up to this many unread messages; more reads "9+".
+  UNREAD_CAP = 9
 
   module_function
 
@@ -19,6 +23,11 @@ module NavbarLinks
     # signed-out visitor to sign in: the link shows only where it opens games.
     if player&.username.present?
       links << { label: "My games", href: MATCHES, active: %r{\A#{MATCHES}(/|\z)} }
+    end
+    # Every signed-in player has a Chat hub, a guest included: it lists who
+    # they have played, or says to go and play someone.
+    if player
+      links << { label: "Chat", href: CHAT, active: %r{\A#{CHAT}(/|\z)}, badge: unread_badge(player) }
     end
     links << { label: "Leaderboard", href: LEADERBOARD, active: %r{\A#{LEADERBOARD}(/|\z)},
                badge: rank_badge(player) }
@@ -34,6 +43,21 @@ module NavbarLinks
   rescue StandardError => e
     log_failure(e)
     nil
+  end
+
+  # "3" for three unread messages from people, "9+" past the cap, nil (no
+  # badge) at none. Degrades to no badge on a failed count, as the rank does.
+  def unread_badge(player)
+    label(player.unread_messages_count)
+  rescue StandardError => e
+    log_failure(e)
+    nil
+  end
+
+  def label(count)
+    return nil unless count.positive?
+
+    count > UNREAD_CAP ? "#{UNREAD_CAP}+" : count.to_s
   end
 
   def log_failure(error)

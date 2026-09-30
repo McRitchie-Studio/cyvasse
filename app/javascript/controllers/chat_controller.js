@@ -1,56 +1,112 @@
 import { Controller } from "@hotwired/stimulus"
+import { Turbo } from "@hotwired/turbo-rails"
 
-// The match chat (app/views/matches/_chat.html.erb). The message list is a
-// Turbo frame; this reloads it every few seconds while the tab is visible.
+// One live conversation (app/views/chat/_thread.html.erb): the Chat hub's
+// thread and the match chat (task cyvasse-live-chat). New messages arrive
+// over the pair's websocket stream as Turbo Stream appends; no polling.
 //
+// - Mine: a broadcast message is drawn once for both people, so each message
+//   from the reader is marked here (is-mine, "You") from data-sender-id.
 // - Scrolling: the list follows the newest message only while the reader is
-//   at (or near) the bottom, or has just sent one. A reader scrolled up to
-//   read older messages stays where they are through every reload.
-// - Errors: a refused message comes back inside the frame, which the next
-//   reload would wipe; it is moved to the error line outside the frame and
-//   stays until the next message is sent.
+//   at (or near) the bottom, or has just sent one. "Load earlier" keeps the
+//   reader where they were while older messages land above.
+// - Read: messages from the other person are marked read (POST readUrl)
+//   while the list is on screen and the tab is visible, which clears the
+//   navbar badge live.
+// - Announced: a new message from the other person is read out by screen
+//   readers through the polite live region.
+// - Reconnect: Turbo's cable source reconnects by itself, but anything sent
+//   while the socket was down is not replayed, so on reconnect (and on
+//   coming back to the tab) the thread asks for the messages since the last
+//   one it has (sinceUrl) and appends them.
+// - Errors: a refused message's reason is shown in the error line (the
+//   server replaces it) and the draft is kept.
 // - Enter sends on a keyboard (Shift+Enter starts a new line). On a touch
 //   screen Enter is a new line, as phones expect, and Send sends.
-// - New messages from the other player are announced to screen readers.
 export default class extends Controller {
-  static targets = ["frame", "input", "error", "announcer"]
-  static values = { refreshMs: { type: Number, default: 8000 } }
+  static targets = ["log", "message", "input", "error", "announcer", "source", "form", "earlier"]
+  static values = {
+    viewerId: Number,
+    readUrl: String,
+    sinceUrl: String,
+    unread: Boolean,
+    matchId: Number
+  }
 
   // How close to the bottom (px) still counts as "at the bottom".
   static NEAR_BOTTOM = 48
 
+  initialize() {
+    this.lastId = 0
+    this.ready = false
+  }
+
   connect() {
     this.follow = true
-    this.lastId = null
-    this.timer = setInterval(() => this.refresh(), this.refreshMsValue)
+    this.onScreen = false
+    this.pendingRead = this.unreadValue
+    this.scrollToEnd()
+    this.onScroll = () => this.logScrolled()
+    this.logTarget.addEventListener("scroll", this.onScroll, { passive: true })
+    this.watchVisibility()
+    this.watchSocket()
+    this.onVisible = () => {
+      if (document.visibilityState !== "visible") return
+      this.catchUp()
+      this.markReadIfSeen()
+    }
+    document.addEventListener("visibilitychange", this.onVisible)
+    this.ready = true
   }
 
   disconnect() {
-    clearInterval(this.timer)
+    this.ready = false
+    this.visibility?.disconnect()
+    this.socket?.disconnect()
+    this.logTarget.removeEventListener("scroll", this.onScroll)
+    document.removeEventListener("visibilitychange", this.onVisible)
   }
 
-  refresh() {
-    if (document.visibilityState !== "visible" || !this.frameTarget.src) return
-    if (this.frameTarget.hasAttribute("busy")) return
-    this.remember()
-    this.frameTarget.reload()
+  // Every message element, whether rendered with the page, appended live, or
+  // loaded from "Load earlier". Stimulus calls this for the first ones before
+  // connect(), so nothing is announced then.
+  messageTargetConnected(element) {
+    this.markMine(element)
+    this.hideOwnMatchLabel(element)
+    // Older messages from "Load earlier" are history, never news.
+    if (element.closest("turbo-frame")) return
+    const id = Number(element.dataset.messageId)
+    const isNew = id > this.lastId
+    if (isNew) this.lastId = id
+    if (!this.ready || !isNew) return
+
+    if (element.classList.contains("is-mine")) {
+      this.follow = true
+    } else {
+      this.announce(element)
+      this.pendingRead = true
+      this.markReadIfSeen()
+    }
+    if (this.follow) this.scrollToEnd()
   }
 
-  // Before a reload, note whether the reader is following the bottom and
-  // where they are, so loaded() can put them back.
-  remember() {
-    const log = this.log
-    if (!log) return
+  // As the reader scrolls, note whether they are following the bottom.
+  logScrolled() {
+    const log = this.logTarget
     this.follow = log.scrollHeight - log.scrollTop - log.clientHeight <= this.constructor.NEAR_BOTTOM
-    this.savedTop = log.scrollTop
   }
 
-  // turbo:frame-load: after the first load, every reload, and a send.
-  loaded() {
-    this.liftError()
-    const log = this.log
-    if (log) log.scrollTop = this.follow ? log.scrollHeight : this.savedTop
-    this.announceNew()
+  // "Load earlier messages" clicked: keep the reader's distance from the
+  // bottom while older messages are inserted above.
+  loadingEarlier(event) {
+    const frame = event.target.closest("turbo-frame")
+    if (!frame) return
+    const log = this.logTarget
+    const fromBottom = log.scrollHeight - log.scrollTop
+    frame.addEventListener("turbo:frame-load", () => {
+      log.scrollTop = log.scrollHeight - fromBottom
+      frame.querySelector("a, button")?.focus?.()
+    }, { once: true })
   }
 
   // turbo:submit-start: sending jumps to the bottom to show the new message.
@@ -61,7 +117,6 @@ export default class extends Controller {
   sent(event) {
     if (!event.detail.success) return
     this.inputTarget.value = ""
-    this.showError(null)
     this.inputTarget.focus()
   }
 
@@ -74,40 +129,93 @@ export default class extends Controller {
 
   // ---- private ---------------------------------------------------------------
 
-  get log() {
-    return this.frameTarget.querySelector("[data-chat-log]")
-  }
-
   get touchScreen() {
     return window.matchMedia?.("(pointer: coarse)").matches ?? false
   }
 
-  liftError() {
-    const error = this.frameTarget.querySelector("[data-chat-error]")
-    if (!error) return
-    this.showError(error.textContent.trim())
-    error.remove()
+  scrollToEnd() {
+    if (!this.hasLogTarget) return
+    this.logTarget.scrollTop = this.logTarget.scrollHeight
   }
 
-  showError(text) {
-    this.errorTarget.textContent = text ?? ""
-    this.errorTarget.hidden = !text
+  markMine(element) {
+    if (Number(element.dataset.senderId) !== this.viewerIdValue) return
+    element.classList.add("is-mine")
+    const name = element.querySelector("[data-sender]")
+    if (name) name.textContent = "You"
   }
 
-  // Say "New message from <name>" for messages from the other player that
-  // arrived since the last load; nothing on the first load.
-  announceNew() {
-    const messages = [...this.frameTarget.querySelectorAll("[data-message-id]")]
-    const newest = Math.max(0, ...messages.map((m) => Number(m.dataset.messageId)))
-    if (this.lastId !== null) {
-      const fresh = messages.filter((m) => Number(m.dataset.messageId) > this.lastId && !m.classList.contains("is-mine"))
-      if (fresh.length > 0) {
-        const last = fresh[fresh.length - 1]
-        const from = last.querySelector("[data-sender]")?.textContent.trim() ?? "your opponent"
-        const text = last.querySelector(".chat-text")?.textContent.trim() ?? ""
-        this.announcerTarget.textContent = fresh.length === 1 ? `New message from ${from}: ${text}` : `${fresh.length} new messages from ${from}.`
-      }
+  // On the match page, "in match #12" on this match's own messages says
+  // nothing; messages from their other matches keep it.
+  hideOwnMatchLabel(element) {
+    if (!this.matchIdValue) return
+    const label = element.querySelector(`[data-match-label="${this.matchIdValue}"]`)
+    if (label) label.hidden = true
+  }
+
+  announce(element) {
+    const from = element.dataset.senderName || "your opponent"
+    const text = element.querySelector(".chat-text")?.textContent.trim() ?? ""
+    this.announcerTarget.textContent = `New message from ${from}: ${text}`
+  }
+
+  // The log counts as seen while any of it is in the viewport.
+  watchVisibility() {
+    if (!("IntersectionObserver" in window)) {
+      this.onScreen = true
+      this.markReadIfSeen()
+      return
     }
-    this.lastId = newest
+    this.visibility = new IntersectionObserver((entries) => {
+      this.onScreen = entries.some((entry) => entry.isIntersecting)
+      this.markReadIfSeen()
+    })
+    this.visibility.observe(this.logTarget)
+  }
+
+  markReadIfSeen() {
+    if (!this.pendingRead || !this.onScreen || document.visibilityState !== "visible") return
+    if (!this.readUrlValue || this.reading) return
+    this.pendingRead = false
+    this.reading = true
+    fetch(this.readUrlValue, { method: "POST", headers: { "X-CSRF-Token": this.csrfToken }, credentials: "same-origin" })
+      .then((response) => { if (!response.ok) this.pendingRead = true })
+      .catch(() => { this.pendingRead = true })
+      .finally(() => { this.reading = false })
+  }
+
+  // The cable source carries a `connected` attribute while subscribed.
+  // Losing it and getting it back means messages may have been missed.
+  watchSocket() {
+    if (!this.hasSourceTarget) return
+    this.wasConnected = this.sourceTarget.hasAttribute("connected")
+    this.socket = new MutationObserver(() => {
+      const connected = this.sourceTarget.hasAttribute("connected")
+      if (connected && this.wasConnected === false) this.catchUp()
+      this.wasConnected = connected
+    })
+    this.socket.observe(this.sourceTarget, { attributes: true, attributeFilter: ["connected"] })
+  }
+
+  async catchUp() {
+    if (!this.sinceUrlValue || this.catchingUp) return
+    this.catchingUp = true
+    try {
+      const url = new URL(this.sinceUrlValue, window.location.href)
+      url.searchParams.set("after", String(this.lastId))
+      const response = await fetch(url, { headers: { Accept: "text/vnd.turbo-stream.html" }, credentials: "same-origin" })
+      if (response.ok) {
+        const html = await response.text()
+        if (html.trim() !== "") Turbo.renderStreamMessage(html)
+      }
+    } catch {
+      // Offline again: the next reconnect tries once more.
+    } finally {
+      this.catchingUp = false
+    }
+  }
+
+  get csrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content ?? ""
   }
 }

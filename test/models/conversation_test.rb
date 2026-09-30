@@ -10,8 +10,10 @@ class ConversationTest < ActiveSupport::TestCase
     @arya, @brienne, @cersei, @davos = %w[arya brienne cersei davos].map { make_player(_1) }
   end
 
+  # History as the legacy import writes it: saved without the rules a new
+  # message meets (User#can_message? among them), which this does not test.
   def say(from, to, text, at:, match: nil)
-    Message.create!(sender: from, receiver: to, message: text, match: match, created_at: at, updated_at: at)
+    Message.new(sender: from, receiver: to, message: text, match: match, created_at: at, updated_at: at).tap { _1.save!(validate: false) }
   end
 
   test "groups both directions of a pair into one conversation, newest first" do
@@ -86,7 +88,9 @@ class ConversationTest < ActiveSupport::TestCase
     players.each { |p| say(@arya, p, "hi", at: 1.minute.ago, match: Match.challenge!(@arya, p.username)) }
 
     queries = count_queries { Conversation.page(Message.all).conversations.each { _1.users.map(&:username) + _1.matches.map(&:id) } }
-    assert_operator queries, :<=, 5
+    # count, rows, users, their avatars (preloaded for the Chat hub), last
+    # messages, matches
+    assert_operator queries, :<=, 6
   end
 
   test "parses a pair key" do

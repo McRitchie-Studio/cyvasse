@@ -8,9 +8,9 @@
         Playing as <strong class="text-heading"><%= current_user.player_name %></strong>
         · <span data-record><%= current_user.wins %> won, <%= current_user.losses %> lost</span>
         · <%= link_to "change name", username_path(return_to: matches_path), class: "underline underline-offset-2" %>
-        · <%= link_to inbox_path, class: "underline underline-offset-2", data: { inbox_link: true } do %>Inbox<% end %>
+        · <%= link_to conversations_path, class: "underline underline-offset-2", data: { chat_link: true } do %>Chat<% end %>
         <% if (unread = current_user.unread_messages_count).positive? %>
-          <span class="unread-dot" title="Unread messages"><%= unread %></span>
+          <span class="unread-dot" title="Unread messages"><%= unread %><span class="sr-only"> unread</span></span>
         <% end %>
       </p>
     </div>

@@ -30,6 +30,31 @@ class NavbarLinksViewTest < ActionView::TestCase
     end
   end
 
+  test "Chat: no badge at no unread messages, the count, then 9+ past nine" do
+    arya, brienne = player("arya"), player("brienne")
+    match = Match.challenge!(brienne, "arya")
+
+    render_navbar_for(arya)
+    assert_select "#{NAV} a[href='/conversations']", count: 2, text: /\AChat\z/
+    assert_select "#{NAV} a[href='/conversations'] span", 0
+
+    4.times { |i| Message.post_in_match!(match, brienne, "hi #{i}") }
+    view.instance_variable_set(:@studio_navbar_links, nil)
+    render_navbar_for(arya)
+    assert_select "#{NAV} a[href='/conversations']", count: 2, text: /\AChat\s*4\z/
+
+    6.times { |i| Message.post_in_match!(match, brienne, "more #{i}") }
+    view.instance_variable_set(:@studio_navbar_links, nil)
+    render_navbar_for(arya)
+    assert_select "#{NAV} a[href='/conversations'] span", count: 2, text: "9+"
+  end
+
+  test "the live badge partial draws what the engine draws" do
+    render partial: "chat/nav_label", locals: { count: 12 }
+    assert_select "span.rounded-full", "9+"
+    assert_match(/\A\s*Chat<span/, rendered)
+  end
+
   test "an unranked player sees the Leaderboard with no badge" do
     render_navbar_for(player("arya"))
 

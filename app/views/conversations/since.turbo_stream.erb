@@ -1,0 +1,8 @@
+<%# The messages since one, for a chat whose socket dropped and came back
+    (the chat controller's catchUp). Appending by id, a message the page
+    already has is replaced in place, not repeated. %>
+<% if @thread.messages.any? %>
+  <%= turbo_stream.remove "#{@thread.dom_id}_empty" %>
+  <%= turbo_stream.append @thread.dom_id, partial: "messages/message", collection: @thread.messages, as: :message,
+        locals: { viewer: current_user, show_match: true, match_link: ->(m) { m.player?(current_user) ? match_path(m) : nil } } %>
+<% end %>

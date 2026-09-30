@@ -14,8 +14,10 @@ from live stats) and `/about` pages, their copy lightly edited. Unit stats for
 engine's `CyvasseRules::Units::ARMY`. And the game itself: `/play`, a public game against
 the computer, played entirely in the browser, in whichever piece skin the
 player picked; `/matches`, online matches between signed-in players, a turn
-at a time; and messages between players: a chat on each match, an `/inbox`,
-and admin Conversations and Message Board pages.
+at a time; and live chat between players who have played each other: one
+conversation per pair, on each match and in the `/conversations` Chat hub,
+with an unread badge on the navbar's Chat link, and admin Conversations and
+Message Board pages.
 
 ## Stack
 
@@ -25,6 +27,7 @@ and admin Conversations and Message Board pages.
 | Engine | `studio-engine` from RubyGems (`~> 0.76`) |
 | Database | Postgres |
 | CSS / JS | Tailwind v4 (`tailwindcss-rails`), importmap, Turbo, Stimulus; Alpine from the engine |
+| Realtime | ActionCable carrying Turbo Streams (the live chat): Heroku Redis in production (`REDIS_URL`), the in-process adapter in development and tests |
 | Tier | managed satellite: PRs target `accepted`, which walks `accepted` → `release` → `main` |
 
 ## Art
@@ -504,25 +507,68 @@ so a desk or a test never reports to production.
 
 ## Messages
 
-Players talk in a chat on each match, and read every conversation in their
-`/inbox`. A conversation is every message between two people, in any match
-or none; it is not a table, but the unordered pair of a message's sender and
-receiver (`Conversation`, `app/models/conversation.rb`).
+Players chat live with the people they have played (task cyvasse-live-chat).
+A conversation is every message between two people, in any match or none, so
+talk carries on from match to match rather than starting afresh; it is not a
+table, but the unordered pair of a message's sender and receiver
+(`Conversation`, `app/models/conversation.rb`). A message sent in a match's
+chat still records the match.
+
+**Who may message whom** is one rule, `User#can_message?`, checked on every
+new message whichever way it is sent (a validation on `Message`):
+
+- never yourself;
+- between two people, only once they have shared a match: any match, in any
+  status, a pending challenge and a legacy imported match included;
+- a computer player only inside a match the two of them share, where its
+  remote runner reads the chat (the bot API); never from the Chat hub.
+
+A legacy conversation with someone you never played stays readable in the
+hub; its thread has no composer and says to challenge them to talk again.
 
 | Where | What | Who |
 |---|---|---|
-| The match page's chat card | A Turbo frame loaded from `GET /matches/:id/messages` and reloaded every 8 s while the tab is visible (a reader scrolled up keeps their place, and a refused message's error stays up); the form posts to `POST /matches/:id/messages`. Enter sends on a keyboard; on a touch screen Enter is a new line and Send sends. New messages are announced to screen readers | the match's two players (anyone else: 404) |
-| `/inbox` | The player's conversations, newest first, with unread counts; 25 a page | the signed-in player |
-| `/conversations/:user_id` | One whole thread, each message labelled with its match, and a reply box (a reply is sent outside any match) | the conversation's two people (anyone else: 404) |
+| The match page's chat card | The pair's whole conversation (the latest 50, "Load earlier messages" for more), live; the form posts to `POST /matches/:id/messages`. Shown against a person, or a computer player whose remote runner holds a live bot token (not Play Now's in-app computer). Enter sends on a keyboard; on a touch screen Enter is a new line and Send sends | the match's two players (anyone else: 404) |
+| `/conversations` (the Chat hub; `/inbox` redirects here) | The player's conversations with people, newest first, each with avatar, name, last message, time and unread count; then "Say hi": people played and not yet messaged. Someone who has played no person is told to "Play a human to start a conversation", with Play Now. Computer players are never listed | the signed-in player, guests included |
+| `/conversations/:user_id` | One whole thread, live, each message labelled with its match, and a composer (a message sent here is outside any match). Opens when there are messages between you or you may start one | the conversation's two people (anyone else: 404) |
+| `GET /conversations/:user_id/messages` | `?before=<id>`: the "Load earlier messages" frame; `?after=<id>`: the messages since, as a Turbo Stream, for a page whose socket came back | the two people |
+| `POST /conversations/:user_id/read` | Marks the conversation read (the chat calls it as messages arrive on screen) | the two people |
 | `/admin/conversations` | Every conversation that ever happened, newest first, searchable by player (username, name or email), 25 a page, each linking its matches | admins only (anyone else: 404) |
 | `/admin/conversations/:low-:high` | One conversation's every message, grouped by game (match number, status, winner, dates; messages outside any game in their own group), groups newest first and messages oldest first inside each; the first-named player's bubbles on the left, the second's on the right. Ten games a page, each showing its latest 200 messages with a link to the whole game (`?game=<match id>` or `?game=none`, 200 a page) (`ConversationThread`) | admins only |
 | `/admin/matches/:id` | One match's facts and chat | admins only |
 | `/admin/message_board` | The old public message board: every legacy post with text, newest first, 50 a page, each with its author and the date posted (`BoardPost`) | admins only (anyone else: 404) |
 
-Opening a thread or a match chat marks the messages addressed to you as read.
+**Live updates** are Turbo Streams over ActionCable (`ChatBroadcasts`), on two
+kinds of stream (`ChatStreams`):
+
+| Stream | Carries | Subscribed by |
+|---|---|---|
+| `chat:user:<id>` | the navbar Chat badge, and the player's hub rows (a conversation moves to the top, its unread count changes) | every page a signed-in player opens (the layout) |
+| `chat:pair:<low>-<high>` | each new message, appended to the thread | the hub thread and the match chat of those two |
+
+A page subscribes with `turbo_stream_from ..., channel: ChatStreamsChannel`:
+the stream name is signed by the server, and the channel also checks that the
+socket's player (`ApplicationCable::Connection`, from the session cookie) is
+the one the stream belongs to, so a signed name copied from someone else's
+page streams nothing. There is no polling: Turbo's cable source reconnects by
+itself, and on reconnecting (or on coming back to the tab) the chat asks for
+the messages since its last one, since a broadcast sent while a socket was
+down is not replayed. A broadcast, rendering included, never fails the write
+that caused it (`Studio::Cable.safe_broadcast`).
+
+**Unread.** The navbar Chat link's badge counts messages from people still
+unread (never a computer player's): hidden at none, "9+" past nine; one
+count through `index_messages_on_receiver_id_and_read`. A message is marked
+read when its thread opens, or when it arrives in a hub thread or match chat
+that is on screen in a visible tab, and the badge clears live.
+
+**Sending** is limited to 20 messages a minute per player in each of the match
+chat and the hub (Rails `rate_limit`), and to `Message::MAX_LENGTH` (1,000)
+characters; text is escaped wherever it is shown.
+
 **Blank messages** (empty or whitespace-only text: 10,778 legacy messages and
 246 board posts) are kept in the tables and hidden everywhere they would be
-shown or counted: the chat, the inbox and its unread counts, and every admin
+shown or counted: the chat, the Chat hub and its unread counts, and every admin
 page (`Message.with_text`, `BoardPost.with_text`). A conversation of blank
 messages alone is not listed.
 
@@ -566,7 +612,7 @@ bundler-audit, importmap audit and rubocop:
 | Command | What |
 |---|---|
 | `bin/rails test` | unit, component and integration tests (single-process), and a guard that fails on a committed merge-conflict marker (`lib/conflict_markers.rb`) |
-| `bin/rails test:system` | browser tests in headless Chrome: a whole game against the computer (a win, a loss or a draw), keyboard play, the match chat, and two players starting an online match |
+| `bin/rails test:system` | browser tests in headless Chrome: a whole game against the computer (a win, a loss or a draw), keyboard play, the live chat between two browsers, and two players starting an online match |
 | `bin/test-js` | the game engine's unit tests, on `node:test` (Node 20+, no npm install) |
 | `bin/rules-agreement` | regenerate the JS engine's recorded answers the Ruby rules port is tested against |
 
@@ -641,6 +687,7 @@ outcomes and where the onboarding loses people.
 | Variable | Where | Purpose |
 |---|---|---|
 | `DATABASE_URL` | production, desks | Postgres connection |
+| `REDIS_URL` | production | ActionCable's Redis for the live chat (Heroku Redis `heroku-redis:mini`, a `rediss://` URL; `Studio::Redis` turns off peer verification for its self-signed certificate). Unset, broadcasts fail quietly into ErrorLog and the chat still works on reload. Development and tests use the in-process adapter and need no Redis |
 | `TEST_DATABASE_URL` | desks | the desk's isolated test database |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | production (optional) | Google sign-in; both unset, the app is magic link only |
 | `MS_HANDOFF_PUBLIC_KEY` | production | the hub's ES256 (P-256) public key, PEM, for the email sign-in handoff; unset, the handoff fails closed. The private half lives only on the hub (1Password, credential-filing SOP) |

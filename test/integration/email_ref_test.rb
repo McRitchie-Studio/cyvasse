@@ -57,7 +57,7 @@ class EmailRefTest < ActionDispatch::IntegrationTest
   end
 
   test "a signed-out reader sent to sign in by a gated page keeps the ref" do
-    get inbox_path(ref: REF)
+    get conversations_path(ref: REF)
     assert_response :redirect
     assert_equal REF, cookies[:email_ref]
 
