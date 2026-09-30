@@ -18,6 +18,12 @@ require "rails/test_unit/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+# The canonical host, read by config/environments/production.rb before the
+# autoloader runs, and the middleware that redirects to it
+# (lib/cyvasse/canonical_host.rb).
+require_relative "../lib/cyvasse/canonical_host"
+require_relative "../lib/cyvasse/canonical_host_redirect"
+
 module Cyvasse
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
@@ -26,7 +32,7 @@ module Cyvasse
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w[assets tasks])
+    config.autoload_lib(ignore: %w[assets tasks cyvasse])
 
     # Configuration for the application, engines, and railties goes here.
     #
@@ -47,6 +53,12 @@ module Cyvasse
     # ETags are made inside it, over the uncompressed body, and its Vary:
     # Accept-Encoding keeps a shared cache from serving gzip to a client that
     # did not ask. sync (the default) flushes each chunk, so streaming stays live.
+    # One public host: every other host a GET arrives on 301s to
+    # Cyvasse.canonical_host, path and query intact. First in the stack, so an
+    # http:// request on the old host takes one hop, not two (after
+    # ActionDispatch::SSL). Inert where no canonical host is set.
+    config.middleware.insert_before 0, Cyvasse::CanonicalHostRedirect
+
     config.middleware.insert_after Rack::Sendfile, Rack::Deflater, include: %w[
       text/html text/css text/javascript text/plain text/vnd.turbo-stream.html
       application/javascript application/json application/xml application/manifest+json
