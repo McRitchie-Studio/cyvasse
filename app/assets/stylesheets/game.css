@@ -544,8 +544,10 @@ html.dark [data-skin="pencil"] .dock-unit img {
     margin: 0;
   }
 
+  /* Drawn over the hint's row, so it must let clicks through to the hint. */
   .match-layout .cyvasse-banner-slot {
     z-index: 1;
+    pointer-events: none;
   }
 }
 

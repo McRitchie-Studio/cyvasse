@@ -86,6 +86,11 @@ class SidebarOrderTest < ApplicationSystemTestCase
       assert_last_in_sidebar ".match-actions"
       assert_no_sideways_scroll width
       shot("play-#{label}")
+
+      # The banner slot shares the hint's row on desktop, drawn over it; a
+      # click on the hint must still reach it and put the unit back.
+      find(".cyvasse-hint", visible: :visible).click
+      assert_selector "[data-cyvasse-match-target=info]", visible: :hidden
     end
   end
 
