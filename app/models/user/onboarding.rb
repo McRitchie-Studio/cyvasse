@@ -79,12 +79,13 @@ module User::Onboarding
 
   # A free name built from the legacy one (or the email) that passes today's
   # rules: stray characters become underscores, then a number is added until
-  # nobody holds it in any case. One query for every candidate.
+  # nobody holds it in any case, and it is not reserved (User.username_reserved?).
+  # One query for every candidate.
   def suggested_username
     base = (username.presence || email.to_s.split("@").first.to_s).strip
       .gsub(/[^A-Za-z0-9_]+/, "_").gsub(/_+/, "_").delete_prefix("_").delete_suffix("_").first(16)
-    base = "player" if base.length < 3
-    candidates = [ base, *(2..99).map { |n| "#{base}_#{n}" } ]
+    base = "player" if base.length < 3 || base.match?(User::GUEST_USERNAME)
+    candidates = [ base, *(2..99).map { |n| "#{base}_#{n}" } ].reject { |candidate| User.username_reserved?(candidate) }
     taken = User.where("lower(username) IN (?)", candidates.map(&:downcase)).where.not(id:).pluck(Arel.sql("lower(username)"))
     candidates.find { |candidate| !taken.include?(candidate.downcase) } || "#{base.first(11)}_#{SecureRandom.hex(4)}"
   end
