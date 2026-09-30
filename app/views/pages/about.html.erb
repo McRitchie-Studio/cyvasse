@@ -1,4 +1,4 @@
-<% content_for(:title, "About · Cyvasse") %>
+<% seo_page :about %>
 <%# Ported from the original site's about page (legacy home/about.html.erb).
     Every external link opens a new tab with rel=noopener. Links whose
     original target was a personal domain are dropped: those domains can lapse
@@ -60,6 +60,11 @@
       George R. R. Martin, as well as an attempt to solidify a set of rules that
       reflects the specifics and spirit of Cyvasse we learn about throughout
       <i>A Song of Ice and Fire</i>.
+    </p>
+    <p>
+      Cyvasse is free to play online. Read the <%= link_to "rules", rules_path %>,
+      then <%= link_to "play the computer", play_path %> or press Play Now on the
+      <%= link_to "home page", root_path %> for a live game.
     </p>
   </section>
 
