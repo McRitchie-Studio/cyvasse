@@ -1,7 +1,17 @@
 <% content_for(:title, "Rules · Cyvasse") %>
 
+<%# The banner is the goal of the game on the current board: a Dragon with the
+    enemy King at the end of its lane, captured by test/capture/home_gallery_capture.rb
+    (`bin/rails cyvasse:capture_rules_hero`). A 3:1 crop for a wide screen, a
+    16:9 one for a phone; the first paint, so both are preloaded. %>
+<% hero = "backgrounds/rules/capture-the-king.webp"
+   hero_mobile = "backgrounds/rules/capture-the-king-mobile.webp" %>
+<% content_for(:head) do %>
+  <link rel="preload" as="image" href="<%= image_path(hero) %>" media="(min-width: 641px)" fetchpriority="high">
+  <link rel="preload" as="image" href="<%= image_path(hero_mobile) %>" media="(max-width: 640px)" fetchpriority="high">
+<% end %>
 <article class="max-w-3xl mx-auto rules-page">
-  <%= render "pages/banner", image: "backgrounds/cyvasse_rules_background.png", title: "Rules",
+  <%= render "pages/banner", image: hero, mobile_image: hero_mobile, title: "Rules",
                              subtitle: "The goal of Cyvasse is to capture your opponent's king." %>
 
   <%# The quick version the original tutorial opened with (legacy features/tutorial.js). %>
@@ -141,7 +151,9 @@
       <% @unit_classes.each do |unit_class| %>
         <section id="class-<%= unit_class.name.downcase %>" class="unit-class">
           <h3 class="unit-class-title text-xs font-semibold uppercase tracking-widest text-muted mb-4"><%= unit_class.name %></h3>
-          <div class="grid gap-4 sm:grid-cols-2">
+          <%# Thirds on a wide screen, halves on a tablet, one a row on a phone;
+              a third is narrow enough that the card stacks its stats (.unit-card). %>
+          <div class="unit-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <% unit_class.units.each do |unit| %>
               <%= render "pages/unit_card", unit:, id: "unit-#{unit.slug}" %>
             <% end %>
