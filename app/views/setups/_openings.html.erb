@@ -1,10 +1,11 @@
 <%# The opening lineups (app/javascript/cyvasse/openings.js), open to every
     player: pick one, read its idea, load it onto the board. Locals: board,
     the board's Stimulus identifier (cyvasse-game or cyvasse-match), which
-    places the loaded lineup. %>
+    places the loaded lineup and announces (<board>:lineup) every change to
+    the army, so the picker names the opening on the board, or "Custom". %>
 <div class="space-y-2"
      data-controller="cyvasse-openings"
-     data-action="cyvasse-openings:load-><%= board %>#loadLineup">
+     data-action="cyvasse-openings:load-><%= board %>#loadLineup <%= board %>:lineup@window->cyvasse-openings#reflect">
   <h3 class="text-sm font-semibold uppercase tracking-widest text-muted">Openings</h3>
   <label class="sr-only" for="<%= board %>-opening">Opening</label>
   <select id="<%= board %>-opening" class="input-field w-full"

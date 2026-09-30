@@ -22,6 +22,13 @@
 //     safe from a first-turn dragon strike.
 //   - The side whose king stands nearer the middle row moves first.
 //
+// Every opening but the King's Gambit and Crown Forward, whose kings stand
+// forward on purpose, is king-safe (cyvasse/king_safety): no enemy unit on any
+// hex of their five rows can take the king on its first turn, a light horse
+// raid through a shooter included. Shooters defend at 1, so a crossbow,
+// trebuchet or catapult next to the king is a doorway, not a guard, unless no
+// horse can reach it.
+//
 // openingLineup(opening) turns a drawing into the legacy setup string that
 // Game#loadLineup and the saved-lineup panel already speak.
 
@@ -131,6 +138,13 @@ export function openingLineup({ rows }) {
     });
   });
   return formatLineup(pairs.sort((a, b) => a[0] - b[0]));
+}
+
+// The opening a whole-army lineup string is, or null: the setup panel's
+// picker names it after Smart Setup or a load, and says "Custom" otherwise.
+export function openingFor(lineup) {
+  if (!lineup) return null;
+  return OPENINGS.find((o) => openingLineup(o) === lineup) ?? null;
 }
 
 function opening(slug, name, idea, rows) {
