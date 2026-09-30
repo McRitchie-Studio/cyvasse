@@ -103,9 +103,22 @@ html:root:not(.dark) {
   opacity: 0.8;
 }
 
-/* The front door's hero: a game in play under a black scrim. */
+/* The front door's hero: a game in play under a black scrim, full bleed
+ * (the layout's :hero slot, outside <main>'s container). On a wide screen it
+ * is at least the desktop crop's 2:1 (capped, so a laptop still sees the
+ * leaderboard card), and its content sits in the middle; on a phone its
+ * content sets the height. */
 .home-hero-scrim {
   background: rgb(0 0 0 / 0.7);
+}
+
+@media (min-width: 641px) {
+  .home-hero-scrim {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: min(50vw, 42rem);
+  }
 }
 
 /* Its background: one action shot per piece (pages/_home_gallery), stacked,
