@@ -30,12 +30,12 @@
       <p class="night-kicker" data-night-kicker>
         <%= { before: "Live event", during: "Live now", after: "That's a wrap" }.fetch(@phase) %>
       </p>
-      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
-        <span class="whitespace-nowrap">Cyvasse Night</span>
+      <h1 class="night-title text-3xl font-extrabold tracking-tight text-white mb-3">
+        <span class="night-title-name">Cyvasse Night</span>
+        <span class="sr-only">·</span>
+        <span class="night-title-part"><%= @night.date_label %></span>
         <span class="night-sep" aria-hidden="true">·</span>
-        <span class="whitespace-nowrap"><%= @night.date_label %></span>
-        <span class="night-sep" aria-hidden="true">·</span>
-        <span class="whitespace-nowrap"><%= @night.time_label %></span>
+        <span class="night-title-part"><%= @night.time_label %></span>
       </h1>
       <p class="text-white/85">
         <time datetime="<%= @night.starts_at.iso8601 %>" data-night-mountain-time><%= @night.date_label %>, <%= @night.window_label %></time>

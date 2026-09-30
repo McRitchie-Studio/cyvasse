@@ -725,9 +725,33 @@ header nav a[href="/conversations"] > span {
   text-transform: uppercase;
 }
 
+/* The heading: the name on its own line; under it the date and the time,
+ * stacked on a phone and joined by a dot from 640px, so a dot never dangles
+ * at a line's end. */
+.night-title-name,
+.night-title-part {
+  display: block;
+  white-space: nowrap;
+}
+
 .night-sep {
+  display: none;
   margin: 0 0.35rem;
   color: rgb(255 255 255 / 0.7);
+}
+
+@media (min-width: 640px) {
+  .night-title {
+    font-size: 1.75rem;
+  }
+
+  .night-title-part {
+    display: inline;
+  }
+
+  .night-sep {
+    display: inline;
+  }
 }
 
 .night-countdown-label {
