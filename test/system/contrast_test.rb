@@ -93,6 +93,27 @@ class ContrastSystemTest < ApplicationSystemTestCase
     end
   end
 
+  # UX audit #2 (#12): the versus card's "Computer" caption was the muted ink
+  # at 0.8 opacity, 3.69:1 light and 3.48:1 dark. RATIO_JS reads the colour,
+  # not the opacity, so the caption is also held to full opacity.
+  %w[light dark].each do |theme|
+    test "#{theme}: the versus card's Computer caption clears AA at full strength" do
+      arya = User.create!(email: "caption-#{theme}@example.com", name: "Arya", username: "caption#{theme}")
+      match = Match.start_live!(arya, computer: true, rng: Random.new(4))
+      visit link_path(token: Studio::Link.create_magic_link(email: arya.email).token)
+      assert_text "Signed in as #{arya.player_name}"
+
+      visit_in_theme(match_path(match), theme)
+      caption = find(".match-versus-card .player-caption", text: "Computer")
+      assert_aa caption, "the Computer caption"
+      opacity = page.evaluate_script(<<~JS, caption)
+        ((el) => { let o = 1; for (let n = el; n; n = n.parentElement) o *= Number(getComputedStyle(n).opacity); return o })(arguments[0])
+      JS
+      assert_equal 1, opacity, "the caption is not faded"
+      screenshot("versus-caption-#{theme}")
+    end
+  end
+
   test "390px: the signed-in navbar shows one theme toggle and the avatar, not a truncated name" do
     guest = User.create_guest!(rng: Random.new(13))
     guest.update!(email: "contrast-phone@example.com")
