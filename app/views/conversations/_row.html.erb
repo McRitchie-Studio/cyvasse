@@ -1,0 +1,23 @@
+<%# One conversation in the Chat hub. Also rendered outside any request by
+    ChatBroadcasts, to move it to the top or clear its unread count live,
+    so it reads only its locals: conversation (a Conversation), viewer. %>
+<% other = conversation.other(viewer) %>
+<% last = conversation.last_message %>
+<li id="conversation_<%= other.id %>" data-conversation="<%= other.id %>">
+  <%= link_to conversation_path(other.id, anchor: "latest"),
+        class: "flex items-center gap-3 p-3 sm:p-4 hover:bg-[var(--color-surface-alt)] focus-visible:bg-[var(--color-surface-alt)]" do %>
+    <%= render "players/avatar", user: other, size: "w-10 h-10 text-base" %>
+    <div class="min-w-0 flex-1">
+      <div class="flex items-baseline justify-between gap-2">
+        <p class="font-semibold text-heading truncate<%= ' chat-unread-name' if conversation.unread? %>"><%= other.player_name %></p>
+        <time class="shrink-0 text-xs text-muted" datetime="<%= conversation.last_at.iso8601 %>"><%= time_ago_in_words(conversation.last_at) %> ago</time>
+      </div>
+      <div class="flex items-center justify-between gap-2">
+        <p class="text-sm text-secondary truncate" data-preview><%= "You: " if last&.sender_id == viewer.id %><%= last&.message.to_s.squish.truncate(120) %></p>
+        <% if conversation.unread? %>
+          <span class="unread-dot shrink-0" data-unread><%= conversation.unread_count %><span class="sr-only"> unread</span></span>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</li>

@@ -1,10 +1,26 @@
+<%
+  # ActionCable carries the live chat (task cyvasse-live-chat): Turbo Streams
+  # over a websocket. Production is Heroku Redis, which serves rediss:// with a
+  # self-signed certificate; Studio::Redis.options (studio-engine
+  # docs/CABLE.md) turns off peer verification for a TLS URL, without which
+  # the socket still upgrades but no broadcast ever reaches a subscriber.
+  cable = Studio::Redis.options
+%>
 development:
+  # One process, so the in-process adapter delivers to every browser.
   adapter: async
 
 test:
+  # The test adapter records broadcasts for assert_turbo_stream_broadcasts and,
+  # being a subclass of the async adapter, still delivers them in process, so
+  # a system test's browsers see them live.
   adapter: test
 
 production:
   adapter: redis
-  url: <%= ENV.fetch("REDIS_URL") { "redis://localhost:6379/1" } %>
+  url: <%= cable[:url] %>
   channel_prefix: cyvasse_production
+  <% if cable[:ssl_params] %>
+  ssl_params:
+    verify_mode: <%= cable[:ssl_params][:verify_mode] %>
+  <% end %>

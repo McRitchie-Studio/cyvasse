@@ -1,7 +1,7 @@
 # Cyvasse
 
 Cyvasse, the hex strategy game, revived at https://cyvasse.xyz (the old
-https://cyvasse.mcritchie.studio redirects there; see [Canonical host](#canonical-host)).
+https://cyvasse.mcritchie.studio redirects there once `CANONICAL_REDIRECT=1`; see [Canonical host](#canonical-host)).
 Alex's first app (2014–15, [`amcritchie/Cyvasse`](https://github.com/amcritchie/Cyvasse),
 Rails 4.1.4) rebuilt as a managed McRitchie Studio satellite. The epic plan is
 `/Users/alex/projects/.agents/epics/cyvasse-revival.md`.
@@ -15,8 +15,10 @@ from live stats) and `/about` pages, their copy lightly edited. Unit stats for
 engine's `CyvasseRules::Units::ARMY`. And the game itself: `/play`, a public game against
 the computer, played entirely in the browser, in whichever piece skin the
 player picked; `/matches`, online matches between signed-in players, a turn
-at a time; and messages between players: a chat on each match, an `/inbox`,
-and admin Conversations and Message Board pages.
+at a time; and live chat between players who have played each other: one
+conversation per pair, on each match and in the `/conversations` Chat hub,
+with an unread badge on the navbar's Chat link, and admin Conversations and
+Message Board pages.
 
 ## Stack
 
@@ -26,6 +28,7 @@ and admin Conversations and Message Board pages.
 | Engine | `studio-engine` from RubyGems (`~> 0.76`) |
 | Database | Postgres |
 | CSS / JS | Tailwind v4 (`tailwindcss-rails`), importmap, Turbo, Stimulus; Alpine from the engine |
+| Realtime | ActionCable carrying Turbo Streams (the live chat): Heroku Redis in production (`REDIS_URL`), the in-process adapter in development and tests |
 | Tier | managed satellite: PRs target `accepted`, which walks `accepted` → `release` → `main` |
 
 ## Art
@@ -507,25 +510,68 @@ old-host link's `?ref=` rides the 301 to `cyvasse.xyz` and is kept there.
 
 ## Messages
 
-Players talk in a chat on each match, and read every conversation in their
-`/inbox`. A conversation is every message between two people, in any match
-or none; it is not a table, but the unordered pair of a message's sender and
-receiver (`Conversation`, `app/models/conversation.rb`).
+Players chat live with the people they have played (task cyvasse-live-chat).
+A conversation is every message between two people, in any match or none, so
+talk carries on from match to match rather than starting afresh; it is not a
+table, but the unordered pair of a message's sender and receiver
+(`Conversation`, `app/models/conversation.rb`). A message sent in a match's
+chat still records the match.
+
+**Who may message whom** is one rule, `User#can_message?`, checked on every
+new message whichever way it is sent (a validation on `Message`):
+
+- never yourself;
+- between two people, only once they have shared a match: any match, in any
+  status, a pending challenge and a legacy imported match included;
+- a computer player only inside a match the two of them share, where its
+  remote runner reads the chat (the bot API); never from the Chat hub.
+
+A legacy conversation with someone you never played stays readable in the
+hub; its thread has no composer and says to challenge them to talk again.
 
 | Where | What | Who |
 |---|---|---|
-| The match page's chat card | A Turbo frame loaded from `GET /matches/:id/messages` and reloaded every 8 s while the tab is visible (a reader scrolled up keeps their place, and a refused message's error stays up); the form posts to `POST /matches/:id/messages`. Enter sends on a keyboard; on a touch screen Enter is a new line and Send sends. New messages are announced to screen readers | the match's two players (anyone else: 404) |
-| `/inbox` | The player's conversations, newest first, with unread counts; 25 a page | the signed-in player |
-| `/conversations/:user_id` | One whole thread, each message labelled with its match, and a reply box (a reply is sent outside any match) | the conversation's two people (anyone else: 404) |
+| The match page's chat card | The pair's whole conversation (the latest 50, "Load earlier messages" for more), live; the form posts to `POST /matches/:id/messages`. Shown against a person, or a computer player whose remote runner holds a live bot token (not Play Now's in-app computer). Enter sends on a keyboard; on a touch screen Enter is a new line and Send sends | the match's two players (anyone else: 404) |
+| `/conversations` (the Chat hub; `/inbox` redirects here) | The player's conversations with people, newest first, each with avatar, name, last message, time and unread count; then "Say hi": people played and not yet messaged. Someone who has played no person is told to "Play a human to start a conversation", with Play Now. Computer players are never listed | the signed-in player, guests included |
+| `/conversations/:user_id` | One whole thread, live, each message labelled with its match, and a composer (a message sent here is outside any match). Opens when there are messages between you or you may start one | the conversation's two people (anyone else: 404) |
+| `GET /conversations/:user_id/messages` | `?before=<id>`: the "Load earlier messages" frame; `?after=<id>`: the messages since, as a Turbo Stream, for a page whose socket came back | the two people |
+| `POST /conversations/:user_id/read` | Marks the conversation read (the chat calls it as messages arrive on screen) | the two people |
 | `/admin/conversations` | Every conversation that ever happened, newest first, searchable by player (username, name or email), 25 a page, each linking its matches | admins only (anyone else: 404) |
 | `/admin/conversations/:low-:high` | One conversation's every message, grouped by game (match number, status, winner, dates; messages outside any game in their own group), groups newest first and messages oldest first inside each; the first-named player's bubbles on the left, the second's on the right. Ten games a page, each showing its latest 200 messages with a link to the whole game (`?game=<match id>` or `?game=none`, 200 a page) (`ConversationThread`) | admins only |
 | `/admin/matches/:id` | One match's facts and chat | admins only |
 | `/admin/message_board` | The old public message board: every legacy post with text, newest first, 50 a page, each with its author and the date posted (`BoardPost`) | admins only (anyone else: 404) |
 
-Opening a thread or a match chat marks the messages addressed to you as read.
+**Live updates** are Turbo Streams over ActionCable (`ChatBroadcasts`), on two
+kinds of stream (`ChatStreams`):
+
+| Stream | Carries | Subscribed by |
+|---|---|---|
+| `chat:user:<id>` | the navbar Chat badge, and the player's hub rows (a conversation moves to the top, its unread count changes) | every page a signed-in player opens (the layout) |
+| `chat:pair:<low>-<high>` | each new message, appended to the thread | the hub thread and the match chat of those two |
+
+A page subscribes with `turbo_stream_from ..., channel: ChatStreamsChannel`:
+the stream name is signed by the server, and the channel also checks that the
+socket's player (`ApplicationCable::Connection`, from the session cookie) is
+the one the stream belongs to, so a signed name copied from someone else's
+page streams nothing. There is no polling: Turbo's cable source reconnects by
+itself, and on reconnecting (or on coming back to the tab) the chat asks for
+the messages since its last one, since a broadcast sent while a socket was
+down is not replayed. A broadcast, rendering included, never fails the write
+that caused it (`Studio::Cable.safe_broadcast`).
+
+**Unread.** The navbar Chat link's badge counts messages from people still
+unread (never a computer player's): hidden at none, "9+" past nine; one
+count through `index_messages_on_receiver_id_and_read`. A message is marked
+read when its thread opens, or when it arrives in a hub thread or match chat
+that is on screen in a visible tab, and the badge clears live.
+
+**Sending** is limited to 20 messages a minute per player in each of the match
+chat and the hub (Rails `rate_limit`), and to `Message::MAX_LENGTH` (1,000)
+characters; text is escaped wherever it is shown.
+
 **Blank messages** (empty or whitespace-only text: 10,778 legacy messages and
 246 board posts) are kept in the tables and hidden everywhere they would be
-shown or counted: the chat, the inbox and its unread counts, and every admin
+shown or counted: the chat, the Chat hub and its unread counts, and every admin
 page (`Message.with_text`, `BoardPost.with_text`). A conversation of blank
 messages alone is not listed.
 
@@ -569,7 +615,7 @@ bundler-audit, importmap audit and rubocop:
 | Command | What |
 |---|---|
 | `bin/rails test` | unit, component and integration tests (single-process), and a guard that fails on a committed merge-conflict marker (`lib/conflict_markers.rb`) |
-| `bin/rails test:system` | browser tests in headless Chrome: a whole game against the computer (a win, a loss or a draw), keyboard play, the match chat, and two players starting an online match |
+| `bin/rails test:system` | browser tests in headless Chrome: a whole game against the computer (a win, a loss or a draw), keyboard play, the live chat between two browsers, and two players starting an online match |
 | `bin/test-js` | the game engine's unit tests, on `node:test` (Node 20+, no npm install) |
 | `bin/rules-agreement` | regenerate the JS engine's recorded answers the Ruby rules port is tested against |
 
@@ -589,10 +635,31 @@ that builds an absolute URL (links in mail, canonical tags, a sitemap, Open
 Graph image URLs) reads it, or `Cyvasse.canonical_url("/path")`, and never
 spells a host of its own.
 
-| Environment | `Cyvasse.canonical_host` |
-|---|---|
-| production | `CANONICAL_HOST`, else `cyvasse.xyz` (the default lives in code; no config var is needed) |
-| desks, tests | `CANONICAL_HOST`, else `nil`: links use the request host and nothing redirects |
+| Environment | `Cyvasse.canonical_host` | Redirect |
+|---|---|---|
+| production, `CANONICAL_REDIRECT=1` | `CANONICAL_HOST`, else `cyvasse.xyz` | on |
+| production, flag unset | `APP_HOST`, else `cyvasse.mcritchie.studio` (as before the move) | off |
+| desks, tests | `CANONICAL_HOST`, else `nil`: links use the request host | on only with `CANONICAL_HOST` |
+
+**The move is gated.** A deploy changes nothing in production until
+`CANONICAL_REDIRECT=1` is set, because redirecting every host (and every
+emailed `?ref=` link) to a domain whose DNS does not resolve yet is an outage.
+Turn it on only after the target answers:
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" https://cyvasse.xyz/up   # must print 200
+heroku config:set CANONICAL_REDIRECT=1 -a cyvasse                    # restarts the dynos; links and redirect move together
+```
+
+If the apex is still waiting on DNS, `www.cyvasse.xyz` can go first:
+`heroku config:set CANONICAL_HOST=www.cyvasse.xyz CANONICAL_REDIRECT=1 -a cyvasse`,
+then `heroku config:unset CANONICAL_HOST -a cyvasse` once the apex answers.
+Before the flip, register `https://<host>/auth/google_oauth2/callback` on the
+Google OAuth client, or Google sign-in fails on the new host. To back out,
+`heroku config:unset CANONICAL_REDIRECT -a cyvasse`; browsers that already
+followed a 301 keep it for up to an hour (`private, max-age=3600`). The flip
+signs everyone out (the old cookie stays on the old host), guests' in-session
+games included, so flip at a quiet moment.
 
 It feeds the routes' and mailers' `default_url_options`
 (`config/environments/production.rb`, and `ApplicationMailer#default_url_options`,
@@ -608,7 +675,11 @@ already sent survive the hop. It never redirects:
 - anything but GET and HEAD (a redirected POST loses its body; no form or
   webhook breaks),
 - `/up`, which the deploy gates and the release smoke probe on the herokuapp host,
-- `/api/` (the bot runner's bearer-token calls) and `/cable` (the websocket).
+- `/api/` (the bot runner's bearer-token calls) and `/cable` (the websocket),
+- any GET that is not a full-page navigation (`Sec-Fetch-Mode` other than
+  `navigate`, an XHR, or a JSON-only `Accept`): a live match's poll from a page
+  already open on the old host keeps working there, since a 301 to another
+  site would fail CORS and freeze the board while the clock runs.
 
 The bare domain is canonical: `cyvasse.xyz` reaches Heroku by an ALIAS record
 at the apex, and `www.cyvasse.xyz`, also on the Heroku app, is redirected by the
@@ -744,11 +815,13 @@ outcomes and where the onboarding loses people.
 | Variable | Where | Purpose |
 |---|---|---|
 | `DATABASE_URL` | production, desks | Postgres connection |
+| `REDIS_URL` | production | ActionCable's Redis for the live chat (Heroku Redis `heroku-redis:mini`, a `rediss://` URL; `Studio::Redis` turns off peer verification for its self-signed certificate). Unset, broadcasts fail quietly into ErrorLog and the chat still works on reload. Development and tests use the in-process adapter and need no Redis |
 | `TEST_DATABASE_URL` | desks | the desk's isolated test database |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | production (optional) | Google sign-in; both unset, the app is magic link only |
 | `MS_HANDOFF_PUBLIC_KEY` | production | the hub's ES256 (P-256) public key, PEM, for the email sign-in handoff; unset, the handoff fails closed. The private half lives only on the hub (1Password, credential-filing SOP) |
 | `SECRET_KEY_BASE` | production | session and cookie encryption; the hub's value when SSO is on. The app keeps no `credentials.yml.enc` |
-| `CANONICAL_HOST` | production (optional) | overrides the public host, default `cyvasse.xyz` ([Canonical host](#canonical-host)). `APP_HOST` is retired and read by nothing |
+| `CANONICAL_REDIRECT` | production | `1` turns the move to the canonical host on: links build on it and every other host 301s there. Unset, production keeps `APP_HOST` (else `cyvasse.mcritchie.studio`) and redirects nothing ([Canonical host](#canonical-host)) |
+| `CANONICAL_HOST` | production (optional) | overrides the canonical host once `CANONICAL_REDIRECT=1`, default `cyvasse.xyz`; `APP_HOST` names the host only while the flag is unset |
 | `APP_PORT` | desks | the desk's port, default 3600 |
 | `STUDIO_SSO_SHARED_COOKIE` | production | `true` joins the hub's SSO cookie (above) |
 | `CYVASSE_SESSION_KEY` | desks | renames the dev cookie so two stacks on localhost do not collide |

@@ -15,6 +15,10 @@
         (new-app-onboarding-sop.md section 7). %>
     <%= render "studio/banners/stack" %>
     <%= render "layouts/navbar" %>
+    <%# The signed-in player's own chat stream (task cyvasse-live-chat): the
+        navbar's unread badge and the Chat hub's rows update over it
+        (ChatBroadcasts, ChatStreamsChannel). %>
+    <%= turbo_stream_from ChatStreams.user(current_user), channel: ChatStreamsChannel if respond_to?(:current_user) && current_user %>
 
     <%# A page's full-bleed band (the front door's hero), edge to edge
         directly under the navbar. It sits outside <main>'s centred

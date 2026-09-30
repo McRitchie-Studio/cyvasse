@@ -1,0 +1,10 @@
+<%# The "Load earlier messages" frame's answer (chat/_earlier): the messages
+    before the one it was asked about, under a frame for the ones before
+    those. %>
+<%= turbo_frame_tag @frame_id do %>
+  <%= render "chat/earlier", thread: @thread if @thread.earlier? %>
+  <ol class="chat-list">
+    <%= render partial: "messages/message", collection: @thread.messages, as: :message,
+          locals: { viewer: current_user, show_match: true, match_link: ->(m) { m.player?(current_user) ? match_path(m) : nil } } %>
+  </ol>
+<% end %>

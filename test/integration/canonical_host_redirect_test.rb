@@ -107,6 +107,33 @@ class CanonicalHostRedirectTest < ActionDispatch::IntegrationTest
     refute_equal 301, response.status
   end
 
+  test "a live page's JSON poll on the old host is served there, never bounced cross-site" do
+    host! OLD_HOST
+    get "/rules", headers: { "Sec-Fetch-Mode" => "cors", "Accept" => "application/json" }
+    refute_equal 301, response.status, "a fetch poll must not follow a 301 to another site (CORS)"
+
+    get "/rules", headers: { "Accept" => "application/json" }
+    refute_equal 301, response.status, "no Sec-Fetch-Mode, JSON-only Accept stays put"
+
+    get "/rules", headers: { "X-Requested-With" => "XMLHttpRequest" }
+    refute_equal 301, response.status, "an XHR stays put"
+  end
+
+  test "a browser navigation on the old host is redirected" do
+    host! OLD_HOST
+    get "/rules", headers: { "Sec-Fetch-Mode" => "navigate", "Accept" => "text/html,application/xhtml+xml" }
+
+    assert_equal 301, response.status
+    assert_equal "private, max-age=3600", response.headers["cache-control"]
+  end
+
+  test "a spoofed X-Forwarded-Host cannot pass the old host off as canonical" do
+    host! OLD_HOST
+    get "/rules", headers: { "X-Forwarded-Host" => CANONICAL }
+
+    assert_equal 301, response.status
+  end
+
   test "the ref survives the hop and is credited on the canonical host" do
     host! OLD_HOST
     get "/play?ref=#{REF}"

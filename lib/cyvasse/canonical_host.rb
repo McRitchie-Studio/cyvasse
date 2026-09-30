@@ -10,7 +10,16 @@
 # Later work (canonical tags, a sitemap, Open Graph image URLs) builds on
 # Cyvasse.canonical_host and Cyvasse.canonical_url rather than a new constant.
 #
-#   production   CANONICAL_HOST, else "cyvasse.xyz"
+# The move is GATED in production, because cyvasse.xyz may not resolve yet
+# (its public DNS waited on a DNSSEC change at the registry). Until
+# CANONICAL_REDIRECT=1 is set, production behaves exactly as it did before the
+# move: links build on APP_HOST, else cyvasse.mcritchie.studio, and nothing
+# redirects. Flip the flag only once https://<host>/up answers 200.
+#
+#   production, CANONICAL_REDIRECT=1   CANONICAL_HOST, else "cyvasse.xyz";
+#                                      the redirect is on
+#   production, flag unset             APP_HOST, else cyvasse.mcritchie.studio;
+#                                      the redirect is off
 #   elsewhere    CANONICAL_HOST, else nil: a desk or a test keeps the request
 #                host, and nothing redirects
 #
@@ -22,13 +31,35 @@
 module Cyvasse
   module CanonicalHost
     DEFAULT = "cyvasse.xyz".freeze
+    LEGACY = "cyvasse.mcritchie.studio".freeze
     PROTOCOL = "https".freeze
 
-    # The host alone ("cyvasse.xyz"), or nil where none is enforced.
-    def self.host(env: ENV, production: Rails.env.production?)
-      configured = env["CANONICAL_HOST"].to_s.strip.downcase.presence
-      configured || (DEFAULT if production)
+    # Is the move on? In production only CANONICAL_REDIRECT=1 turns it on;
+    # elsewhere a set CANONICAL_HOST is the opt-in.
+    def self.enforced?(env: ENV, production: Rails.env.production?)
+      return env["CANONICAL_REDIRECT"].to_s.strip == "1" if production
+
+      configured(env).present?
     end
+
+    # The host absolute URLs are built on ("cyvasse.xyz"), or nil where none is set.
+    def self.host(env: ENV, production: Rails.env.production?)
+      return configured(env) unless production
+      return configured(env) || DEFAULT if enforced?(env: env, production: true)
+
+      env["APP_HOST"].to_s.strip.downcase.presence || LEGACY
+    end
+
+    # The host Cyvasse::CanonicalHostRedirect sends other hosts to, or nil
+    # while the move is off.
+    def self.redirect_host(env: ENV, production: Rails.env.production?)
+      host(env: env, production: production) if enforced?(env: env, production: production)
+    end
+
+    def self.configured(env)
+      env["CANONICAL_HOST"].to_s.strip.downcase.presence
+    end
+    private_class_method :configured
 
     # { host:, protocol: } for default_url_options, or nil where none is set.
     def self.url_options(host: self.host)
