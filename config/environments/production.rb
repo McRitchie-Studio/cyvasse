@@ -57,8 +57,9 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # The public host every absolute URL is built on: Cyvasse.canonical_host
-  # (lib/cyvasse/canonical_host.rb), cyvasse.xyz unless CANONICAL_HOST says
-  # otherwise. APP_HOST, which named cyvasse.mcritchie.studio, is retired.
+  # (lib/cyvasse/canonical_host.rb). Until CANONICAL_REDIRECT=1 it is APP_HOST,
+  # else cyvasse.mcritchie.studio; after, CANONICAL_HOST, else cyvasse.xyz.
+  # Read only there, so the links can never drift from the redirect.
   config.action_mailer.default_url_options = Cyvasse::CanonicalHost.url_options
   Rails.application.routes.default_url_options = Cyvasse::CanonicalHost.url_options
 

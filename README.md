@@ -1,7 +1,7 @@
 # Cyvasse
 
 Cyvasse, the hex strategy game, revived at https://cyvasse.xyz (the old
-https://cyvasse.mcritchie.studio redirects there; see [Canonical host](#canonical-host)).
+https://cyvasse.mcritchie.studio redirects there once `CANONICAL_REDIRECT=1`; see [Canonical host](#canonical-host)).
 Alex's first app (2014–15, [`amcritchie/Cyvasse`](https://github.com/amcritchie/Cyvasse),
 Rails 4.1.4) rebuilt as a managed McRitchie Studio satellite. The epic plan is
 `/Users/alex/projects/.agents/epics/cyvasse-revival.md`.
@@ -589,10 +589,29 @@ that builds an absolute URL (links in mail, canonical tags, a sitemap, Open
 Graph image URLs) reads it, or `Cyvasse.canonical_url("/path")`, and never
 spells a host of its own.
 
-| Environment | `Cyvasse.canonical_host` |
-|---|---|
-| production | `CANONICAL_HOST`, else `cyvasse.xyz` (the default lives in code; no config var is needed) |
-| desks, tests | `CANONICAL_HOST`, else `nil`: links use the request host and nothing redirects |
+| Environment | `Cyvasse.canonical_host` | Redirect |
+|---|---|---|
+| production, `CANONICAL_REDIRECT=1` | `CANONICAL_HOST`, else `cyvasse.xyz` | on |
+| production, flag unset | `APP_HOST`, else `cyvasse.mcritchie.studio` (as before the move) | off |
+| desks, tests | `CANONICAL_HOST`, else `nil`: links use the request host | on only with `CANONICAL_HOST` |
+
+**The move is gated.** A deploy changes nothing in production until
+`CANONICAL_REDIRECT=1` is set, because redirecting every host (and every
+emailed `?ref=` link) to a domain whose DNS does not resolve yet is an outage.
+Turn it on only after the target answers:
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" https://cyvasse.xyz/up   # must print 200
+heroku config:set CANONICAL_REDIRECT=1 -a cyvasse                    # restarts the dynos; links and redirect move together
+```
+
+If the apex is still waiting on DNS, `www.cyvasse.xyz` can go first:
+`heroku config:set CANONICAL_HOST=www.cyvasse.xyz CANONICAL_REDIRECT=1 -a cyvasse`,
+then `heroku config:unset CANONICAL_HOST -a cyvasse` once the apex answers.
+Before the flip, register `https://<host>/auth/google_oauth2/callback` on the
+Google OAuth client, or Google sign-in fails on the new host. To back out,
+`heroku config:unset CANONICAL_REDIRECT -a cyvasse`; browsers that already
+followed a 301 keep it for up to a day (`max-age=86400`).
 
 It feeds the routes' and mailers' `default_url_options`
 (`config/environments/production.rb`, and `ApplicationMailer#default_url_options`,
@@ -687,7 +706,8 @@ outcomes and where the onboarding loses people.
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | production (optional) | Google sign-in; both unset, the app is magic link only |
 | `MS_HANDOFF_PUBLIC_KEY` | production | the hub's ES256 (P-256) public key, PEM, for the email sign-in handoff; unset, the handoff fails closed. The private half lives only on the hub (1Password, credential-filing SOP) |
 | `SECRET_KEY_BASE` | production | session and cookie encryption; the hub's value when SSO is on. The app keeps no `credentials.yml.enc` |
-| `CANONICAL_HOST` | production (optional) | overrides the public host, default `cyvasse.xyz` ([Canonical host](#canonical-host)). `APP_HOST` is retired and read by nothing |
+| `CANONICAL_REDIRECT` | production | `1` turns the move to the canonical host on: links build on it and every other host 301s there. Unset, production keeps `APP_HOST` (else `cyvasse.mcritchie.studio`) and redirects nothing ([Canonical host](#canonical-host)) |
+| `CANONICAL_HOST` | production (optional) | overrides the canonical host once `CANONICAL_REDIRECT=1`, default `cyvasse.xyz`; `APP_HOST` names the host only while the flag is unset |
 | `APP_PORT` | desks | the desk's port, default 3600 |
 | `STUDIO_SSO_SHARED_COOKIE` | production | `true` joins the hub's SSO cookie (above) |
 | `CYVASSE_SESSION_KEY` | desks | renames the dev cookie so two stacks on localhost do not collide |

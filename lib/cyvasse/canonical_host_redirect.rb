@@ -14,14 +14,15 @@
 #     drops the Authorization header on a cross-host redirect
 #   - /cable: a websocket upgrade does not follow redirects
 #
-# With no canonical host (a desk, a test) it passes everything through.
+# With no redirect host (a desk, a test, or production before
+# CANONICAL_REDIRECT=1) it passes everything through.
 module Cyvasse
   class CanonicalHostRedirect
     REDIRECTED_METHODS = %w[GET HEAD].freeze
     EXEMPT_PATHS = %w[/up].freeze
     EXEMPT_PREFIXES = %w[/api/ /cable].freeze
 
-    def initialize(app, host: -> { Cyvasse.canonical_host })
+    def initialize(app, host: -> { Cyvasse::CanonicalHost.redirect_host })
       @app = app
       @host = host
     end
