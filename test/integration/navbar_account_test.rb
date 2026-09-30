@@ -1,8 +1,9 @@
 require "test_helper"
 
-# [component] The signed-in navbar (Cyvasse's components/_user_nav, which
-# shadows the engine's; task cyvasse-contrast-and-names), rendered on a real
-# page. On a phone it shows one theme toggle, not one in each bar, and the
+# [component] The signed-in navbar, rendered on a real page from
+# studio-engine's own components/_user_nav: Cyvasse keeps no copy of it since
+# the engine took the name and the sign-in label as config (0.80.0,
+# config/initializers/studio.rb; task cyvasse-navbar-config-switch). On a phone it shows one theme toggle, not one in each bar, and the
 # avatar alone; the name and the avatar are one link, so one tab stop. The
 # name is the player's public name (User#player_name), as everywhere else.
 #
@@ -54,6 +55,14 @@ class NavbarAccountTest < ActionDispatch::IntegrationTest
     assert_select "header[data-pin=nav]", text: /#{Regexp.escape(@guest.name)}/, count: 0
   end
 
+  test "the partial is the engine's, not a Cyvasse copy" do
+    refute_path_exists Rails.root.join("app/views/components/_user_nav.html.erb")
+    template = ApplicationController.new.lookup_context.find_template("components/user_nav", [], true)
+    engine_root = Gem.loaded_specs.fetch("studio-engine").full_gem_path
+    assert template.identifier.start_with?(engine_root), "rendered from #{template.identifier}"
+    assert_equal :player_name, Studio.navbar_user_name
+  end
+
   private
 
   def ancestor_classes(node)
@@ -68,5 +77,19 @@ class NavbarAccountTest < ActionDispatch::IntegrationTest
     ancestor_classes(node).none? do |classes|
       classes.include?("md:hidden") || (classes.include?("hidden") && (classes & %w[md:flex md:inline-flex md:block]).empty?)
     end
+  end
+end
+
+# [component] The signed-out navbar says "Sign in", as every other Cyvasse
+# page does (test/views/sign_in_wording_test.rb): the engine's button reads
+# Studio.sign_in_label, which Cyvasse sets.
+class NavbarSignedOutTest < ActionDispatch::IntegrationTest
+  test "the signed-out navbar offers Sign in and never Log in" do
+    assert_equal "Sign in", Studio.sign_in_label
+    get root_path
+    assert_response :success
+    assert_select "header[data-pin=nav] a[href='#{login_path}']", text: "Sign in", minimum: 1
+    assert_select "header[data-pin=nav] a", text: /\bLog ?in\b/, count: 0
+    assert_select "header[data-pin=nav] [data-nav-name]", count: 0
   end
 end

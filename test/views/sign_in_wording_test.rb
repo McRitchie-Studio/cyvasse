@@ -2,9 +2,10 @@ require "test_helper"
 
 # [component] UX audit #2 (#13): the hero and the game-over modal say "Sign in"
 # and the navbar said "Log in". Every view and script Cyvasse renders says
-# "Sign in". The navbar's button, and the engine's /login page, are
-# studio-engine's own markup (layouts/_navbar, sessions/new) with no setting
-# for the wording, so they are the engine's to change and are left out here.
+# "Sign in", and so does the engine's navbar since studio-engine 0.80.0 took
+# the label as config (Studio.sign_in_label; task
+# cyvasse-navbar-config-switch). The engine's /login page (sessions/new) is
+# still the engine's own wording, with no setting, and is not visited here.
 class SignInWordingTest < ActionDispatch::IntegrationTest
   LOG_IN = /\bLog ?in\b/
 
@@ -16,13 +17,14 @@ class SignInWordingTest < ActionDispatch::IntegrationTest
     assert_empty offenders.map { _1.delete_prefix("#{Rails.root}/") }
   end
 
-  test "the pages a guest sees say Sign in, outside the engine's navbar" do
+  test "the pages a guest sees say Sign in, the navbar included" do
     %w[/ /rules /play /leaderboard /pieces /about].each do |path|
       get path
       assert_response :success, path
       doc = Nokogiri::HTML5(response.body)
-      doc.css("header[data-pin=nav], script, style").each(&:remove)
+      doc.css("script, style").each(&:remove)
       assert_no_match LOG_IN, doc.text, path
+      assert_match(/Sign in/, doc.css("header[data-pin=nav]").text, "#{path}: the navbar's button")
     end
     get "/"
     assert_match(/Sign in/, response.body, "the front door offers Sign in")
