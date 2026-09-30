@@ -802,9 +802,10 @@ export default class extends Controller {
   // change, so a redraw that says the same thing is not read out again. A
   // match's army card shows a copy for the eye (armyStatus, aria-hidden)
   // while the line itself is read, not shown (task cyvasse-sidebar-reorder).
-  setStatus(text) {
+  // `shown` is what that copy says, when it should say less than is read.
+  setStatus(text, shown = text) {
     if (this.statusTarget.textContent !== text) this.statusTarget.textContent = text
-    if (this.hasArmyStatusTarget && this.armyStatusTarget.textContent !== text) this.armyStatusTarget.textContent = text
+    if (this.hasArmyStatusTarget && this.armyStatusTarget.textContent !== shown) this.armyStatusTarget.textContent = shown
   }
 
   // Each hex's resting fill, from the classes render() just set. It is the

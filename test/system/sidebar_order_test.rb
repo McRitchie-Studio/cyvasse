@@ -7,6 +7,8 @@ require "application_system_test_case"
 #   beside Ready, then the units), then the links and the forfeit, last;
 # - play: the timer card with the threat switches under the clock, the unit
 #   card, the status line, then the links and the forfeit, last;
+# - once the army is placed, "Your army is in place..." is announced by the
+#   status line but shown nowhere in the sidebar;
 # - on desktop the board's top sits near the versus card's; on a phone the
 #   army card still docks as a sheet; no width scrolls sideways.
 #
@@ -44,6 +46,24 @@ class SidebarOrderTest < ApplicationSystemTestCase
       assert_last_in_sidebar ".match-actions"
       assert_no_sideways_scroll width
       shot("setup-#{label}")
+
+      # A placed army is announced, not shown (Alex, task
+      # cyvasse-sidebar-reorder): the enabled Ready says it for the eye.
+      smart_setup!
+      assert_button "Ready", disabled: false
+      line = find(".match-status-line[role=status][aria-live=polite]", visible: :all)
+      assert_equal "Your army is in place. Press Ready to lock it in.", line[:textContent].strip, "screen readers still hear it"
+      assert_equal "1px", line.style("width")["width"], "the status line is read, not shown"
+      # Capybara counts a clipped (sr-only) node as visible, so ask the layout:
+      # no rendered box larger than the 1px clip carries the sentence.
+      shown = page.evaluate_script(<<~JS)
+        [...document.querySelectorAll("aside.match-panel *")]
+          .filter((el) => el.checkVisibility() && el.getBoundingClientRect().width > 1 && el.getBoundingClientRect().height > 1)
+          .filter((el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.includes("Your army is in place")))
+          .map((el) => el.className)
+      JS
+      assert_empty shown, "the sentence shows nowhere in the sidebar"
+      assert_equal "", find(".cyvasse-army-status", visible: :all)[:textContent].strip, "the army card's copy is blank"
     end
 
     test "play reads timer with the switches, unit card, status, then the links (#{label})" do
