@@ -6,11 +6,11 @@ require "test_helper"
 # one place and not the other goes red here instead of on the rules page.
 class EngineRulebookAgreementTest < ActiveSupport::TestCase
   ENGINE = Rails.root.join("app/javascript/cyvasse/units.js")
-  ROW = /^\s*(\w+): unit\("(\w+)", "([^"]+)", "(\w+)", \{ attack: (\d+), defence: (\d+), moveRange: (\d+), attackRange: (\d+), flank: \d+, trump: \[([^\]]*)\] \}\)/
+  ROW = /^\s*(\w+): unit\("(\w+)", "([^"]+)", "(\w+)", \{ attack: (\d+), defence: (\d+), moveRange: (\d+), secondJump: (\d+), attackRange: (\d+), flank: \d+, trump: \[([^\]]*)\] \}\)/
 
   def engine_units
-    @engine_units ||= ENGINE.read.scan(ROW).to_h do |_key, codename, name, rank, attack, defence, move, range, trump|
-      [ codename, { name:, rank:, attack: attack.to_i, defence: defence.to_i, move: move.to_i, range: range.to_i,
+    @engine_units ||= ENGINE.read.scan(ROW).to_h do |_key, codename, name, rank, attack, defence, move, second, range, trump|
+      [ codename, { name:, rank:, attack: attack.to_i, defence: defence.to_i, move: move.to_i, second: second.to_i, range: range.to_i,
                     trump: trump.scan(/"(\w+)"/).flatten } ]
     end
   end
@@ -28,12 +28,14 @@ class EngineRulebookAgreementTest < ActiveSupport::TestCase
       unit = engine_units.fetch(slug)
       assert_equal card.name, unit[:name], slug
       assert_equal card.strength, unit[:attack].to_s, "#{slug} strength"
+      defence = unit[:rank] == "range" ? Rulebook::RANGE_DEFENCE : card.strength.to_i
+      assert_equal defence, unit[:defence], "#{slug} defends at its Strength, a Range unit at #{Rulebook::RANGE_DEFENCE}"
       assert_equal card.range.to_i, unit[:range], "#{slug} range (nil on the card is 0 in the engine)"
       trumps = unit[:trump].map { |codename| Piece.all.find { |p| p.slug == codename }.name }
       assert_equal card.trumps, trumps, "#{slug} trumps"
 
       movement = case unit[:rank]
-      when "cavalry" then "#{unit[:move]} + 2"
+      when "cavalry" then "#{unit[:move]} + #{unit[:second]}"
       when "unique" then slug == "dragon" ? "Moves in a straight line" : unit[:move].to_s
       else unit[:move].to_s
       end

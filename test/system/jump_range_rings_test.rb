@@ -50,8 +50,9 @@ class JumpRangeRingsTest < ApplicationSystemTestCase
       assert_not c["lit"], "a ghost carries no hatch"
       assert_equal "none", c["texture"]
     end
-    # The preview ripples outward too: more than one step is painted.
-    assert_operator ghosts.map { |c| c["fill"][/-(\d+)"\)\z/, 1] }.uniq.size, :>, 1
+    # The second jump reaches one hex (light horse 4 + 1 since September 29,
+    # 2026), so the preview is one ring, painted at a single ripple step.
+    assert_equal 1, ghosts.map { |c| c["fill"][/-(\d+)"\)\z/, 1] }.uniq.size
 
     # The live move ring is still the solid, hatched gradient, with a solid edge.
     live = cells.select { |c| c["code"] == 1 }

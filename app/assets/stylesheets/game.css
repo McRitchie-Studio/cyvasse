@@ -689,7 +689,8 @@ html.dark [data-skin="pencil"] .dock-unit img {
 }
 
 /* The versus card (matches/_versus): you over them, each an avatar beside a
- * name, a quiet "vs" rule between. Long names wrap, never push sideways. */
+ * name, a quiet "vs" rule between. A long name wraps only at a space and
+ * shrinks to fit rather than break mid-word (.player-name, name-fit). */
 .match-versus-card {
   padding: 0.875rem 1rem;
 }
@@ -714,13 +715,14 @@ html.dark [data-skin="pencil"] .dock-unit img {
 
 .match-versus-who {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-width: 0;
 }
 
 .match-versus-name {
+  flex: 0 1 auto;
   min-width: 0;
-  overflow-wrap: anywhere;
 }
 
 .match-versus-vs {

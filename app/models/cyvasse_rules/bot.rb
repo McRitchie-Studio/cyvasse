@@ -12,8 +12,9 @@ module CyvasseRules
   # setup clock runs out gets a random legal placement.
   module Bot
     # Least to most valuable; ties go to the last in board order, as the
-    # legacy search's overwrite did (ai.js KILL_PRIORITY).
-    KILL_PRIORITY = %w[rabble lighthorse spearman crossbowman heavyhorse elephant trebuchet catapult dragon king].freeze
+    # legacy search's overwrite did (ai.js KILL_PRIORITY, the same list:
+    # test/models/cyvasse_rules/units_parity_test.rb).
+    KILL_PRIORITY = %w[rabble lighthorse crossbowman spearman heavyhorse elephant trebuchet catapult dragon king].freeze
 
     # The legacy computer lineups (setups.js COMPUTER_OPPONENTS), hexes 1-40 as
     # the computer stood at the top. mirror() turns each to the seat's own

@@ -16,8 +16,9 @@
 //   3x  dragon captures and flies on  3x  shadow: behind a mountain
 //   4x  capture here, path ends       4x  a mountain square in the line of fire
 //   5x  blocked                       (rings only reach attackRange)
-//   6x  7x 8x  a cavalry unit's first jump seen two hexes further: the
-//       same as 1x 4x 5x, drawn as outlines to preview the second jump
+//   6x  7x 8x  a cavalry unit's first jump seen as far as its second jump
+//       reaches (units.js secondJump): the same as 1x 4x 5x, drawn as
+//       outlines to preview the second jump
 //
 // A hex joins ring `step` when a neighbour holds a ring the walk may pass
 // through at `step - 1`: 1x or 6x for everyone, plus 2x and 3x for the dragon.
@@ -47,11 +48,13 @@ export function legalActions(position, originIndex, { jump = 1 } = {}) {
 
   const potentialMove = sorted(potentialRange(origin, type.moveRange, { dragon: type.codename === "dragon" }));
 
+  // Each cavalry unit's second jump is its own (units.js secondJump).
   if (type.rank === "cavalry" && jump === 1) {
-    const preview = sorted(potentialRange(origin, type.moveRange + 2));
-    walkMoveRings(walker, preview, type.moveRange + 2, { preview: true });
+    const reach = type.moveRange + type.secondJump;
+    const preview = sorted(potentialRange(origin, reach));
+    walkMoveRings(walker, preview, reach, { preview: true });
   }
-  const steps = type.rank === "cavalry" && jump === 2 ? 2 : type.moveRange;
+  const steps = type.rank === "cavalry" && jump === 2 ? type.secondJump : type.moveRange;
   walkMoveRings(walker, potentialMove, steps);
 
   const ringOf = (index) => rings.get(index) ?? UNRINGED;
@@ -73,8 +76,8 @@ export function legalActions(position, originIndex, { jump = 1 } = {}) {
 }
 
 // The move rings (setMoveRings.js). With `preview` it is CavalryMoveRings,
-// which runs the same walk two hexes further and writes 6x/7x/8x in place of
-// 1x/4x/5x, so the preview never counts as a legal move.
+// which runs the same walk as far as the second jump reaches and writes
+// 6x/7x/8x in place of 1x/4x/5x, so the preview never counts as a legal move.
 const PREVIEW_CODE = { 1: 6, 4: 7, 5: 8 };
 
 function walkMoveRings({ position, piece, type, rings }, candidates, steps, { preview = false } = {}) {
@@ -95,22 +98,26 @@ function walkMoveRings({ position, piece, type, rings }, candidates, steps, { pr
   }
 }
 
+// A trump works on offense only (Alex, September 29, 2026: "it's when on
+// offense you kill the unit"): the attacker takes a unit it trumps whatever
+// the strengths, and the defender's own trumps never protect it. The legacy
+// rule also let a defender repel any unit it trumped (code 5); that is gone.
 function standardCode(piece, type, occupant) {
   if (!occupant) return 1;
   if (occupant.type.codename === "mountain" || occupant.team === piece.team) return 5;
-
-  let code = occupant.type.defence > type.attack ? 5 : 4;
-  if (type.trump.includes(occupant.type.codename)) code = 4;
-  if (occupant.type.trump.includes(type.codename)) code = 5;
-  return code;
+  if (type.trump.includes(occupant.type.codename)) return 4;
+  return occupant.type.defence > type.attack ? 5 : 4;
 }
 
+// The dragon's captures never read trumps or strengths. It takes a foot
+// soldier and flies on (3); an enemy shooter or dragon it can take too, but
+// its flight ends there (4). The trebuchet and the catapult trump the dragon,
+// which under the offense-only rule means they can take it, not that it
+// cannot take them (they used to repel it, code 5).
 function dragonCode(piece, occupant) {
   if (!occupant) return 1;
   if (occupant.type.codename === "mountain" || occupant.team === piece.team) return 2;
-  if (occupant.type.rank === "range" || occupant.type.codename === "dragon") {
-    return ["trebuchet", "catapult"].includes(occupant.type.codename) ? 5 : 4;
-  }
+  if (occupant.type.rank === "range" || occupant.type.codename === "dragon") return 4;
   return 3;
 }
 
@@ -140,9 +147,9 @@ function walkRangeRings({ position, piece, type, origin, rings }, candidates) {
         if (occupant?.type.codename === "mountain") {
           ring = step + (inARow(origin, hexAt(index)) ? 40 : 30);
         } else if (occupant && occupant.team !== piece.team) {
+          // Offense-only trumps, as standardCode.
           ring = step + (occupant.type.defence > type.attack ? 10 : 20);
           if (type.trump.includes(occupant.type.codename)) ring = step + 20;
-          if (occupant.type.trump.includes(type.codename)) ring = step + 10;
         }
         if (around.includes(step + 29)) ring = step + 30;
         rings.set(index, ring);
