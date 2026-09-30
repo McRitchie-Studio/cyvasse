@@ -18,8 +18,16 @@ class SessionCookieTest < ActiveSupport::TestCase
     options = CyvasseSessionCookie.options(production: true, env: { "STUDIO_SSO_SHARED_COOKIE" => "true" })
 
     assert_equal "_studio_session", options[:key]
-    assert_equal ".mcritchie.studio", options[:domain]
+    assert_equal [ ".mcritchie.studio" ], options[:domain]
     assert options[:secure]
+  end
+
+  test "the shared cookie scopes to the hub domain only on a mcritchie.studio host" do
+    options = CyvasseSessionCookie.options(production: true, env: { "STUDIO_SSO_SHARED_COOKIE" => "true" })
+
+    assert_equal ".mcritchie.studio", cookie_domain_on("cyvasse.mcritchie.studio", options)
+    assert_nil cookie_domain_on("www.cyvasse.xyz", options),
+               "Domain=.mcritchie.studio from www.cyvasse.xyz is rejected by the browser; it must stay host-only"
   end
 
   test "anything but true leaves the shared cookie off" do
@@ -47,5 +55,15 @@ class SessionCookieTest < ActiveSupport::TestCase
   test "the booted app uses the helper's answer" do
     assert_equal "_cyvasse_session", Rails.application.config.session_options[:key]
     assert_equal :lax, Rails.application.config.session_options[:same_site]
+  end
+
+  private
+
+  # The Domain the cookie jar would send for `host`, resolved by Rails itself
+  # (ActionDispatch::Cookies::CookieJar#handle_options runs on assignment).
+  def cookie_domain_on(host, options)
+    request = ActionDispatch::TestRequest.create("HTTP_HOST" => host)
+    request.cookie_jar[:probe] = { value: "x", domain: options[:domain] }
+    request.cookie_jar.instance_variable_get(:@set_cookies).fetch("probe")[:domain]
   end
 end
