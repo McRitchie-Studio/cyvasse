@@ -103,21 +103,59 @@
 }
 
 /* The art fills about four fifths of its hex (the box is 56 x 60 around the
- * centre; the vector art carries its own margin). The pencil art runs to the
- * edge of its canvas, so it is drawn smaller, inside its parchment disc.
- * An SVG element scales about the user-space origin, the hex centre. */
+ * centre; the vector art carries its own margin). An SVG element scales about
+ * the user-space origin, the hex centre, so every size below grows the art
+ * evenly about the middle of its hex. The art never takes a click: the hex
+ * polygon under it is the whole hit target, whatever the art's size.
+ *
+ * Size tiers (units.js sizeTier, set on the hex as data-tier): small pieces
+ * (rabble, spearman, crossbowman) keep the vector art's own size; medium ones
+ * (king, light and heavy horse) draw 1.1 times it, large ones (trebuchet,
+ * catapult, elephant, dragon, mountain) 1.25 times, but never past --art-fit,
+ * the most that art can grow before its drawing leaves the box of its hex's
+ * white outline (58 x 67 around the centre). */
 .cyvasse-board .unit-image {
   pointer-events: none;
+  --tier-scale: 1;
+  --art-fit: 9;
+  transform: scale(min(var(--tier-scale), var(--art-fit)));
 }
+
+.cyvasse-board .hex[data-tier="medium"] .unit-image { --tier-scale: 1.1; }
+.cyvasse-board .hex[data-tier="large"] .unit-image { --tier-scale: 1.25; }
+
+/* Vector art that already fills its canvas, capped from its drawn pixels.
+ * The dragon's wings and tail, the elephant's rider and the trebuchet's arm
+ * reach their hex's slanted edges at or near full size, so they grow only a
+ * little. The controller clips every piece's art to its hex outline
+ * (#hex-art-clip), so nothing reaches a neighbour; these caps keep the clip
+ * to a trim of wing tips rather than a visible crop. The
+ * mountain stands on a flat, full-width snow foot that runs past the hex's
+ * lower edges into the hexes below if it grows much, so it draws only a
+ * little larger than it did (0.86). The dragon, elephant and mountain so grow less than a medium
+ * piece does, but each still draws larger than any medium piece: they fill
+ * most of their canvas, where the king and the horses leave a wide margin
+ * (test/system/piece_size_tiers_test.rb holds both). */
+[data-skin="vector"] .cyvasse-board .hex[data-unit="dragon"] .unit-image { --art-fit: 1.06; }
+[data-skin="vector"] .cyvasse-board .hex[data-unit="elephant"] .unit-image { --art-fit: 1.08; }
+[data-skin="vector"] .cyvasse-board .hex[data-unit="mountain"] .unit-image { --art-fit: 0.9; }
+[data-skin="vector"] .cyvasse-board .hex[data-unit="trebuchet"] .unit-image { --art-fit: 1.18; }
+
+/* The pencil skin draws its piece as a token: black linework on a parchment
+ * disc, the art at 0.84 of the disc. The large token's disc already fills its
+ * hex side to side (radius 28 of the hex's 29), so the pencil tiers step down
+ * from it, by the same ratios: the disc and its art scale together, to 0.8,
+ * 0.88 and 1 of the large token. */
+[data-skin="pencil"] .cyvasse-board .unit-disc {
+  --token-scale: 0.83;
+  transform: scale(var(--token-scale));
+}
+
+[data-skin="pencil"] .cyvasse-board .hex[data-tier="medium"] .unit-disc { --token-scale: 0.913; }
+[data-skin="pencil"] .cyvasse-board .hex[data-tier="large"] .unit-disc { --token-scale: 1.0375; }
 
 [data-skin="pencil"] .cyvasse-board .unit-image {
-  transform: scale(0.84);
-}
-
-/* A mountain's art runs to the foot of its canvas; drawn a little smaller
- * it sits inside the hex's lower edge in both skins (rank 0 is a mountain). */
-.cyvasse-board .hex[data-rank="0"] .unit-image {
-  transform: scale(0.86);
+  transform: scale(calc(0.84 * 0.83 * var(--tier-scale)));
 }
 
 /* A hex the ripple has lit (.is-lit) carries a faint diagonal hatch over its
@@ -175,8 +213,8 @@
   stroke-dasharray: 3 3;
 }
 
-/* A unit's hex is shaded in its team's colour from the edge in, deeper the
- * more the piece is worth (the gradients are built in the controller). */
+/* A unit's hex carries a faint rim of its team's colour from the edge in, the
+ * same for every piece (one gradient per team, built in the controller). */
 .cyvasse-board .unit-shade {
   display: none;
   pointer-events: none;
@@ -186,7 +224,7 @@
   display: inline;
 }
 
-/* A heavy shade would mute the orange of the selected unit, the last move and
+/* The shade would mute the orange of the selected unit, the last move and
  * the red of a hex under attack: those hexes let the cue through. */
 .cyvasse-board .is-selected .unit-shade,
 .cyvasse-board .is-last-move .unit-shade,

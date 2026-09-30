@@ -12,6 +12,7 @@
     opened in another browser (GuestClaim). %>
 <section class="cyvasse-game max-w-6xl mx-auto"
          data-controller="cyvasse-match"
+         data-skin="<%= current_skin %>"
          data-match-status="<%= @match.match_status %>"
          data-action="keydown.esc@window->cyvasse-match#startOver click@window->cyvasse-match#clickAway"
          data-cyvasse-match-images-value="<%= @piece_images.to_json %>"
