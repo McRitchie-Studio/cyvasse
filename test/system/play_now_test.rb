@@ -56,6 +56,8 @@ class PlayNowSystemTest < ApplicationSystemTestCase
 
   test "play the computer now skips the wait" do
     Rails.configuration.x.live_search_time = 20.seconds
+    # Long enough for full_bleed_screenshots' four shots before the match opens.
+    Rails.configuration.x.live_splash_time = 8.seconds if ENV["SCREENSHOTS"]
     visit root_path
     click_on "Play Now"
     assert_text "Finding an opponent"
@@ -68,7 +70,7 @@ class PlayNowSystemTest < ApplicationSystemTestCase
     assert_quiet_splash
     splash_screenshots
     full_bleed_screenshots
-    assert_selector "[data-controller=cyvasse-match]", wait: 8
+    assert_selector "[data-controller=cyvasse-match]", wait: 12
     assert_current_path(%r{/matches/\d+})
     assert LiveSeek.last.match.away_user.computer?
   end
