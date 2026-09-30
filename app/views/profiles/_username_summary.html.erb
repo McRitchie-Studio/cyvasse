@@ -3,5 +3,5 @@
     to its card on /profile/edit, where it changes. Locals: user. %>
 <div class="flex flex-wrap items-center justify-between gap-3">
   <p class="text-heading font-semibold break-all" data-username><%= user.username.presence || "No username yet" %></p>
-  <%= link_to "Change", edit_profile_path(anchor: "username"), class: "btn btn-secondary btn-sm" %>
+  <%= link_to "Change", edit_profile_path(anchor: "username"), class: "text-sm font-semibold text-primary hover:underline" %>
 </div>
