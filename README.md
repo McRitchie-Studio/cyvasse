@@ -615,6 +615,67 @@ at the apex, and `www.cyvasse.xyz`, also on the Heroku app, is redirected by the
 middleware like any other host. A player who arrives from the old host is signed out, since
 their cookie belonged to that host, and signs in fresh on the new one.
 
+## Search (SEO)
+
+What a search engine and a link preview read (task cyvasse-seo-profile). Every
+absolute URL below is built on the [canonical host](#canonical-host), never a
+host of its own.
+
+- **Indexed pages** are the ones `SeoPage` (`app/models/seo_page.rb`) names:
+  `/`, `/play`, `/rules`, `/pieces`, `/about`, `/leaderboard` and the all-time
+  tab. `SeoPage` holds each page's `<title>` and meta description; a view opts
+  in with `<% seo_page :rules %>` (`SeoHelper`), and `layouts/_seo` renders the
+  description, canonical link, Open Graph and Twitter card and JSON-LD.
+- **Every other page is noindex** (`<meta name="robots" content="noindex">`):
+  sign-in, onboarding, matches, `/live/:id`, the inbox and the admin. A new
+  public page must be added to `SeoPage` to be indexed.
+- **Structured data**: `WebSite`, `VideoGame` and `FAQPage` on the home page (the
+  FAQ is `SeoPage.faq`, shown on the page word for word); `Article` on `/rules`;
+  a `BreadcrumbList` on every inner page.
+- **`/sitemap.xml`** lists the indexed pages with `lastmod` (the leaderboard and
+  home page follow the last finished game; the rest `SeoPage::CONTENT_UPDATED`,
+  which a copy change worth a recrawl bumps). **`/robots.txt`** is rendered by
+  `RobotsController`, not a file in `public/`: it allows the site, disallows the
+  signed-in, admin, API, auth and match paths, and names the sitemap.
+
+### Open Graph images
+
+Every page's card image is `app/assets/images/og/default.png` (1200x630, the
+dragon board shot with the wordmark) until a page has its own. To give a page
+its own card, drop a **1200x630 PNG** named for its `SeoPage` key; it is picked
+up with no code change:
+
+| Page | File |
+|---|---|
+| `/` | `app/assets/images/og/home.png` |
+| `/play` | `app/assets/images/og/play.png` |
+| `/rules` | `app/assets/images/og/rules.png` |
+| `/pieces` | `app/assets/images/og/pieces.png` |
+| `/about` | `app/assets/images/og/about.png` |
+| `/leaderboard` | `app/assets/images/og/leaderboard.png` |
+| `/leaderboard?board=all-time` | `app/assets/images/og/all_time_leaderboard.png` |
+
+Replacing `og/default.png` itself changes every page without its own file.
+
+### Google Search Console
+
+The ownership tag renders only when `GOOGLE_SITE_VERIFICATION` is set. To
+verify the site and submit the sitemap:
+
+1. Open <https://search.google.com/search-console> signed in as the Google
+   account that should own the property, and choose **Add property**.
+2. Best: a **Domain** property, `cyvasse.xyz`. It covers `www`, the bare domain,
+   http and https. Google shows a `google-site-verification=...` TXT record; add
+   it in Squarespace's DNS settings for cyvasse.xyz as a custom record
+   (host `@`, type `TXT`), wait for it to publish, then **Verify**.
+3. Or a **URL prefix** property, the canonical URL (`https://cyvasse.xyz`),
+   verified by **HTML tag**: copy only the `content` value from the tag Google
+   shows, then
+   `heroku config:set GOOGLE_SITE_VERIFICATION=<content> -a cyvasse` (the value is public, not a secret), and
+   press **Verify** once the release is up.
+4. In the property, open **Sitemaps**, enter `sitemap.xml` and **Submit**. Then
+   use **URL inspection** on the home page and **Request indexing**.
+
 ## Auth and hub SSO
 
 Sign-in is passwordless: the engine's magic link, and Google through the engine's
@@ -692,6 +753,7 @@ outcomes and where the onboarding loses people.
 | `STUDIO_SSO_SHARED_COOKIE` | production | `true` joins the hub's SSO cookie (above) |
 | `CYVASSE_SESSION_KEY` | desks | renames the dev cookie so two stacks on localhost do not collide |
 | `MAIL_TRANSPORT`, `SES_SMTP_USERNAME`, `SES_SMTP_PASSWORD`, `RESEND_API_KEY`, `RESEND_MAILER_FROM` | production | mail transport (studio-engine `docs/EMAIL_TRANSPORT.md`) |
+| `GOOGLE_SITE_VERIFICATION` | production (optional) | the `content` of Search Console's HTML-tag verification; set, every page carries `<meta name="google-site-verification">` ([Google Search Console](#google-search-console)) |
 
 ## Deploy
 
