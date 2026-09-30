@@ -55,12 +55,18 @@
                 <span aria-label="None">—</span>
               <% else %>
                 <% value.each do |piece| %>
-                  <% icon = image_tag(piece.image(current_skin), alt: "Trumps #{piece.name}", title: "Trumps #{piece.name}",
-                                      class: "unit-trump-icon", data: { trump: piece.slug }, loading: "lazy", decoding: "async") %>
+                  <%# The piece's name under its art, in small caps (production audit #10:
+                      a bare 36px icon, the King hard to make out). The alt already
+                      names it for a screen reader, so the caption is hidden from one. %>
+                  <% icon = safe_join([
+                       image_tag(piece.image(current_skin), alt: "Trumps #{piece.name}", title: "Trumps #{piece.name}",
+                                 class: "unit-trump-icon", data: { trump: piece.slug }, loading: "lazy", decoding: "async"),
+                       tag.span(piece.name, class: "unit-trump-name", aria: { hidden: true })
+                     ]) %>
                   <% if anchor %>
-                    <a href="#<%= anchor %>" class="unit-stat-link" data-rule-link="<%= anchor %>" aria-label="Trumps <%= piece.name %> — see the <%= rule %> rule"><%= icon %></a>
+                    <a href="#<%= anchor %>" class="unit-stat-link unit-trump" data-rule-link="<%= anchor %>" aria-label="Trumps <%= piece.name %> — see the <%= rule %> rule"><%= icon %></a>
                   <% else %>
-                    <%= icon %>
+                    <span class="unit-trump"><%= icon %></span>
                   <% end %>
                 <% end %>
               <% end %>

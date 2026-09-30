@@ -6,7 +6,8 @@ import { Controller } from "@hotwired/stimulus"
 // motion), keeps the hash so the link can be shared, and flashes the card for
 // 1.5s so the eye lands on it (no flash under reduced motion). A deep link
 // such as /rules#rule-trumps flashes its card on arrival too. The card's
-// scroll-margin-top (application.css) keeps it clear of the sticky navbar.
+// scroll-margin-top (application.css, off the navbar's measured --nav-h)
+// keeps it clear of the sticky navbar.
 const FLASH = "rule-card-flash"
 const FLASH_MS = 1500
 

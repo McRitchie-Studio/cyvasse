@@ -9,12 +9,17 @@
     unit card under it shows the numbers (Alex, 2026-09-29: "cut into a 1/3").
     The Cavalry card shows only the Heavy Horse ("people will get it"); the
     Units list below has both horses. %>
+<%# Each horse's two jumps, read from its "4 + 1" movement (Rulebook::Unit#jumps):
+    production audit #6 found "4 + 1" explained nowhere. %>
+<% light_first, light_second = Rulebook.fetch("lighthorse").jumps
+   heavy_first, heavy_second = Rulebook.fetch("heavyhorse").jumps %>
 <% rules = [
      [ "range", "Range Units", [ [ Rulebook.fetch("trebuchet"), %i[range] ] ],
        "Range units shoot from a distance, and each turn they move or shoot, never both. " \
        "They defend at Strength #{Rulebook::RANGE_DEFENCE}." ],
      [ "cavalry", "Cavalry Units", [ [ Rulebook.fetch("heavyhorse"), %i[movement] ] ],
-       "Cavalry units move or attack twice a turn." ],
+       "Cavalry units move or attack twice a turn: a Light Horse up to #{light_first} hexes, " \
+       "then #{light_second} more; a Heavy Horse #{heavy_first}, then #{heavy_second}." ],
      [ "dragon", "Your Dragon", [ [ Rulebook.fetch("dragon"), %i[movement strength] ] ],
        "A Dragon flies any distance in a straight line, and only a Trebuchet, Catapult, King or Dragon can take it. " \
        "Taking a Range unit ends its flight." ],
