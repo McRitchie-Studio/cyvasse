@@ -1,39 +1,64 @@
 require "test_helper"
 
-# [unit] In light mode the gold primary (#C08A2E) is 2.9:1 on the page, under
-# WCAG AA's 4.5:1 for text. Links in the rules and about copy, and the pressed
-# skin toggle, use the 700 shade there instead; this measures that shade on
-# the two light surfaces those links sit on (the page, and a card) and
-# checks the styles still use it. (The engine's deepest light inset, 4.48:1,
-# carries none of them.)
+# [unit] Cyvasse's colours against WCAG AA, 4.5:1 for normal-size text (task
+# cyvasse-contrast-and-names). The brand gold (#C08A2E) is 3.04:1 under white
+# and 2.9:1 as text on the light page; the engine's success green (#4BAF50) is
+# 2.78:1 under white. So the gold CTA fill is the primary scale's 700 shade in
+# both themes, gold text reads --cyvasse-gold-ink (700 light, 400 dark), and
+# the green is config.theme_success, deeper. These measure the shades on every
+# surface the engine theme emits, and check the stylesheet still uses them.
+# test/system/contrast_test.rb measures the rendered page.
 class LightModeContrastTest < ActiveSupport::TestCase
   AA = 4.5
 
   setup do
-    @theme = Studio::ThemeResolver.new(primary: Studio.theme_primary)
+    @theme = Studio::ThemeResolver.new(Studio.theme_config)
     @palette = @theme.primary_palette_vars
     light = @theme.light_mode_vars
-    @light_surfaces = [ light.fetch("--color-page"), light.fetch("--color-surface") ]
+    dark = @theme.dark_mode_vars
+    @light_surfaces = light.values_at("--color-page", "--color-surface", "--color-surface-alt")
+    @dark_surfaces = dark.values_at("--color-page", "--color-surface", "--color-surface-alt", "--color-inset")
+    @css = Rails.root.join("app/assets/tailwind/application.css").read
   end
 
-  test "the 700 shade clears AA on the light page and card, and the bare gold does not" do
-    shade = @palette.fetch("--color-primary-700")
+  def ratio(ink, ground) = Studio::ColorScale.contrast_ratio(ink, ground)
+
+  test "the bare gold fails AA as a fill and as light-mode text, so the overrides stay" do
+    gold = @palette.fetch("--color-primary")
+    assert_operator ratio("#ffffff", gold), :<, AA, "if white on the gold passes, the CTA override can go"
+    assert_operator ratio(gold, @light_surfaces.first), :<, AA, "if the gold passes on the page, the light ink can go"
+  end
+
+  test "white on the 700 shade clears AA: the CTA fill and the pressed skin toggle" do
+    assert_operator ratio("#ffffff", @palette.fetch("--color-primary-700")), :>=, AA
+  end
+
+  test "the gold ink clears AA on every light and every dark surface" do
     @light_surfaces.each do |surface|
-      assert_operator Studio::ColorScale.contrast_ratio(shade, surface), :>=, AA, "#{shade} on #{surface}"
+      shade = @palette.fetch("--color-primary-700")
+      assert_operator ratio(shade, surface), :>=, AA, "light ink #{shade} on #{surface}"
     end
-    assert_operator Studio::ColorScale.contrast_ratio(@palette.fetch("--color-primary"), @light_surfaces.first), :<, AA,
-                    "if the gold itself passes, the light-mode override can go"
+    @dark_surfaces.each do |surface|
+      shade = @palette.fetch("--color-primary-400")
+      assert_operator ratio(shade, surface), :>=, AA, "dark ink #{shade} on #{surface}"
+    end
   end
 
-  test "white on the 700 shade clears AA for the pressed skin toggle" do
-    assert_operator Studio::ColorScale.contrast_ratio("#ffffff", @palette.fetch("--color-primary-700")), :>=, AA
+  test "white on the success green clears AA, where the engine default does not" do
+    assert_operator ratio("#ffffff", Studio.theme_success), :>=, AA, "btn-secondary fill #{Studio.theme_success}"
+    assert_operator ratio("#ffffff", "#4BAF50"), :<, AA, "the engine default this overrides"
   end
 
-  test "light-mode links and the pressed toggle use the 700 shade" do
-    css = Rails.root.join("app/assets/tailwind/application.css").read
-    rule = css[/html:not\(\.dark\) \.rules-prose a,.*?\{(.*?)\}/m, 1]
-    assert_match "--color-primary-700-rgb", rule.to_s, "light-mode prose links"
-    assert_includes css[/html:not\(\.dark\) \.rules-prose a,.*?\{/m], "html:not(.dark) .about-page a"
+  test "the stylesheet uses those shades" do
+    root = @css[/^:root:root \{(.*?)\}/m, 1].to_s
+    assert_match "--color-cta: var(--color-primary-700)", root
+    assert_match "--cyvasse-gold-ink: var(--color-primary-400)", root
+    assert_match "--cyvasse-gold-ink: var(--color-primary-700)", @css[/^html:root:not\(\.dark\) \{(.*?)\}/m, 1].to_s
+
+    assert_match "color: var(--cyvasse-gold-ink)", @css[/^\.text-primary,\n\.hover\\:text-primary:hover \{(.*?)\}/m, 1].to_s
+    assert_match "color: var(--cyvasse-gold-ink)", @css[/^\.rules-prose a,\n\.about-page a \{(.*?)\}/m, 1].to_s
+    assert_match "color: var(--cyvasse-gold-ink)", @css[/^\.leaderboard-inline-cta strong \{(.*?)\}/m, 1].to_s
+    refute_match "color: rgb(var(--color-primary-rgb))", @css, "gold text should read the ink, not the bare gold"
 
     toggle = Rails.root.join("app/views/skins/_toggle.html.erb").read
     assert_includes toggle, "aria-pressed:bg-primary-700"
