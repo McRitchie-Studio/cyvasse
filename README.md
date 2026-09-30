@@ -420,8 +420,15 @@ twenty-five named lineups, each built round one idea, with a line saying what it
 is for. **Load opening** places it exactly as a saved lineup is placed. They
 are drawn row by row in `app/javascript/cyvasse/openings.js` (a letter per
 hex), and `test/javascript/openings_test.js` holds each to the rules: a whole
-army on the player's rows, and, all but the King's Gambit, a king that no
-enemy dragon can reach on the first turn.
+army on the player's rows, and, all but the King's Gambit and Crown Forward, a
+king that survives the enemy's first turn. `cyvasse/king_safety.js` decides
+that: it stands every enemy unit type on every hex of their five rows and plays
+every first turn it has, a light horse's double jump through a capture, a
+dragon's flight and a shot included. **✨ Smart Setup** deals only openings
+that pass it (with both elephants in front), and **Place All** chooses, and if
+need be rearranges, the units it places so the king passes it wherever the
+player's own placements allow. The picker names the opening on the board after
+a Smart Setup or a load, and says **Custom** for any other whole army.
 
 On the board every unit's hex carries a faint rim of its team's colour from
 the edge in (blue yours, red theirs), the same for every piece. How much a

@@ -25,10 +25,17 @@ class GamePageTest < ActionDispatch::IntegrationTest
     assert_select ".cyvasse-board-bar .cyvasse-threat-toggles[hidden] input[type=checkbox][data-cyvasse-game-target=threatToggle]", 2
   end
 
-  test "offers the opening picker to every player, wired to the board" do
+  # The picker loads onto the board, and follows it back: the board announces
+  # every change to the army on the window (cyvasse-game:lineup), so the
+  # picker can name the opening Smart Setup placed (task
+  # cyvasse-smart-setup-king-safety: it said "Iron Corner" whatever stood there).
+  test "offers the opening picker to every player, wired to the board both ways" do
     get play_path
 
-    assert_select "[data-controller=cyvasse-openings][data-action='cyvasse-openings:load->cyvasse-game#loadLineup']" do
+    picker = "[data-controller=cyvasse-openings]" \
+      "[data-action~='cyvasse-openings:load->cyvasse-game#loadLineup']" \
+      "[data-action~='cyvasse-game:lineup@window->cyvasse-openings#reflect']"
+    assert_select picker do
       assert_select "select[data-cyvasse-openings-target=select]"
       assert_select "button[data-action='cyvasse-openings#load']", text: "Load opening"
     end

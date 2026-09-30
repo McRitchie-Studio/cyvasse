@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { OPENINGS, openingLineup } from "cyvasse/openings";
+import { OPENINGS, openingLineup, openingFor } from "cyvasse/openings";
 import { Game, PLAYER, COMPUTER } from "cyvasse/game";
 import { COMPUTER_OPPONENTS, parseLineup } from "cyvasse/setups";
 import { COMPUTER_ZONE, hexAt } from "cyvasse/board";
@@ -157,4 +157,17 @@ test("what the openings say about who takes whom is what the rules do", () => {
     assert.equal(takes("dragon", shooter), true, `the dragon still takes the ${shooter}`);
   }
   assert.match(idea("dragon-hunt"), /must stop at the first of them it takes/);
+});
+
+// The setup panel's picker names the army on the board by this (task
+// cyvasse-smart-setup-king-safety: after Smart Setup it still said "Iron
+// Corner"): an opening's own lineup names it, anything else is none.
+test("openingFor names the opening a whole lineup is, and nothing else", () => {
+  for (const opening of OPENINGS) assert.equal(openingFor(openingLineup(opening)), opening);
+  const iron = parseLineup(openingLineup(OPENINGS[0]));
+  const nudged = iron.map(([index, hex]) => [index, index === 1 ? 91 : hex]);
+  assert.ok(!iron.some(([, hex]) => hex === 91), "hex 91 is free in the Iron Corner");
+  assert.equal(openingFor(nudged.map(([i, h]) => `${i}:${h}|`).join("")), null, "one unit moved is Custom");
+  assert.equal(openingFor(null), null);
+  assert.equal(openingFor(""), null);
 });
