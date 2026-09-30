@@ -183,7 +183,7 @@ const CONTROLS = "button, a, input, label, select, textarea, summary, [role=butt
 
 export default class extends Controller {
   static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent", "hint", "threatToggle",
-    "army", "smartButton", "armyCount", "armyClock", "fallen"]
+    "army", "smartButton", "armyCount", "armyClock", "armyStatus", "fallen"]
   static values = { skin: { type: String, default: "vector" }, images: Object, skins: Object, pace: { type: Number, default: 1 } }
 
   connect() {
@@ -790,9 +790,13 @@ export default class extends Controller {
   }
 
   // The status line is the board's one live region: write it only on a
-  // change, so a redraw that says the same thing is not read out again.
-  setStatus(text) {
+  // change, so a redraw that says the same thing is not read out again. A
+  // match's army card shows a copy for the eye (armyStatus, aria-hidden)
+  // while the line itself is read, not shown (task cyvasse-sidebar-reorder).
+  // `shown` is what that copy says, when it should say less than is read.
+  setStatus(text, shown = text) {
     if (this.statusTarget.textContent !== text) this.statusTarget.textContent = text
+    if (this.hasArmyStatusTarget && this.armyStatusTarget.textContent !== shown) this.armyStatusTarget.textContent = shown
   }
 
   // Each hex's resting fill, from the classes render() just set. It is the

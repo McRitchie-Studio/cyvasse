@@ -34,6 +34,13 @@
            data-cyvasse-match-target="board" data-action="click->cyvasse-match#clickHex keydown->cyvasse-match#keyHex"></svg>
     </div>
 
+    <%# The sidebar, top to bottom (task cyvasse-sidebar-reorder): the timer
+        card (the live clock, the threat switches in play, the deadline and
+        the notices); the army card in setup or the unit card in play; the
+        status line; the fallen card and the chat; then the links and the
+        forfeit, last. The status line is the board's one live region and
+        never moves: during setup the army card shows an aria-hidden copy of
+        it (armyStatus) and the line itself is read, not shown (game.css). %>
     <aside class="cyvasse-panel match-panel space-y-4">
       <div class="card p-4 flex flex-col gap-3 match-panel-status">
         <% if @match.live? %>
@@ -46,7 +53,7 @@
             <div class="live-clock-track"><span data-cyvasse-match-target="clockBar"></span></div>
           </div>
         <% end %>
-        <p class="text-secondary font-medium" role="status" aria-live="polite" data-cyvasse-match-target="status">Loading the board…</p>
+        <%= render "games/threat_toggle", board: "cyvasse-match" %>
         <p class="text-sm text-secondary" hidden data-cyvasse-match-target="deadline"></p>
         <p class="cyvasse-alert" role="alert" hidden data-cyvasse-match-target="error"></p>
         <div class="live-notice" role="status" aria-live="polite" hidden data-cyvasse-match-target="notice">
@@ -59,8 +66,6 @@
           <button type="button" class="btn btn-primary btn-sm" data-action="cyvasse-match#takeBackSeat">Take back my seat</button>
         </div>
       </div>
-
-      <%= render "matches/actions", match: @match, opponent_name: them, can_accept: @state[:can_accept] %>
 
       <% if @state[:can_accept] %>
         <div class="card p-4 space-y-3">
@@ -75,7 +80,7 @@
       <% end %>
 
       <div class="space-y-4 cyvasse-setup-controls" hidden data-cyvasse-match-target="setupControls">
-        <%= render "games/army_card", board: "cyvasse-match",
+        <%= render "games/army_card", board: "cyvasse-match", status: true,
               note: "Once you press Ready, your army is locked in; #{them} will not see it until the game starts.#{" When the clock runs out, your army is placed for you." if @match.live?}" %>
         <div class="card p-4 space-y-3">
           <%= render "setups/openings", board: "cyvasse-match" %>
@@ -92,10 +97,14 @@
         <p class="cyvasse-trump text-sm text-secondary mt-2" data-info="trump">Trumps <span></span></p>
       </div>
 
+      <p class="card p-4 match-status-line text-secondary font-medium" role="status" aria-live="polite" data-cyvasse-match-target="status">Loading the board…</p>
+
       <%= render "games/fallen_card", board: "cyvasse-match", them: them %>
 
       <%# Chatting with a computer player goes nowhere. %>
       <%= render "matches/chat", match: @match, opponent: @opponent unless @opponent.computer? %>
+
+      <%= render "matches/actions", match: @match, opponent_name: them, can_accept: @state[:can_accept] %>
     </aside>
   </div>
 </section>

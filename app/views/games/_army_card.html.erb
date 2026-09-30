@@ -1,28 +1,40 @@
 <%# The setup panel's army card, on /play and a match. Locals: board, the
     board's Stimulus identifier; note, an optional sentence read to screen
-    readers with Ready. The board sets data-army-mode (smart, fill, new) from
-    how much of the army is placed: "smart" leads with the filled Smart Setup
-    button; "fill" and "new" move it, hollow, under Ready and put the count in
-    its place. Both slots keep one button's height, so nothing jumps. The count
-    is for the eye only: the board's status line, already a live region, speaks
-    the same words, so a placement is announced once. The sparkle is
-    decoration, hidden from screen readers; one wrapping span keeps the
-    space before the words, which a flex button would drop between two.
+    readers with Ready; status: true (a match) shows the board's status line
+    under the heading (task cyvasse-sidebar-reorder).
+    Top to bottom: the heading, the status, Smart Setup beside Ready, then
+    the units to place, so Ready is in reach without scrolling past the dock.
+    The board sets data-army-mode (smart, fill, new) from how much of the
+    army is placed: "smart" fills the Smart Setup button; "fill" and "new"
+    leave it hollow and relabel it Place All and New Setup. It keeps one
+    place in every mode, so nothing jumps.
+    The status here (armyStatus) is a copy, for the eye only, of the board's
+    status line, the one live region, which stays put lower in the sidebar
+    and is read, not shown, while this card is up; so a placement is
+    announced once. The count is for the eye only too, and shows only in the
+    phone dock. The sparkle is decoration, hidden from screen readers; one
+    wrapping span keeps the space before the words, which a flex button
+    would drop between two.
     On a phone the card docks as a sheet under the board during setup
-    (game.css, "phone setup dock"), with a copy of a live match's setup clock
-    (armyClock) beside the count; the status card's clock is out of view
-    under the sheet. The copy is for the eye only, as the count is. %>
+    (game.css, "phone setup dock"): the heading over the count, with a copy
+    of a live match's setup clock (armyClock) beside it, every unit, then
+    Smart Setup beside Ready at the sheet's foot, in thumb reach. The timer
+    card's clock is out of view under the sheet. The copy is for the eye
+    only, as the count is. %>
 <div class="card p-4 cyvasse-army" data-army-mode="smart" data-<%= board %>-target="army">
   <h2 class="text-sm font-semibold uppercase tracking-widest text-muted text-center">Your army</h2>
   <p class="sr-only" id="<%= board %>-army-hint">
     Pick a unit, then a lit hex in your five rows. Click a placed unit to move it again. <%= local_assigns[:note] %>
   </p>
+  <% if local_assigns[:status] %>
+    <p class="cyvasse-army-status text-secondary font-medium" aria-hidden="true" data-<%= board %>-target="armyStatus"></p>
+  <% end %>
   <p class="cyvasse-army-count text-sm text-secondary" aria-hidden="true" data-<%= board %>-target="armyCount"></p>
   <span class="cyvasse-army-clock" aria-hidden="true" hidden data-<%= board %>-target="armyClock"></span>
   <button type="button" class="btn cyvasse-smart" data-<%= board %>-target="smartButton"
           data-action="<%= board %>#smartSetup"><span><span aria-hidden="true">✨</span> <span data-smart-label>Smart Setup</span></span></button>
-  <div class="cyvasse-dock" role="group" aria-label="Units to place" aria-describedby="<%= board %>-army-hint"
-       data-<%= board %>-target="dock"></div>
   <button type="button" class="btn cyvasse-ready" disabled aria-describedby="<%= board %>-army-hint"
           data-<%= board %>-target="startButton" data-action="<%= board %>#start">Ready</button>
+  <div class="cyvasse-dock" role="group" aria-label="Units to place" aria-describedby="<%= board %>-army-hint"
+       data-<%= board %>-target="dock"></div>
 </div>

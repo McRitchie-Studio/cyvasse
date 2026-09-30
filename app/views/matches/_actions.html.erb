@@ -1,12 +1,12 @@
-<%# The match page's links and its forfeit (matches/show). The links are
-    ways around; forfeiting ends the game, so it sits apart on its own row,
-    below a rule, in the danger tone, and still asks first.
+<%# The match page's links and its forfeit, last in the sidebar
+    (matches/show). The links are ways around; forfeiting ends the game, so
+    it sits apart on its own row, below a rule, in the danger tone, and still
+    asks first. The threat switches live in the timer card, up top.
     Locals: match, opponent_name, can_accept (a challenge not yet accepted). %>
 <div class="match-actions">
   <div class="match-links">
     <%= link_to "← My games", matches_path, class: "text-sm text-secondary underline underline-offset-2" %>
     <%= link_to "How to play", rules_path, class: "text-sm text-secondary underline underline-offset-2" %>
-    <%= render "games/threat_toggle", board: "cyvasse-match" %>
   </div>
   <%# Both forfeits render; CSS shows the one for data-match-status, which the board keeps current. %>
   <% if match.pregame? && !can_accept %>
