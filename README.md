@@ -100,6 +100,39 @@ piece of the epic. The rules are the legacy engine's, ported line for line from
 | `game.js` | setup, who moves first, turns, the cavalry double jump, the win |
 | `ai.js` | the computer opponent (`ai.js`) |
 
+### Unit rules
+
+The numbers every rule reads live in `cyvasse/units.js` (`UNIT_TYPES`), mirrored
+for the server in `app/models/cyvasse_rules/units.rb` and printed on `/rules`
+from `app/models/rulebook.rb`; `test/models/cyvasse_rules/units_parity_test.rb`
+and `test/lib/engine_rulebook_agreement_test.rb` keep the three equal. Alex's
+stats of September 29, 2026:
+
+| Unit | Move | Strength | Range | Trumps |
+|---|---|---|---|---|
+| Rabble | 3 | 1 | | King |
+| Trebuchet | 0 | 1 | 4 | Dragon |
+| King | 2 | 2 | | Dragon |
+| Light Horse | 4 + 1 | 2 | | |
+| Crossbowman | 1 | 2 | 2 | |
+| Spearman | 2 | 3 | | |
+| Heavy Horse | 3 + 1 | 3 | | |
+| Catapult | 1 | 3 | 3 | Dragon |
+| Elephant | 2 | 4 | | |
+| Dragon | any distance in a straight line | 5 | | |
+| Mountain | immovable, impassable | | | |
+
+Strength is a unit's attack, and it defends at the same number, except the
+three range units, which defend at 1: any unit can take one. An attacker takes
+a defender of equal or lower strength. A trump works on offense only: a unit
+takes any unit it trumps when it attacks, whatever the strengths, and a trump
+never protects the unit that holds it, so a Dragon still takes the Trebuchet
+that trumps it. The Dragon's captures ignore strength and trumps: it takes a
+foot soldier and flies on, and it takes an enemy shooter or dragon but stops
+there. A horse's two jumps are its move and then its `secondJump`.
+Live matches play by the table the server has, so a change here applies to
+matches already under way the moment it deploys.
+
 `app/javascript/controllers/cyvasse_game_controller.js` draws the board and turns
 clicks into `Game` calls; it holds no rules. Highlight borders are drawn once
 per edge, full width, by whichever highlight owns it (`cyvasse/edges.js`:
@@ -379,7 +412,7 @@ army is kept but never offered.
 ## Openings
 
 Every player, signed in or not, also gets **Openings** in the setup panel:
-twenty named lineups, each built round one idea, with a line saying what it
+twenty-five named lineups, each built round one idea, with a line saying what it
 is for. **Load opening** places it exactly as a saved lineup is placed. They
 are drawn row by row in `app/javascript/cyvasse/openings.js` (a letter per
 hex), and `test/javascript/openings_test.js` holds each to the rules: a whole
