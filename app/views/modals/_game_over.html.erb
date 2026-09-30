@@ -1,18 +1,25 @@
 <%# The end of a match (cyvasse_match_controller#openGameOver). Single root.
-    props: result (the outcome line), boardWin (a guest's win that counts on
-    the live leaderboard), returnTo (a guest's way back to this match after
-    signing in). A guest is asked to sign in, which keeps their record
+    props: result (the outcome line), boardWin (a win that counts on the live
+    leaderboard), points (what the game put on the viewer's leaderboard row:
+    Match#leaderboard_points, so 0 for a seat the computer held at the end and
+    null for a game that does not count), pointsLine (those points in words,
+    cyvasse/game_over), returnTo (a guest's way back to this match after signing
+    in). A guest is asked to sign in, which keeps their record and points
     (GuestClaim); anyone may play again. Closing leaves the final board. %>
 <div x-data="{ get props() { var c = $store.modals.current(); return (c && c.props) || {}; } }"
      class="relative text-center" data-test="game-over-modal">
   <%= render "studio/modals/blocks/close_x" %>
   <p class="text-xs font-semibold uppercase tracking-widest text-muted mb-2">Game over</p>
   <h3 class="text-2xl font-extrabold text-heading mb-2" x-text="props.result" data-test="game-over-result"></h3>
+  <p class="text-base font-bold text-heading mb-2" x-show="props.points > 0" x-text="props.pointsLine" data-test="game-over-points"></p>
+  <p class="text-sm text-secondary mb-2" x-show="props.points === 0" data-test="game-over-no-points">
+    The computer finished this game in your seat, so it scores no points.
+  </p>
   <% if guest %>
-    <p class="text-sm text-secondary mb-5" x-show="props.boardWin">
-      Sign in and this win goes on the live leaderboard under your name.
+    <p class="text-sm text-secondary mb-5" x-show="props.points > 0">
+      Sign in to keep your points and your record under your name.
     </p>
-    <p class="text-sm text-secondary mb-5" x-show="!props.boardWin">
+    <p class="text-sm text-secondary mb-5" x-show="!(props.points > 0)">
       You played as a guest. Sign in to keep this game and your record on your account.
     </p>
     <div class="space-y-3">
