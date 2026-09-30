@@ -2,7 +2,8 @@
     and the board key: what each hex colour means (BoardLegendHelper::BOARD_LEGEND).
     Locals: board, the board's Stimulus identifier.
     Hidden until the board knows it is in play (renderThreats), so they never flash during setup.
-    The key is a closed disclosure: a small "?" that opens a panel over the board. %>
+    The key is a closed disclosure: a small "?" that opens a panel over the board,
+    placed where it fits the screen (board_key controller): below the "?", or above it. %>
 <span class="cyvasse-threat-toggles" hidden>
   <% { "ranged" => "Ranged threats", "melee" => "Melee threats" }.each do |group, label| %>
     <label class="cyvasse-threat-toggle">
@@ -10,12 +11,12 @@
       <%= label %>
     </label>
   <% end %>
-  <details class="cyvasse-legend">
+  <details class="cyvasse-legend" data-controller="board-key" data-action="toggle->board-key#place">
     <summary class="cyvasse-legend-toggle">
       <span class="cyvasse-legend-mark" aria-hidden="true">?</span>
       <span class="cyvasse-legend-name">Board key</span>
     </summary>
-    <ul class="cyvasse-legend-panel">
+    <ul class="cyvasse-legend-panel" data-board-key-target="panel">
       <% board_legend.each do |entry| %>
         <li class="cyvasse-legend-entry" data-legend="<%= entry.key %>">
           <svg class="cyvasse-legend-swatch" data-swatch="<%= entry.key %>" viewBox="0 0 14 16" aria-hidden="true" focusable="false">
