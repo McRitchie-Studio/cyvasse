@@ -103,6 +103,25 @@ html:root:not(.dark) {
   opacity: 0.8;
 }
 
+/* A player's name (task cyvasse-splash-name-fit), on the splash and the
+ * versus card. It wraps only at a space, never mid-word: a username is one
+ * word, so it stays on one line. The name_fit controller shrinks a word too
+ * wide for the box down to a floor, and only then cuts it with an ellipsis
+ * (.is-truncated; the whole name is in its title). max-width holds the name
+ * to its box, so a word too wide shows as overflow the controller can see. */
+.player-name {
+  max-width: 100%;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: manual;
+}
+
+.player-name.is-truncated {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 /* The front door's hero: a game in play under a black scrim, full bleed
  * (the layout's :hero slot, outside <main>'s container). On a wide screen it
  * is at least the desktop crop's 2:1 (capped, so a laptop still sees the

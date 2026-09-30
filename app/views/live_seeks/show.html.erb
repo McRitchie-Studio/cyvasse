@@ -29,7 +29,7 @@
     <div class="live-seek-versus">
       <div class="live-seek-card" data-side="me">
         <%= render "players/avatar", user: current_user, name: current_user.player_name, size: LiveSeeksController::SPLASH_AVATAR_SIZE %>
-        <div class="live-seek-name text-heading" data-live-seek-target="you"></div>
+        <div class="live-seek-name player-name text-heading" data-controller="name-fit" data-live-seek-target="you"></div>
         <div class="player-caption text-muted">You</div>
       </div>
       <div class="live-seek-vs">VS</div>
@@ -37,7 +37,7 @@
         <div class="live-seek-avatar-slot" data-live-seek-target="opponentAvatar">
           <span class="live-seek-avatar-pending w-14 h-14 rounded-full" data-avatar="pending"></span>
         </div>
-        <div class="live-seek-name text-heading" data-live-seek-target="opponent"></div>
+        <div class="live-seek-name player-name text-heading" data-controller="name-fit" data-live-seek-target="opponent"></div>
         <div class="player-caption text-muted" hidden data-live-seek-target="computerTag">Computer</div>
       </div>
     </div>
@@ -59,11 +59,12 @@
   .live-seek-avatar-slot { display: grid; place-items: center; min-height: 3.5rem; }
   .live-seek-avatar-pending { display: block; border: 2px dashed color-mix(in srgb, var(--color-cta, #8E82FE) 45%, transparent); }
   .live-seek-card .player-caption { margin-top: -0.25rem; }
-  .live-seek-name { font-size: 1.2rem; font-weight: 800; overflow-wrap: anywhere; line-height: 1.2; }
+  .live-seek-name { font-size: 1.2rem; font-weight: 800; line-height: 1.2; }
   .live-seek-vs { font-size: 1.75rem; font-weight: 900; color: var(--color-cta, #8E82FE); flex: none; }
   .live-seek-progress { height: 4px; border-radius: 9999px; margin: 1.75rem auto 0; max-width: 18rem; background: color-mix(in srgb, var(--color-cta, #8E82FE) 18%, transparent); overflow: hidden; }
   .live-seek-progress span { display: block; height: 100%; width: 100%; background: var(--color-cta, #8E82FE); transform-origin: left; }
-  /* A phone: room for a guest's whole name (Guest_1234) on one line. */
+  /* A phone: room for a guest's whole name (Guest_1234) on one line; a longer
+     username shrinks to fit (.player-name, the name-fit controller). */
   @media (max-width: 400px) { .live-seek-versus { gap: 0.75rem; } .live-seek-card { padding-inline: 0.5rem; } .live-seek-name { font-size: 1.05rem; } }
   @keyframes live-seek-in { from { transform: scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .live-seek-radar span, .live-seek-splash { animation: none; } .live-seek-radar span { opacity: 0.3; } .live-seek-progress span { transition: none !important; } }
