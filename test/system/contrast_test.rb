@@ -2,7 +2,7 @@ require "application_system_test_case"
 
 # [e2e] WCAG AA contrast of Cyvasse's green and gold, measured in the browser
 # from getComputedStyle, in the light theme and the dark (task
-# cyvasse-contrast-and-names; production UX audit finding 9): the gold "Log in"
+# cyvasse-contrast-and-names; production UX audit finding 9): the gold "Sign in"
 # button and Play Now, the green buttons on /play, and the gold text of the
 # navbar's app name and current-page link, and the gold text on a card.
 # Normal-size text owes 4.5:1, and every one of these is held to it, the 30px
@@ -38,10 +38,10 @@ class ContrastSystemTest < ApplicationSystemTestCase
   end
 
   %w[light dark].each do |theme|
-    test "#{theme}: the gold Log in button and the gold navbar name clear AA" do
+    test "#{theme}: the gold Sign in button and the gold navbar name clear AA" do
       visit_in_theme(root_path, theme)
 
-      assert_aa find("header[data-pin=nav] a.btn-primary", text: "Log in"), "Log in (btn-primary)"
+      assert_aa find("header[data-pin=nav] a.btn-primary", text: "Sign in"), "Sign in (btn-primary)"
       assert_aa find("header[data-pin=nav] .nav-title .text-primary"), "the navbar's gold app name"
       assert_aa find("section.home-hero form button.btn-primary", text: "Play Now"), "Play Now (btn-primary)"
       assert_aa find("[data-leaderboard-card] .leaderboard-inline-cta strong", text: "Play Now"), "the gold Play Now on the leaderboard card"
