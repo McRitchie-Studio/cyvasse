@@ -60,17 +60,18 @@ test("a cavalry unit threatens through its second jump", () => {
 });
 
 test("a horse that takes the king does not jump on", () => {
-  // The king (defence 2) next to a heavy horse (attack 3); a rabble two
-  // beyond it is reachable only by jumping on from the king's hex.
-  // Mountains wall the horse in on every other side.
-  const layout = { 46: [THEM, "heavyhorse"], 47: [ME, "king"], 49: [ME, "rabble"] };
+  // The king (defence 2) next to a heavy horse (attack 3); a rabble one
+  // beyond it (the second jump reaches 1 since September 29, 2026) is
+  // reachable only by jumping on from the king's hex. Mountains wall the
+  // horse in on every other side.
+  const layout = { 46: [THEM, "heavyhorse"], 47: [ME, "king"], 48: [ME, "rabble"] };
   for (const h of [45, 35, 36, 56, 57]) layout[h] = [THEM, "mountain"];
   const position = board(layout);
   const unguarded = board({ ...layout, 47: [ME, "rabble"] });
-  assert.ok(threats(unguarded, THEM).kills.has(49), "past a rabble the second jump goes on");
+  assert.ok(threats(unguarded, THEM).kills.has(48), "past a rabble the second jump goes on");
   const { kills } = threats(position, THEM);
   assert.ok(kills.has(47), "the king can be taken");
-  assert.ok(!kills.has(49), "nothing is taken after the king falls");
+  assert.ok(!kills.has(48), "nothing is taken after the king falls");
 });
 
 test("groups limits the map to those units; a hex either group reaches shows under both", () => {
