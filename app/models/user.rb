@@ -38,7 +38,14 @@ class User < ApplicationRecord
   # The piece art this player chose (PieceSkinPreference); nil until they do.
   validates :piece_skin, inclusion: { in: Piece::SKINS.keys.map(&:to_s) }, allow_nil: true
 
-  AVATAR_COLORS = %w[#EF4444 #F97316 #EAB308 #22C55E #06B6D4 #3B82F6 #8B5CF6 #EC4899].freeze
+  # The engine's components/avatar draws WHITE initials on this colour, so each
+  # entry must reach WCAG AA (4.5:1) against white (task
+  # cyvasse-avatar-initial-contrast). Each is the lightest Tailwind step of its
+  # hue that passes: red-600, orange-700, yellow-700, green-700, cyan-700,
+  # blue-600, violet-600, pink-600. A player's colour is picked by index from a
+  # hash of their name, never stored, so the order and size stay fixed: change
+  # a hex, never the count, or every player's colour reshuffles.
+  AVATAR_COLORS = %w[#DC2626 #C2410C #A16207 #15803D #0E7490 #2563EB #7C3AED #DB2777].freeze
 
   # The seeded identities (studio-engine/docs/NEW_APP_SETUP.md section 11):
   # the shared operator, the ordinary member, and an admin on this app's own
