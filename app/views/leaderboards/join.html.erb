@@ -7,9 +7,9 @@
   <p class="text-secondary text-sm">
     <% if @won %>
       Sign in with your email and this win goes on the live leaderboard under your name, with every
-      game you played as <%= current_user&.username || "a guest" %>.
+      game you played as <%= current_user&.player_name || "a guest" %>.
     <% else %>
-      Sign in with your email and the games you played as <%= current_user&.username || "a guest" %> are
+      Sign in with your email and the games you played as <%= current_user&.player_name || "a guest" %> are
       kept on your account.
     <% end %>
     No password: we email you a link.

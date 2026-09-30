@@ -5,7 +5,7 @@
   <% rows.each do |row| %>
     <li class="leaderboard-row<%= ' is-you' if current_user && row.user.id == current_user.id %>" data-leaderboard-row="<%= row.user.username %>">
       <span class="leaderboard-rank" aria-label="Rank <%= row.rank %>" data-stat="rank"><%= row.rank %></span>
-      <span class="leaderboard-name"><%= row.user.username %></span>
+      <span class="leaderboard-name"><%= row.user.player_name %></span>
       <% if board == "live" %>
         <span class="leaderboard-stat" title="Points" data-stat="points"><strong class="text-heading"><%= row.points %></strong> <span class="text-muted"><%= row.points == 1 ? "pt" : "pts" %></span></span>
         <span class="leaderboard-stat" title="Wins" data-stat="wins"><%= row.wins %> <span class="text-muted">W</span></span>

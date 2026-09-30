@@ -27,7 +27,7 @@
         <% end %>
       </div>
       <% if logged_in? %>
-        <p class="text-white/80">Signed in as <%= current_user.display_name %>.</p>
+        <p class="text-white/80">Signed in as <%= current_user.player_name %>.</p>
       <% end %>
       <div class="max-w-md mx-auto mt-10">
         <%= render "leaderboards/card", rows: @live_leaderboard %>

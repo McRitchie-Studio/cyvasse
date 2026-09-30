@@ -50,7 +50,7 @@ class LiveSeeksController < ApplicationController
     return { status: "searching", ends_at: @seek.ends_at.iso8601(3), server_time: Time.current.iso8601(3) } unless match
 
     opponent = match.opponent_of(current_user)
-    { status: "matched", match_url: match_path(match), you: current_user.username,
+    { status: "matched", match_url: match_path(match), you: current_user.player_name,
       opponent: opponent.player_name, computer: opponent.computer?,
       opponent_portrait: opponent_portrait_url(opponent), splash_ms: splash_ms }
   end
