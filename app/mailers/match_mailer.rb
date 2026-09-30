@@ -9,7 +9,7 @@ class MatchMailer < ApplicationMailer
     @challenger = match.opponent_of(user)
     @url = match_url(match)
     @deadline = match.deadline
-    mail(to: user.email, subject: "#{@challenger.username} challenges you to Cyvasse")
+    mail(to: user.email, subject: "#{@challenger.player_name} challenges you to Cyvasse")
   end
 
   def your_turn(match, user)
@@ -19,6 +19,6 @@ class MatchMailer < ApplicationMailer
     @url = match_url(match)
     @deadline = match.deadline
     @first_move = match.turn.to_i <= 1
-    mail(to: user.email, subject: "Your move against #{@opponent.username} · Cyvasse")
+    mail(to: user.email, subject: "Your move against #{@opponent.player_name} · Cyvasse")
   end
 end

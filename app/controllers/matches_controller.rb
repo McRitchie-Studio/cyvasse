@@ -40,7 +40,7 @@ class MatchesController < ApplicationController
     if error
       redirect_to matches_path, alert: error, status: :see_other
     else
-      redirect_to match_path(match), notice: "Challenge sent to #{match.away_user.username}. Set up your army while you wait.", status: :see_other
+      redirect_to match_path(match), notice: "Challenge sent to #{match.away_user.player_name}. Set up your army while you wait.", status: :see_other
     end
   end
 
@@ -55,7 +55,7 @@ class MatchesController < ApplicationController
     if error
       redirect_to match_path(@match), alert: error, status: :see_other
     else
-      redirect_to matches_path, notice: "Match against #{@match.opponent_of(current_user).username} cancelled.", status: :see_other
+      redirect_to matches_path, notice: "Match against #{@match.opponent_of(current_user).player_name} cancelled.", status: :see_other
     end
   end
 

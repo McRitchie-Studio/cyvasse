@@ -34,7 +34,7 @@ class TurnBannerPlacementTest < ApplicationSystemTestCase
       arya = User.create!(email: "arya@example.com", name: "Arya", username: "arya")
       match = Match.start_live!(arya, computer: true, rng: Random.new(4))
       visit link_path(token: Studio::Link.create_magic_link(email: arya.email).token)
-      assert_text "Signed in as Arya"
+      assert_text "Signed in as arya"
 
       phone!(width) if width
       visit match_path(match)

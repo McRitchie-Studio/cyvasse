@@ -3,8 +3,8 @@
 <div class="card match-versus-card">
   <h1 class="match-versus text-heading">
     <span class="match-versus-side" data-side="me">
-      <%= render "players/avatar", user: me, name: me.username, size: avatar_size %>
-      <span class="match-versus-name"><%= me.username %></span>
+      <%= render "players/avatar", user: me, name: me.player_name, size: avatar_size %>
+      <span class="match-versus-name"><%= me.player_name %></span>
     </span>
     <span class="match-versus-vs text-muted">vs</span>
     <span class="match-versus-side" data-side="them">

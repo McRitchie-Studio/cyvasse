@@ -1,7 +1,7 @@
 module MatchesHelper
   # One line on My games saying where a match stands for `user`.
   def match_summary(match, user)
-    opponent = match.opponent_of(user).username
+    opponent = match.opponent_of(user).player_name
     case match.match_status
     when Match::PENDING
       match.seat(user) == :away ? "#{opponent} challenged you" : "challenge sent, awaiting #{opponent}"
