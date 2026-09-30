@@ -11,7 +11,8 @@
     tutorial screenshots circled by hand.
     Locals: unit (Rulebook::Unit), id (optional), highlight (optional). %>
 <% highlight = local_assigns.fetch(:highlight, []) %>
-<% stats = [ [ :movement, "Movement", unit.movement ], [ :strength, "Strength", unit.strength ] ]
+<%# Strength heads the stats, then Movement (Alex, 2026-09-29). %>
+<% stats = [ [ :strength, "Strength", unit.strength ], [ :movement, "Movement", unit.movement ] ]
    stats << [ :range, "Range", unit.range ] if unit.range
    stats << [ :trump, "Trump", unit.trumped_pieces ] %>
 <article <%= tag.attributes(id: local_assigns[:id]) %> class="unit-card card p-4" data-unit="<%= unit.slug %>">

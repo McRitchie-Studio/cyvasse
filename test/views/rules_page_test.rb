@@ -89,11 +89,11 @@ class RulesPageTest < ActionView::TestCase
     refute_includes body.at_css("figure.unit-card-art")["class"].split, "piece-tile", "the art sits bare, off the parchment tile"
 
     stats = body.css("dl.unit-stats > div.unit-stat")
-    assert_equal %w[movement strength range trump], stats.map { _1["data-stat"] }
+    assert_equal %w[strength movement range trump], stats.map { _1["data-stat"] }, "Strength first"
     stats.each do |stat|
       assert_equal %w[dt dd], stat.element_children.map(&:name), "#{stat["data-stat"]}: label above value"
     end
-    assert_equal [ %w[Movement 0], %w[Strength 1], %w[Range 4] ],
+    assert_equal [ %w[Strength 1], %w[Movement 0], %w[Range 4] ],
                  stats.first(3).map { |stat| [ stat.at_css("dt").text.strip, stat.at_css("dd").text.strip ] }
     assert_includes stats.first.at_css("dd")["class"].split, "text-xl", "the value reads larger than its label"
 
