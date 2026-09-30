@@ -10,6 +10,7 @@ import { COMPUTER_OPPONENTS, parseLineup } from "cyvasse/setups";
 import { COMPUTER_ZONE, hexAt } from "cyvasse/board";
 import { legalActions } from "cyvasse/rules";
 import { UNIT_TYPES, typeAt } from "cyvasse/units";
+import { kingThreats } from "cyvasse/king_safety";
 import { seeded } from "./support/fixtures.js";
 
 const ROW_WIDTHS = [10, 9, 8, 7, 6];
@@ -73,6 +74,25 @@ test("every opening but the King's Gambit keeps its king out of a first-turn dra
       assert.deepEqual(struck, [], `${opening.slug}: a dragon on ${struck} takes the king`);
     }
   }
+});
+
+// The whole first turn, not only the dragon (task
+// cyvasse-smart-setup-king-safety): a light horse that takes a shooter next
+// to the king (shooters defend at 1) takes the king on its second jump. Only
+// the two openings that stand their king forward on purpose are open to it,
+// and both say so.
+test("every opening but the King's Gambit and Crown Forward survives every enemy first turn", () => {
+  for (const opening of OPENINGS) {
+    const army = loaded(opening).teamUnits(PLAYER).map((u) => ({ hex: u.hex, type: u.type }));
+    const threats = kingThreats(army);
+    if (["kings-gambit", "crown-forward"].includes(opening.slug)) {
+      assert.ok(threats.length > 0, `${opening.slug}: its open king is real`);
+    } else {
+      assert.deepEqual(threats, [], `${opening.slug}: the king falls on the enemy's first turn`);
+    }
+  }
+  assert.match(OPENINGS.find((o) => o.slug === "crown-forward").idea, /a horse that takes either one reaches the king next/);
+  assert.match(OPENINGS.find((o) => o.slug === "kings-gambit").idea, /its forward diagonals are open/);
 });
 
 // "The side whose king stands nearer the middle row moves first."
