@@ -164,9 +164,11 @@ class MatchTest < ActiveSupport::TestCase
 
     assert_equal Match::FINISHED, match.match_status
     assert_equal "king", match.finish_reason
-    assert_equal @home, match.winner, "the home side wins this recorded game"
-    assert_equal [ 1, 0 ], [ @home.reload.wins, @home.losses ]
-    assert_equal [ 0, 1 ], [ @away.reload.wins, @away.losses ]
+    # Flipped from home to away with the regenerated record (new stats and
+    # offense-only trumps, cyvasse-stats-and-trumps-v3).
+    assert_equal @away, match.winner, "the away side wins this recorded game"
+    assert_equal [ 0, 1 ], [ @home.reload.wins, @home.losses ]
+    assert_equal [ 1, 0 ], [ @away.reload.wins, @away.losses ]
     assert_empty mail_keys, "the finishing move asks nobody to move"
     assert_raises(Match::Refused) { match.play!(@home, [ [ 52, 53 ] ]) }
   end

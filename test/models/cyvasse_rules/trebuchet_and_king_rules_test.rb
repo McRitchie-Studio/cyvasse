@@ -2,8 +2,9 @@ require "test_helper"
 
 # [unit] The rule changes of September 29, 2026 on the server
 # (app/models/cyvasse_rules), the rules online play is validated by:
-#   - the trebuchet reaches four hexes, and trumps the spearman and the light
-#     horse as well as the dragon, but never takes the king;
+#   - the trebuchet reaches four hexes and trumps the dragon (it trumped the
+#     spearman and the light horse too until the new stats of that evening,
+#     cyvasse-stats-and-trumps-v3), but never takes the king;
 #   - no mountain, of either side, lets its shot through;
 #   - the king trumps the dragon, so it takes a dragon within its move.
 # test/javascript/rules_test.js holds the browser engine to the same cases.
@@ -41,11 +42,11 @@ class CyvasseRules::TrebuchetAndKingRulesTest < ActiveSupport::TestCase
     Board::HEXES.map(&:index).select { |i| i != origin && distance(origin, i) <= radius }
   end
 
-  test "the trebuchet's numbers: range four, trumps the dragon, spearman and light horse" do
+  test "the trebuchet's numbers: range four, trumps only the dragon" do
     trebuchet = Units::TYPES.fetch("trebuchet")
     assert_equal 4, trebuchet.attack_range
     assert_equal 0, trebuchet.move_range
-    assert_equal %w[dragon spearman lighthorse], trebuchet.trump
+    assert_equal %w[dragon], trebuchet.trump
     assert_equal %w[dragon], Units::TYPES.fetch("king").trump
     assert_equal 3, Units::TYPES.fetch("catapult").attack_range, "the catapult is unchanged"
     assert_equal 2, Units::TYPES.fetch("crossbowman").attack_range, "the crossbowman is unchanged"
@@ -60,12 +61,12 @@ class CyvasseRules::TrebuchetAndKingRulesTest < ActiveSupport::TestCase
     assert_equal disc(46, 4), in_reach, "every hex within four, on an open board"
   end
 
-  test "a trebuchet takes a spearman and a light horse, near and at four" do
+  test "a trebuchet takes a dragon, near and at four, and no longer a spearman or a light horse" do
     [ 47, 50 ].each do |hex|
-      assert_equal [ hex ], attacks(46 => [ ALLY, "trebuchet" ], hex => [ ENEMY, "spearman" ]), "spearman on #{hex}"
-      assert_equal [ hex ], attacks(46 => [ ALLY, "trebuchet" ], hex => [ ENEMY, "lighthorse" ]), "light horse on #{hex}"
+      assert_equal [ hex ], attacks(46 => [ ALLY, "trebuchet" ], hex => [ ENEMY, "dragon" ]), "dragon on #{hex}"
+      assert_equal [], attacks(46 => [ ALLY, "trebuchet" ], hex => [ ENEMY, "spearman" ]), "spearman (3) on #{hex}"
+      assert_equal [], attacks(46 => [ ALLY, "trebuchet" ], hex => [ ENEMY, "lighthorse" ]), "light horse (2) on #{hex}"
     end
-    assert_equal [], attacks(46 => [ ALLY, "trebuchet" ], 47 => [ ENEMY, "heavyhorse" ]), "the heavy horse is not trumped"
   end
 
   test "a trebuchet cannot take the king anywhere in its reach" do
@@ -75,10 +76,10 @@ class CyvasseRules::TrebuchetAndKingRulesTest < ActiveSupport::TestCase
   end
 
   test "a mountain of either side blocks the trebuchet's shot" do
-    assert_equal [ 50 ], attacks(46 => [ ALLY, "trebuchet" ], 50 => [ ENEMY, "spearman" ]), "control: in reach"
+    assert_equal [ 50 ], attacks(46 => [ ALLY, "trebuchet" ], 50 => [ ENEMY, "rabble" ]), "control: in reach"
     [ ALLY, ENEMY ].each do |side|
       [ 47, 48, 49 ].each do |mountain|
-        layout = { 46 => [ ALLY, "trebuchet" ], mountain => [ side, "mountain" ], 50 => [ ENEMY, "spearman" ] }
+        layout = { 46 => [ ALLY, "trebuchet" ], mountain => [ side, "mountain" ], 50 => [ ENEMY, "rabble" ] }
         assert_equal [], attacks(layout), "a #{side == ALLY ? 'friendly' : 'enemy'} mountain on #{mountain}"
       end
     end
@@ -140,12 +141,12 @@ class CyvasseRules::TrebuchetAndKingRulesTest < ActiveSupport::TestCase
     assert_equal 47, game.units.find { |u| u.team == Game::HOME && u.type.king? }.hex
   end
 
-  test "the server plays a trebuchet's four-hex shot at a spearman, and the trebuchet stays put" do
-    # Home trebuchet (14) on 46; away spearman (4) on 50; the kings far apart.
-    game = Game.new(home: boxed(1, 14 => 46, 17 => 91), away: boxed(0, 4 => 50, 17 => 1), offense: Game::HOME, turn: 5)
+  test "the server plays a trebuchet's four-hex shot at a dragon, and the trebuchet stays put" do
+    # Home trebuchet (14) on 46; away dragon (16) on 50; the kings far apart.
+    game = Game.new(home: boxed(1, 14 => 46, 17 => 91), away: boxed(0, 16 => 50, 17 => 1), offense: Game::HOME, turn: 5)
     assert_equal [ [ 46, 50 ] ], Bot.choose_turn(game, rng: Random.new(1))
     result = game.play!([ [ 46, 50 ] ])
-    assert_equal "spearman", result.captured.first.type.codename
+    assert_equal "dragon", result.captured.first.type.codename
     assert_equal 46, game.units.find { |u| u.team == Game::HOME && u.index == 14 }.hex
   end
 end

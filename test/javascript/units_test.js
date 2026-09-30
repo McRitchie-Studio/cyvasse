@@ -53,3 +53,34 @@ test("every unit maps to exactly one size tier", () => {
   const listed = Object.values(SIZE_TIER_UNITS).flat();
   assert.deepEqual([...listed].sort(), Object.keys(UNIT_TYPES).sort());
 });
+
+// [unit] Alex's stats of September 29, 2026 (cyvasse-stats-and-trumps-v3,
+// with his 21:48 MDT change: the spearman trumps nothing). Strength is every
+// unit's attack; it defends at the same number, except the three range units,
+// which defend at 1. test/models/cyvasse_rules/units_parity_test.rb holds the
+// Ruby table to the same rows.
+test("the unit table is Alex's new stats table", () => {
+  // [move, second jump, strength, range, trumps]
+  const table = {
+    rabble: [3, 0, 1, 0, ["king"]],
+    trebuchet: [0, 0, 1, 4, ["dragon"]],
+    king: [2, 0, 2, 0, ["dragon"]],
+    lighthorse: [4, 1, 2, 0, []],
+    crossbowman: [1, 0, 2, 2, []],
+    spearman: [2, 0, 3, 0, []],
+    heavyhorse: [3, 1, 3, 0, []],
+    catapult: [1, 0, 3, 3, ["dragon"]],
+    elephant: [2, 0, 4, 0, []],
+    dragon: [10, 0, 5, 0, []]
+  };
+  for (const [codename, [move, second, strength, range, trump]] of Object.entries(table)) {
+    const type = UNIT_TYPES[codename];
+    const defence = type.rank === "range" ? 1 : strength;
+    assert.deepEqual(
+      [type.moveRange, type.secondJump, type.attack, type.defence, type.attackRange, [...type.trump]],
+      [move, second, strength, defence, range, trump],
+      codename
+    );
+  }
+  assert.equal(UNIT_TYPES.mountain.moveRange, 0, "the mountain is unchanged: immovable");
+});

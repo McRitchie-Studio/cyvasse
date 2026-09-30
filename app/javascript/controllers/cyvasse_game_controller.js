@@ -1021,7 +1021,7 @@ export default class extends Controller {
       rows.push(["Strength", "Impassable"])
     } else {
       rows.push(["Strength", type.attack])
-      const movement = type.codename === "dragon" ? "Straight line" : type.rank === "cavalry" ? `${type.moveRange} + 2` : type.moveRange
+      const movement = type.codename === "dragon" ? "Straight line" : type.rank === "cavalry" ? `${type.moveRange} + ${type.secondJump}` : type.moveRange
       rows.push(["Movement", movement])
       if (type.rank === "range") rows.push(["Range", type.attackRange])
     }
@@ -1079,7 +1079,7 @@ export default class extends Controller {
     const table = type.moveRange > 5 ? "long" : "short"
     const { rings, rangeRings, moves } = this.actions
     const shooter = type.rank === "range"
-    const reach = shooter ? type.attackRange : type.rank === "cavalry" ? type.moveRange * 2 : type.moveRange
+    const reach = shooter ? type.attackRange : type.rank === "cavalry" ? type.moveRange + type.secondJump : type.moveRange
     let distance = 1
 
     const light = (index, fill, ...classes) => {

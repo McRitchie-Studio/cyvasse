@@ -98,16 +98,17 @@ class RulesPageTest < ActionView::TestCase
     assert_includes stats.first.at_css("dd")["class"].split, "text-xl", "the value reads larger than its label"
 
     icons = stats.last.css("dd.unit-trumps img.unit-trump-icon")
-    assert_equal [ "Trumps Dragon", "Trumps Spearman", "Trumps Light Horse" ], icons.map { _1["alt"] }
+    # Since the new stats of September 29, 2026 the trebuchet trumps only the dragon.
+    assert_equal [ "Trumps Dragon" ], icons.map { _1["alt"] }
     assert_equal icons.map { _1["alt"] }, icons.map { _1["title"] }
-    assert_equal %w[dragon spearman lighthorse], icons.map { _1["data-trump"] }
+    assert_equal %w[dragon], icons.map { _1["data-trump"] }
     icons.each { |img| assert_match %r{/pieces/vector/#{img["data-trump"]}-}, img["src"], "the reader's skin" }
     assert_empty css_select(".unit-stat-marked"), "the Units list marks nothing"
   end
 
   test "a unit that trumps nothing shows a dash, and the pencil skin reaches the trump icons" do
     view.define_singleton_method(:current_skin) { :pencil }
-    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("rabble") }
+    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("spearman") }
     assert_select "dd[data-stat=trump]", text: "—"
     assert_select "dd[data-stat=trump] img", 0
 
@@ -117,11 +118,11 @@ class RulesPageTest < ActionView::TestCase
   end
 
   test "a special rules card marks the stat its rule is about, label and value together" do
-    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("spearman"), highlight: %i[trump] }
+    render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("rabble"), highlight: %i[trump] }
 
     assert_select ".unit-stat.unit-stat-marked", 1
     assert_select ".unit-stat-marked[data-stat=trump] > dt", text: "Trump"
-    assert_select ".unit-stat-marked[data-stat=trump] > dd img[alt='Trumps Light Horse']", 1
+    assert_select ".unit-stat-marked[data-stat=trump] > dd img[alt='Trumps King']", 1
   end
 
   test "the unit card CSS is one centred column, with no side-by-side container query left" do

@@ -8,13 +8,13 @@
 # the engine (epic piece 4) owns the rules it enforces.
 module Rulebook
   # movement and strength are strings where the original printed words
-  # ("3 + 2", "Immovable"); range is nil for a unit that does not shoot.
+  # ("4 + 1", "Immovable"); range is nil for a unit that does not shoot.
   Unit = Data.define(:piece, :movement, :strength, :range, :trumps) do
     def name = piece.name
     def slug = piece.slug
 
-    # A cavalry unit's two jumps, [first, second], read from its "3 + 2"
-    # movement; nil for every other unit.
+    # A cavalry unit's two jumps, [first, second], read from its "4 + 1"
+    # movement; nil for every other unit. Each horse has its own second jump.
     def jumps
       movement.match(/\A(\d+) \+ (\d+)\z/)&.captures&.map(&:to_i)
     end
@@ -34,24 +34,20 @@ module Rulebook
   end
   private_class_method :unit
 
-  # Every cavalry unit's second jump reaches 2 hexes, whatever its first
-  # (legalActions in app/javascript/cyvasse/rules.js).
-  CAVALRY_SECOND_JUMP = 2
-
   CLASSES = [
     UnitClass.new(name: "Vanguard", units: [
-      unit("rabble", movement: 3, strength: 1),
-      unit("spearman", movement: 2, strength: 2, trumps: [ "Light Horse" ]),
+      unit("rabble", movement: 3, strength: 1, trumps: [ "King" ]),
+      unit("spearman", movement: 2, strength: 3),
       unit("elephant", movement: 2, strength: 4)
     ]),
     UnitClass.new(name: "Cavalry", units: [
-      unit("lighthorse", movement: "3 + #{CAVALRY_SECOND_JUMP}", strength: 2),
-      unit("heavyhorse", movement: "2 + #{CAVALRY_SECOND_JUMP}", strength: 3)
+      unit("lighthorse", movement: "4 + 1", strength: 2),
+      unit("heavyhorse", movement: "3 + 1", strength: 3)
     ]),
     UnitClass.new(name: "Range", units: [
-      unit("crossbowman", movement: 1, strength: 2, range: 2, trumps: [ "Elephant" ]),
-      unit("catapult", movement: 2, strength: 3, range: 3, trumps: [ "Dragon" ]),
-      unit("trebuchet", movement: 0, strength: 1, range: 4, trumps: [ "Dragon", "Spearman", "Light Horse" ])
+      unit("crossbowman", movement: 1, strength: 2, range: 2),
+      unit("catapult", movement: 1, strength: 3, range: 3, trumps: [ "Dragon" ]),
+      unit("trebuchet", movement: 0, strength: 1, range: 4, trumps: [ "Dragon" ])
     ]),
     UnitClass.new(name: "Unique", units: [
       unit("dragon", movement: "Moves in a straight line", strength: 5),
@@ -60,13 +56,27 @@ module Rulebook
     ])
   ].freeze
 
+  # The Strength a Range unit defends at, whatever it attacks with: any unit
+  # can take one (Alex, September 29, 2026). Every other unit defends at its
+  # Strength. The engine's defence column (app/javascript/cyvasse/units.js).
+  RANGE_DEFENCE = 1
+
   # Alex's rule changes of September 29, 2026, to help the game play. The
   # engine enforces them (app/javascript/cyvasse/units.js and its Ruby mirror).
+  # The first four came in the morning; the rest are "a new set of stats"
+  # that evening (task cyvasse-stats-and-trumps-v3), which also took back the
+  # Trebuchet's Spearman and Light Horse trumps.
   CHANGES_2026 = [
     "Trebuchet range rose from 3 to 4. Mountains still block its shots.",
-    "Trebuchets now trump Spearmen and Light Horse, so neither can take a Trebuchet. They still cannot take the King.",
     "Kings now trump Dragons: a Dragon within the King's move can be taken.",
-    "Elephants now move 2."
+    "Elephants now move 2.",
+    "Trumps now work on offense only: a unit takes a unit it trumps when it attacks, but a trump never protects the " \
+    "unit that holds it. A Trebuchet can take a Dragon, and a Dragon can still take a Trebuchet.",
+    "Strength is every unit's attack: Rabble 1, Trebuchet 1, King 2, Light Horse 2, Crossbowman 2, Spearman 3, " \
+    "Heavy Horse 3, Catapult 3, Elephant 4, Dragon 5. Range units still defend at 1, so any unit can take one.",
+    "New trumps: Rabble trump the King. Trebuchets trump only Dragons, and Spearmen and Crossbowmen trump nothing.",
+    "Light Horse now move 4 then 1, and Heavy Horse 3 then 1 (were 3 then 2, and 2 then 2).",
+    "Catapults now move 1."
   ].freeze
 
   # The rule changes of April 14, 2015 (legacy home/new_rules.html.erb).

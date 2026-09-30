@@ -11,9 +11,11 @@
 //     silently pass. It now picks among units that have a legal action.
 
 // Least to most valuable. The legacy search ran this list in order and let
-// each later match overwrite the last, so the final entry wins.
+// each later match overwrite the last, so the final entry wins. The new stats
+// of September 29, 2026 put the spearman (3) above the crossbowman (2), so it
+// now ranks above it; app/models/cyvasse_rules/bot.rb keeps the same list.
 export const KILL_PRIORITY = Object.freeze([
-  "rabble", "lighthorse", "spearman", "crossbowman", "heavyhorse",
+  "rabble", "lighthorse", "crossbowman", "spearman", "heavyhorse",
   "elephant", "trebuchet", "catapult", "dragon", "king"
 ]);
 

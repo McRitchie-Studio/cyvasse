@@ -10,7 +10,7 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     %w[quick-start goal pregame who-goes-first game moving combat special-rules units rule-changes].each do |id|
       assert_select "section##{id}", 1, "section ##{id}"
     end
-    assert_select "#combat p", text: /Spearman will always defeat a Light Horse/
+    assert_select "#combat p", text: /A Rabble that attacks a King takes it/
     assert_select "#rule-changes #changes-2015 li", count: Rulebook::CHANGES_2015.size
   end
 
@@ -20,10 +20,9 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     assert_select "#rule-changes #changes-2026 li", count: Rulebook::CHANGES_2026.size
     assert_select "#rule-changes h3", text: "Implemented on September 29, 2026"
     assert_select "#rule-changes #changes-2026 li", text: /Trebuchet range rose from 3 to 4/
-    assert_select "#rule-changes #changes-2026 li", text: /so neither can take a Trebuchet/
+    assert_select "#rule-changes #changes-2026 li", text: /so neither can take a Trebuchet/, count: 0
     assert_select "#unit-trebuchet dd", text: "4"
-    assert_equal [ "Trumps Dragon", "Trumps Spearman", "Trumps Light Horse" ],
-                 css_select("#unit-trebuchet dd[data-stat=trump] img").map { _1["alt"] }
+    assert_equal [ "Trumps Dragon" ], css_select("#unit-trebuchet dd[data-stat=trump] img").map { _1["alt"] }
     assert_select "#combat p", text: /Every\s+Mountain blocks a shot, whichever army placed it/
     assert_select "#combat p", text: /Besides the Trebuchet and the Catapult, the King is the one unit that\s+trumps the Dragon/
     assert_select "#special-rules .special-rule-card[data-rule=dragon] p", text: /or a King it strays too close to/
@@ -50,8 +49,11 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     end
     assert_select "#unit-catapult dd[data-stat=trump] img[alt='Trumps Dragon']", 1
     assert_select "#unit-king dd[data-stat=trump] img[alt='Trumps Dragon']", 1
-    assert_select "#unit-rabble dd[data-stat=trump]", text: "—"
-    assert_select "#unit-rabble dd[data-stat=trump] img", 0
+    assert_select "#unit-rabble dd[data-stat=trump] img[alt='Trumps King']", 1
+    %w[spearman crossbowman].each do |slug|
+      assert_select "#unit-#{slug} dd[data-stat=trump]", text: "—"
+      assert_select "#unit-#{slug} dd[data-stat=trump] img", 0
+    end
     assert_select "#class-range .unit-card", count: 3
   end
 
@@ -90,21 +92,42 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     end
     assert_select "#special-rules .special-rule-card[data-rule=cavalry] .unit-card[data-unit=lighthorse] dd[data-stat=movement]",
                   text: Rulebook.fetch("lighthorse").movement
-    assert_select "#special-rules .special-rule-card[data-rule=trump] .unit-card[data-unit=spearman] " \
-                  ".unit-stat-marked[data-stat=trump] dd img[alt='Trumps Light Horse']", 1
+    assert_select "#special-rules .special-rule-card[data-rule=trump] .unit-card[data-unit=rabble] " \
+                  ".unit-stat-marked[data-stat=trump] dd img[alt='Trumps King']", 1
     assert_select "#special-rules img[src*='/assets/tutorial/']", 0
     assert_select "#special-rules .unit-card[id]", 0, "the units list owns the unit-<slug> ids"
   end
 
   # Production audit #6: "primary movement is 3 and the secondary is 2" was only
-  # the Light Horse; each horse now gets its own first jump.
+  # the Light Horse; each horse now gets its own first jump, and since
+  # September 29, 2026 its own second one (4 + 1 and 3 + 1).
   test "the cavalry rule gives each horse its own movement" do
     get rules_path
 
     body = css_select("#special-rules .special-rule-card[data-rule=cavalry] p").text.squish
-    assert_includes body, "The Light Horse's first jump reaches 3 and the Heavy Horse's reaches 2"
-    assert_includes body, "the second jump reaches #{Rulebook::CAVALRY_SECOND_JUMP} for both"
+    assert_includes body, "The Light Horse's first jump reaches 4 and its second reaches 1"
+    assert_includes body, "the Heavy Horse's first reaches 3 and its second 1"
     assert_no_match(/primary movement is 3/, body)
+    assert_select "#unit-lighthorse dd", text: "4 + 1"
+    assert_select "#unit-heavyhorse dd", text: "3 + 1"
+  end
+
+  # Alex, September 29, 2026 (cyvasse-stats-and-trumps-v3): trumps work on
+  # offense only, range units defend at 1, and the change is listed.
+  test "rules states offense-only trumps and the new stats" do
+    get rules_path
+
+    assert_select "#special-rules .special-rule-card[data-rule=trump] p", text: /a trump works on offense/
+    assert_select "#special-rules .special-rule-card[data-rule=trump] p", text: /a Dragon that attacks a Trebuchet still takes it/
+    assert_select "#special-rules .special-rule-card[data-rule=range] p", text: /They defend at Strength 1, so any unit can take one/
+    assert_select "#special-rules .special-rule-card[data-rule=dragon] p", text: /It can take an opposing Range unit, but its flight ends there/
+    assert_select "#combat p", text: /Range\s+units defend at Strength 1/
+    assert_select "#combat p", text: /unless a Trump is involved/, count: 0
+    assert_select "#rule-changes #changes-2026 li", text: /Trumps now work on offense only/
+    assert_select "#rule-changes #changes-2026 li", text: /Catapults now move 1/
+    assert_select "#unit-catapult dd", text: "1"
+    assert_select "#unit-spearman dd", text: "3"
+    assert_select "#unit-elephant dd", text: "4"
   end
 
   test "the rules count 19 pieces of 10 kinds, never 10 military pieces" do
