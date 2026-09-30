@@ -108,7 +108,10 @@ class SmartSetupCardTest < ApplicationSystemTestCase
     assert_equal "fill", mode
     assert_button "✨ Place All"
     assert_selector "#{SMART} span[aria-hidden=true]", text: "✨", count: 1
-    assert_selector "#{CARD} .cyvasse-army-count[aria-hidden=true]", text: "1 of 19 placed"
+    # The count shows only in the phone sheet; the sidebar card says it in
+    # its status (task cyvasse-sidebar-reorder).
+    assert_selector "#{CARD} .cyvasse-army-count[aria-hidden=true]", text: "1 of 19 placed", visible: docked ? :visible : :all
+    assert_selector "#{CARD} .cyvasse-army-count", visible: :visible, count: 0 unless docked
     assert_selector "[role=status][aria-live=polite]", text: "Place your army: 1 of 19 placed."
     assert_selector "[aria-live]", text: /of 19 placed/, count: 1
     assert_button "Ready", disabled: true
