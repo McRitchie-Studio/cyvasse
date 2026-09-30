@@ -92,7 +92,50 @@ class HomePageSystemTest < ApplicationSystemTestCase
     end
   end
 
+  # [e2e] Full bleed (task cyvasse-full-bleed-home): the hero runs from one
+  # edge of the viewport to the other, straight under the navbar, with no
+  # card corners and no sideways scroll (a 100vw breakout would count the
+  # scrollbar). On a laptop the leaderboard card still starts above the fold.
+  [ [ "laptop", 1440, 900 ], [ "phone", 390, 844 ] ].each do |name, width, height|
+    test "the hero spans the viewport edge to edge on a #{name}" do
+      emulate(width:, height:)
+      visit root_path
+      assert_selector "section.home-hero [data-leaderboard-card]"
+
+      left, right, top, radius, client, nav_bottom, card_top = page.evaluate_script(<<~JS)
+        (() => {
+          const hero = document.querySelector("section.home-hero")
+          const r = hero.getBoundingClientRect()
+          return [r.left, r.right, r.top, getComputedStyle(hero).borderTopLeftRadius,
+                  document.documentElement.clientWidth,
+                  document.querySelector("header[data-pin=nav]").getBoundingClientRect().bottom,
+                  hero.querySelector("[data-leaderboard-card]").getBoundingClientRect().top]
+        })()
+      JS
+      assert_in_delta 0, left, 1, "the hero starts at the left edge"
+      assert_in_delta client, right, 1, "the hero ends at the right edge"
+      assert_in_delta nav_bottom, top, 1, "the hero sits directly under the navbar"
+      assert_equal "0px", radius, "square corners"
+      assert_operator card_top, :<, height, "the leaderboard card starts above the fold" if name == "laptop"
+
+      scroll, client = page_widths
+      assert_operator scroll, :<=, client, "no sideways scroll"
+      full_bleed_screenshots(name)
+    end
+  end
+
   private
+
+  # SCREENSHOTS=1: the front door in each theme, as
+  # tmp/screenshots/full-bleed-home-<size>-<theme>.png.
+  def full_bleed_screenshots(size)
+    return unless ENV["SCREENSHOTS"]
+
+    %w[light dark].each do |theme|
+      page.execute_script("document.documentElement.classList.toggle('dark', arguments[0])", theme == "dark")
+      page.save_screenshot(Rails.root.join("tmp/screenshots/full-bleed-home-#{size}-#{theme}.png"))
+    end
+  end
 
   # The size, and motion allowed: the browser is shared across the suite, and
   # an earlier test (jump_range_rings_test) leaves reduced motion on.

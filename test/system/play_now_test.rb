@@ -23,9 +23,9 @@ class PlayNowSystemTest < ApplicationSystemTestCase
     assert_selector "[data-live-seek-target=count]", text: /\A[0-3]\z/
     screenshot("searching")
     assert_text(/match found/i, wait: 8)
-    assert_selector "[data-live-seek-target=computerTag]", text: /computer/i # styled uppercase
     assert_selector "[data-live-seek-target=you]", text: /Guest_\d{4}/
-    assert_selector "[data-live-seek-target=opponentInitial] img[data-avatar=bot-portrait][src*='/assets/bots/']"
+    assert_selector "[data-live-seek-target=opponentAvatar] img[data-avatar=bot-portrait][src*='/assets/bots/']"
+    assert_quiet_splash
     sleep 0.6 # past the splash's fade-in, for the screenshot
     screenshot("splash")
 
@@ -62,16 +62,58 @@ class PlayNowSystemTest < ApplicationSystemTestCase
     click_on "Play the computer now"
 
     assert_text(/match found/i, wait: 0.5)
-    assert_selector "[data-live-seek-target=computerTag]", text: /computer/i
-    portrait = find("[data-live-seek-target=opponentInitial] img[data-avatar=bot-portrait]")
+    assert_selector "[data-live-seek-target=computerTag]", text: "Computer"
+    portrait = find("[data-live-seek-target=opponentAvatar] img[data-avatar=bot-portrait]")
     assert_equal LiveSeek.last.match.away_user.player_name, portrait[:alt]
+    assert_quiet_splash
     splash_screenshots
+    full_bleed_screenshots
     assert_selector "[data-controller=cyvasse-match]", wait: 8
     assert_current_path(%r{/matches/\d+})
     assert LiveSeek.last.match.away_user.computer?
   end
 
   private
+
+  # The splash wears the versus card's faces (task cyvasse-full-bleed-home):
+  # a guest has no photo, so their avatar is their piece from players/avatar,
+  # and "You" and "Computer" are quiet small-caps captions, not coloured pills.
+  def assert_quiet_splash
+    guest = LiveSeek.last.user
+    within("[data-live-seek-target=splash]") do
+      assert_selector "[data-side=me] [data-avatar=piece][aria-label='#{guest.player_name}'] img[src*='/assets/']"
+      assert_selector "[data-side=me] .player-caption", text: "You"
+      assert_selector "[data-side=them] .player-caption", text: "Computer"
+      assert_no_selector "[data-avatar=pending]"
+    end
+    %w[me them].each do |side|
+      caps, transform, background = page.evaluate_script(<<~JS)
+        (s => [s.fontVariantCaps, s.textTransform, s.backgroundColor])(getComputedStyle(document.querySelector("[data-side=#{side}] .player-caption")))
+      JS
+      assert_equal "all-small-caps", caps, "#{side}: small caps, like the versus card"
+      assert_equal "none", transform, "#{side}: not shouted in capitals"
+      assert_equal "rgba(0, 0, 0, 0)", background, "#{side}: no pill"
+    end
+  end
+
+  # SCREENSHOTS=1: the splash in each theme, desktop and 390px, as
+  # tmp/screenshots/full-bleed-splash-*.png.
+  def full_bleed_screenshots
+    return unless ENV["SCREENSHOTS"]
+
+    sleep 0.4
+    %w[light dark].each do |theme|
+      page.execute_script("document.documentElement.classList.toggle('dark', arguments[0])", theme == "dark")
+      page.save_screenshot(Rails.root.join("tmp/screenshots/full-bleed-splash-desktop-#{theme}.png"))
+      page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+      begin
+        sleep 0.2
+        page.save_screenshot(Rails.root.join("tmp/screenshots/full-bleed-splash-390-#{theme}.png"))
+      ensure
+        page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
+      end
+    end
+  end
 
   # The splash with a computer player's portrait, at desktop and 390px.
   def splash_screenshots
