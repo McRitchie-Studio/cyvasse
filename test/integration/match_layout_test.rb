@@ -26,6 +26,19 @@ class MatchLayoutTest < ActionDispatch::IntegrationTest
     assert_select ".cyvasse-board-wrap .cyvasse-threat-toggle", 0
   end
 
+  # game.css sizes the pieces per skin ([data-skin] .cyvasse-board): the pencil
+  # parchment disc and its size tiers apply on a match only if the page names
+  # its skin, as /play does.
+  test "the match page names the skin its pieces are drawn in" do
+    log_in_as(@home)
+    match = started_match(@home, @away)
+
+    get match_path(match, skin: "pencil")
+    assert_select "section[data-controller=cyvasse-match][data-skin=pencil]", 1
+    get match_path(match)
+    assert_select "section[data-controller=cyvasse-match][data-skin=vector]", 1
+  end
+
   test "the versus card stacks you over your opponent, avatar then name, around a vs" do
     log_in_as(@home)
     get match_path(started_match(@home, @away))
