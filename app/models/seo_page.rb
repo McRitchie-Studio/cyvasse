@@ -95,10 +95,9 @@ class SeoPage
         "and armies of #{Rulebook.army_size} pieces set up in secret." ],
       [ "Can I play Cyvasse online for free?",
         "Yes. Cyvasse is free to play in your browser, with nothing to download. Press Play Now " \
-        "for a live game against another player (a computer steps in if nobody turns up), or play " \
-        "the computer at any time." ],
+        "for a live game against another player; a computer player steps in if nobody turns up." ],
       [ "Do I need an account to play?",
-        "No. You can play the computer or a live game as a guest. Sign in with an email link or " \
+        "No. Press Play Now and you play as a guest. Sign in with an email link or " \
         "Google to challenge friends by username, keep your games and appear on the leaderboard." ],
       [ "How do you win at Cyvasse?",
         "Capture your opponent's King. Each player hides their King somewhere in their opening " \

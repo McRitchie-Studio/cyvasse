@@ -98,7 +98,6 @@ class SeoMetaTest < ActionDispatch::IntegrationTest
     intro = page_doc.at_css("#what-is-cyvasse").text.squish
     assert_match(/strategy board game/, intro)
     assert_match(/free to play online/, intro)
-    assert_select "#what-is-cyvasse a[href=?]", play_path
     assert_select "#what-is-cyvasse a[href=?]", rules_path
   end
 

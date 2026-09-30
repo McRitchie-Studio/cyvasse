@@ -9,7 +9,8 @@ class AuthGateTest < ActionDispatch::IntegrationTest
   # LeaderboardsController: the boards are public like the landing page that
   # carries the top ten, and a guest's sign-in page must open signed out.
   # EmailHandoffsController is a sign-in door: its assertion is the credential.
-  PUBLIC_CONTROLLERS = %w[PagesController GamesController SkinsController LeaderboardsController EmailHandoffsController].freeze
+  PUBLIC_CONTROLLERS = %w[PagesController GamesController SkinsController LeaderboardsController EmailHandoffsController
+                          SitemapsController RobotsController].freeze
 
   test "the leaderboard and its sign-in page render publicly" do
     get leaderboard_path
