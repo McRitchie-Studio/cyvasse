@@ -31,7 +31,10 @@ require "application_system_test_case"
 # by the app's own controller (cyvasse_game_controller.js) in the default
 # vector skin, dark theme, threats on and reduced motion (so the danger edge
 # holds still), and the hero is selected the way a click selects it, so its
-# rings are the game's own. A light horse's scene plays its first jump through
+# rings are the game's own. The glows hold still too: the selection's pulse
+# and the last move's ten-second fade are switched off here (STILL), and each
+# shot first checks that nothing on the board is animating, so a re-run
+# writes the same bytes. A light horse's scene plays its first jump through
 # the controller, so the picture is the second-jump board.
 class HomeGalleryCapture < ApplicationSystemTestCase
   # Software raster, one colour profile: the same scene draws the same pixels.
@@ -72,7 +75,9 @@ class HomeGalleryCapture < ApplicationSystemTestCase
   # `select` is the hero's hex; `jump` [from, to] plays a cavalry first jump
   # and selects the horse where it lands; `focus` is the hex the crops frame
   # (the hero by default) and `side` which side of the wide crop it stands on
-  # (:left unless given); `last` is the opponent's last move, marked orange.
+  # (:left unless given); `last` is the opponent's last move. Selecting the
+  # hero clears the last-move glow, as a click does in the game, so `last`
+  # sets the game's state but draws nothing.
   # `mirror` flips the whole scene left to right (the rules are symmetric that
   # way), so heroes alternate sides as the slides turn.
   SCENES = {
@@ -194,6 +199,14 @@ class HomeGalleryCapture < ApplicationSystemTestCase
     ]
   }.freeze
 
+  # Capture only, never the page: the selection's glow at full strength
+  # rather than partway through its pulse, and the last move's at full
+  # strength rather than partway through its fade (game.css .hex-glow).
+  STILL = <<~CSS.freeze
+    .cyvasse-board .hex-glow { animation: none !important; }
+    .cyvasse-board .hex.is-selected .hex-glow, .cyvasse-board .is-last-move .hex-glow { opacity: 1 !important; }
+  CSS
+
   setup do
     @cwebp = `which cwebp`.strip
     raise "cwebp not found: brew install webp" if @cwebp.empty?
@@ -216,6 +229,9 @@ class HomeGalleryCapture < ApplicationSystemTestCase
     page.execute_script(<<~JS)
       document.body.style.background = "#0b0c10"
       for (const el of document.querySelectorAll(".cyvasse-board-wrap, .cyvasse-layout, .cyvasse-game")) el.style.background = "transparent"
+      const still = document.createElement("style")
+      still.textContent = #{STILL.to_json}
+      document.head.append(still)
     JS
   end
 
@@ -291,6 +307,11 @@ class HomeGalleryCapture < ApplicationSystemTestCase
 
   def capture(slug, scene, crops: GALLERY_CROPS, out: OUT)
     scene = mirrored(scene) if scene[:mirror]
+    moving = page.evaluate_script(<<~JS)
+      #{CONTROLLER}.boardTarget.getAnimations({ subtree: true })
+        .filter((a) => a.playState === "running").map((a) => a.animationName || a.constructor.name)
+    JS
+    assert_empty moving, "#{slug}: nothing on the board animates while it is shot"
     focus = scene[:focus] || page.evaluate_script("#{CONTROLLER}.selectedHex")
     board = page.evaluate_script(<<~JS)
       (() => {
