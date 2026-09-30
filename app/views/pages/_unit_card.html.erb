@@ -70,7 +70,7 @@
             <dd class="unit-stat-value text-xl font-bold text-heading leading-snug" data-stat="<%= key %>" <%= tag.attributes(title: full) %>>
               <% text = capture do %><% if short %><span aria-hidden="true"><%= short %></span><span class="sr-only"><%= full %></span><% else %><%= value %><% end %><% end %>
               <% if anchor %>
-                <a href="#<%= anchor %>" class="unit-stat-link" data-rule-link="<%= anchor %>" aria-label="<%= label %> <%= short ? full.downcase : value %> — see the <%= rule %> rule"><%= text %></a>
+                <a href="#<%= anchor %>" class="unit-stat-link" data-rule-link="<%= anchor %>" aria-label="<%= short ? "#{label}: #{full.downcase}" : "#{label} #{value}" %> — see the <%= rule %> rule"><%= text %></a>
               <% else %>
                 <%= text %>
               <% end %>
