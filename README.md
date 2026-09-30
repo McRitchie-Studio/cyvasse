@@ -43,7 +43,12 @@ Imported from the legacy repo and served through Propshaft
 
 The home page's background (`HomeGallery`, `pages/_home_gallery`,
 `home_gallery_controller.js`) crossfades through the eleven shots every 7
-seconds from a random first piece. Only the first carries its `src` and is
+seconds from a random first piece. The hero is full bleed: the page puts it in
+the layout's `:hero` slot, edge to edge between the navbar and `<main>`'s
+centred container (never a `100vw` breakout, which counts the scrollbar and
+scrolls the page sideways). The wide crop is 1800px, so on a 2x laptop screen
+it is drawn at about half the display's resolution; the 70% scrim hides most of
+the softness. Only the first carries its `src` and is
 preloaded; each later one loads a slide ahead of its turn, and
 `prefers-reduced-motion` holds the first still. The shots are real board
 states staged in `test/capture/home_gallery_capture.rb`, one scene per piece,
@@ -114,8 +119,10 @@ each a square WebP of the old Cyvasse app's picture; `User::COMPUTER_PORTRAITS`)
 portrait in place, so a re-run is safe. A computer player with no portrait
 (legacy ids 8-10), or whose file is missing, shows its own piece of the vector
 art on a parchment disc ringed in the computer accent (`AvatarsHelper::BOT_PIECES`).
-The Play Now splash shows the same portrait (`opponent_portrait` in the seek's
-JSON). The artists the old files credit are thanked on `/about`.
+The Play Now splash wears the same faces: your avatar is `players/_avatar`
+rendered into the page, and the opponent's arrives rendered by that partial as
+`opponent_avatar` in the seek's JSON. "You" and "Computer" under the names are
+the versus card's quiet small-caps caption (`.player-caption`), not pills. The artists the old files credit are thanked on `/about`.
 
 ## Piece skins
 
