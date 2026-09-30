@@ -4,13 +4,13 @@
   <h1 class="match-versus text-heading">
     <span class="match-versus-side" data-side="me">
       <%= render "players/avatar", user: me, name: me.player_name, size: avatar_size %>
-      <span class="match-versus-name"><%= me.player_name %></span>
+      <span class="match-versus-name player-name" data-controller="name-fit"><%= me.player_name %></span>
     </span>
     <span class="match-versus-vs text-muted">vs</span>
     <span class="match-versus-side" data-side="them">
       <%= render "players/avatar", user: opponent, name: opponent_name, size: avatar_size %>
       <span class="match-versus-who">
-        <span class="match-versus-name" data-cyvasse-match-target="opponent"><%= opponent_name %></span>
+        <span class="match-versus-name player-name" data-controller="name-fit" data-cyvasse-match-target="opponent"><%= opponent_name %></span>
         <% if opponent.computer? %><span class="match-versus-bot player-caption text-muted">Computer</span><% end %>
       </span>
     </span>
