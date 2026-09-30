@@ -8,6 +8,7 @@ import { Banner, passNotice } from "cyvasse/banner"
 import { fullMove } from "cyvasse/turns"
 import { threats } from "cyvasse/threats"
 import { EDGES, hexClaim, resolveEdges, threatRims, PERIMETER_STYLE } from "cyvasse/edges"
+import { LastMoveMarker, lastMoveKey } from "cyvasse/last_move"
 import { playIntent, setupIntent } from "cyvasse/selection"
 import { smartLineup, smartSetupMode, SMART_LABELS, recentPicks, rememberPick } from "cyvasse/smart_setup"
 import { hexLabel, hexStates, selectionNote } from "cyvasse/hex_label"
@@ -16,8 +17,9 @@ import { hexLabel, hexStates, selectionNote } from "cyvasse/hex_label"
 //
 // The rules live in app/javascript/cyvasse (tested under test/javascript);
 // this controller only draws a Game and turns clicks into Game calls. The
-// look follows the legacy match screen: black hexes with white edges, orange
-// for the last move, and the ring ripple (animation.js) washing out from a
+// look follows the legacy match screen: black hexes with white edges, a soft
+// orange glow for the last move that fades over ten seconds (markLastMove,
+// cyvasse/last_move), and the ring ripple (animation.js) washing out from a
 // selected unit in the legacy colours, one ring every 120 ms. Each lit hex is
 // a gradient in its ring's colour under a faint hatch (ringStops, below).
 //
@@ -175,6 +177,8 @@ const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", u
 // deeper the shade reaches and the stronger it gets. Worth is the computer's
 // own ranking (KILL_PRIORITY, rabble up to king); mountains sit below it.
 const TEAM_SHADE = { 1: "#3b82f6", 0: "#dc2626" }
+// The last move's glow: [offset, colour, opacity] from the centre out.
+const LAST_MOVE_GLOW = [["0%", "#ffc46b", 0.62], ["45%", "#ffa53a", 0.34], ["80%", "#ff9a1f", 0.22], ["100%", "#ff9a1f", 0.46]]
 const SHADE_RANKS = ["mountain", ...KILL_PRIORITY]
 const TOP_RANK = SHADE_RANKS.length - 1
 
@@ -196,11 +200,15 @@ export default class extends Controller {
 
   connect() {
     this.timers = new Set()
+    // The last move's glow clears ten seconds after the move lands, whatever
+    // redraws come between (cyvasse/last_move).
+    this.lastMoveMarker = new LastMoveMarker({ onExpire: () => this.clearLastMove() })
     this.buildBoard()
     this.newGame()
   }
 
   disconnect() {
+    this.lastMoveMarker?.stop()
     this.dockObserver?.disconnect()
     this.cursorEvents?.abort()
     this.clearTimers()
@@ -577,6 +585,14 @@ export default class extends Controller {
       danger.append(el("stop", { offset, "stop-color": "#f97316", "stop-opacity": opacity }))
     }
     defs.append(danger)
+    // The last move: a soft orange glow, brightest at the centre, easing off
+    // and gathering a little again at the rim, so it still shows round a
+    // pencil unit's parchment disc. It fades away (game.css .last-move-glow).
+    const glow = el("radialGradient", { id: "last-move-glow", r: "58%" })
+    for (const [offset, color, opacity] of LAST_MOVE_GLOW) {
+      glow.append(el("stop", { offset, "stop-color": color, "stop-opacity": opacity }))
+    }
+    defs.append(glow)
     // The texture over a lit hex: a fine diagonal hatch, light and faint.
     const texture = el("pattern", { id: "ring-texture", patternUnits: "userSpaceOnUse", width: 5, height: 5, patternTransform: "rotate(40)" })
     texture.append(el("line", { x1: 0, y1: 0, x2: 0, y2: 5, stroke: "white", "stroke-opacity": 0.14, "stroke-width": 1.2 }))
@@ -602,10 +618,11 @@ export default class extends Controller {
       const polygon = el("polygon", { class: "hex-poly", points: corners })
       const texture = el("polygon", { class: "ring-texture", points: corners, fill: "url(#ring-texture)" })
       const shade = el("polygon", { class: "unit-shade", points: corners })
+      const glow = el("polygon", { class: "last-move-glow", points: corners, fill: "url(#last-move-glow)" })
       const danger = el("polygon", { class: "danger-edge", points: dangerCorners, fill: "url(#danger-edge)" })
       const disc = el("circle", { class: "unit-disc", r: 27 })
       const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
-      group.append(polygon, texture, shade, danger, disc, image)
+      group.append(polygon, texture, shade, glow, danger, disc, image)
       svg.append(group)
       this.hexNodes.set(hex.index, { group, polygon, shade, disc, image })
       this.hexCentres.set(hex.index, { x: cx, y: cy, row: hex.y })
@@ -751,11 +768,8 @@ export default class extends Controller {
           if (inPlayerZone(index) && !game.pieceAt(index)) node.group.classList.add("is-drop")
         }
       }
-    } else {
-      for (const hex of [...game.lastMove, game.utilMove]) {
-        if (hex) this.hexNodes.get(hex).group.classList.add("is-last-move")
-      }
     }
+    this.markLastMove()
 
     this.paintGround()
     this.labelHexes()
@@ -765,6 +779,21 @@ export default class extends Controller {
     this.renderStatus()
     this.renderGraveyards()
     this.renderInfo(this.selectedUnitId ? game.unit(this.selectedUnitId) : null)
+  }
+
+  // The last move glows until ten seconds after it landed. A redraw partway
+  // through sets the fade's clock back by the time already run (a negative
+  // animation-delay), so the glow carries on rather than starting over.
+  markLastMove() {
+    const game = this.game
+    const moved = game.phase === "setup" ? [] : [...game.lastMove, game.utilMove].filter((hex) => hex != null)
+    const { hexes, elapsed } = this.lastMoveMarker.mark(game.phase === "setup" ? "" : lastMoveKey(game), moved)
+    this.boardTarget.style.setProperty("--last-move-delay", `${-elapsed}ms`)
+    for (const hex of hexes) this.hexNodes.get(hex)?.group.classList.add("is-last-move")
+  }
+
+  clearLastMove() {
+    for (const { group } of this.hexNodes.values()) group.classList.remove("is-last-move")
   }
 
   // Each hex's aria-label (cyvasse/hex_label): what stands on it, and while a
@@ -805,8 +834,8 @@ export default class extends Controller {
   }
 
   // Each hex's resting fill, from the classes render() just set. It is the
-  // polygon's fill attribute, so the stylesheet's orange (the selection and
-  // the last move) and a ring's inline gradient both draw over it.
+  // polygon's fill attribute, so the stylesheet's orange (the selection) and a
+  // ring's inline gradient both draw over it.
   paintGround() {
     for (const { group, polygon } of this.hexNodes.values()) {
       const ground = group.classList.contains("is-drop") ? "hex-drop" : group.classList.contains("is-deploy") ? "hex-deploy" : "hex-base"
@@ -870,8 +899,7 @@ export default class extends Controller {
     if (!this.edgeLines) return
     const claims = new Map()
     for (const [index, { group }] of this.hexNodes) {
-      const team = group.dataset.team ? Number(group.dataset.team) : null
-      const kind = hexClaim(new Set(group.classList), { team, ghost: group.dataset.ghost })
+      const kind = hexClaim(new Set(group.classList), { ghost: group.dataset.ghost })
       if (kind) claims.set(index, kind)
     }
     const owners = resolveEdges(claims, this.threatRims?.solid, this.threatRims?.dashed)
