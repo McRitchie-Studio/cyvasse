@@ -220,6 +220,8 @@ export default class extends Controller {
     this.setupControlsTarget.hidden = false
     this.hideBanner()
     this.render()
+    this.setupBoardShown = false
+    this.showBoardWhenSetupOpens()
   }
 
   // "✨ Smart Setup", "✨ Place All", "✨ New Setup" (cyvasse/smart_setup):
@@ -409,6 +411,19 @@ export default class extends Controller {
     const height = this.docked ? Math.ceil(this.armyTarget.getBoundingClientRect().height) : 0
     if (height > 0) this.element.style.setProperty("--dock-sheet", `${height}px`)
     else this.element.style.removeProperty("--dock-sheet")
+  }
+
+  // Setup opening on a phone: the player's own five rows are the board's
+  // bottom, under the sheet until the page scrolls. Bring the board above
+  // the sheet once, as a pick does, after the sheet has laid out, so those
+  // rows are in view before the first pick.
+  showBoardWhenSetupOpens() {
+    if (this.setupControlsTarget.hidden || this.setupBoardShown) return
+    this.setupBoardShown = true
+    requestAnimationFrame(() => {
+      this.measureDock()
+      this.showBoardAboveDock()
+    })
   }
 
   // A unit picked from the sheet: bring the whole board into view between

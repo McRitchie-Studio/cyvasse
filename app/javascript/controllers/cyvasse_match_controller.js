@@ -87,6 +87,7 @@ export default class extends GameController {
     this.opponentTarget.textContent = state.opponent.username
     this.renderDeadline()
     this.render()
+    this.showBoardWhenSetupOpens()
     this.showComputerStep()
     if (arriving) this.animateArrival()
     this.startLiveClock()

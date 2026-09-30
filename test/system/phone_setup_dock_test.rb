@@ -5,6 +5,8 @@ require "application_system_test_case"
 # down to pick it and up to place it, on a running clock. During setup it
 # is now a sheet fixed to the bottom of the screen:
 #
+# - when setup opens, before any pick, the whole board (the player's own
+#   rows at its bottom included) sits above the sheet;
 # - after a unit is picked, the whole board and the whole sheet are on the
 #   screen at once, the board above the sheet;
 # - placing all 19 needs no page scroll, and Ready is on the screen;
@@ -66,6 +68,14 @@ class PhoneSetupDockTest < ApplicationSystemTestCase
   def place_the_army(label)
     assert_selector ".cyvasse-dock .dock-unit", count: 19
     assert_equal "fixed", find(".cyvasse-army").style("position")["position"]
+    # The opening scroll runs a frame after the first render.
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 3
+    opened = in_view
+    until opened["board"]["bottom"] <= opened["army"]["top"] + 1 || Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+      sleep 0.05
+      opened = in_view
+    end
+    assert_both_in_view opened, "when setup opens"
     shot("#{label}-0-open")
 
     find(".cyvasse-dock .dock-unit", match: :first).click
