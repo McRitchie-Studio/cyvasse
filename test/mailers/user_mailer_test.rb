@@ -40,7 +40,10 @@ class UserMailerTest < ActionMailer::TestCase
   end
 
   test "an admin is never greeted as admin, nor by any role word" do
-    admin = User.create!(email: "root@example.com", name: "Admin", username: "admin", role: "admin")
+    # "admin" is reserved for anyone choosing a name (User::RESERVED_USERNAMES),
+    # so the holder is written as an imported legacy name arrives, unvalidated.
+    admin = User.create!(email: "root@example.com", name: "Admin", role: "admin")
+    admin.update_column(:username, "admin")
     parts(sign_in_mail(admin.email)).each do |body|
       refute_match(/admin/i, body, "no role word anywhere in the sign-in email")
     end

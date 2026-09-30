@@ -29,6 +29,10 @@
     <main class="max-w-7xl mx-auto px-4<%= " py-6" unless content_for?(:hero) %>">
       <%= render "layouts/studio/flash" %>
       <%= yield %>
+      <%# Forms a page's controls reach by the `form` attribute because they
+          sit inside another form, such as the profile's Username card inside
+          the engine's profile form (profiles/_username). %>
+      <%= yield :detached_forms %>
       <% email_goal_beacons.each do |beacon| %><img src="<%= beacon %>" alt="" width="1" height="1" hidden data-email-beacon><% end %>
     </main>
 

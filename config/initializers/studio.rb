@@ -43,6 +43,17 @@ Studio.configure do |config|
   # The navbar's own links, My games and Leaderboard with the player's live
   # rank (NavbarLinks; task cyvasse-nav-links).
   config.navbar_links = ->(view) { NavbarLinks.call(view) }
+  # /profile and /profile/edit (the engine's page) lead with the public
+  # username (task cyvasse-profile-username-edit): a row on the read page, and
+  # a card above Name on the edit page with its own Save (profiles/_username).
+  # The engine's rows follow unchanged. A lambda, so each request composes
+  # against a fresh copy of the defaults.
+  config.profile_sections = lambda { |_view|
+    [
+      { key: :username, title: "Username", page: :show, partial: "profiles/username_summary", requires: :username },
+      { key: :username, title: "Username", page: :edit, partial: "profiles/username", requires: :username }
+    ] + Studio.default_profile_sections
+  }
   config.sidebar_sections = [
     { title: "Cyvasse", links: [
       { label: "Home", href: "/", emoji: "♟️", desc: "The front door" },
