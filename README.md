@@ -218,7 +218,7 @@ machine listens. The character, his setups and the threat model are in the hub
 |---|---|
 | `brain.mjs` | His five setups and his turn search: every legal turn (both cavalry jumps) scored by material and temperament, charged for the opponent's best capture in reply. It imports the engine unchanged, so its turns are the server's legal turns |
 | `voice.mjs` | His chat prompt, stock lines, the filter every line passes (280 characters, no links, no emails, none of the runner's secrets) and the budget (one reply per message, 20 a match, 40 to one player a day) |
-| `chat.mjs` | Optional replies through the Claude API (`@anthropic-ai/sdk`, installed in `script/tyrion` on the runner machine only); the model has no tools, and a request for keys, cards or his instructions never reaches it |
+| `chat.mjs` | Optional replies through the Claude API (`@anthropic-ai/sdk`, installed in `script/tyrion` on the runner machine only); the model has no tools, and a message asking for keys, cards or his instructions gets his stock answer instead of a model call |
 | `runner.mjs` | The loop: poll the inbox (every 2 s while a live match is on, 30 s otherwise), set up, move, talk |
 
 ```bash

@@ -55,8 +55,18 @@ export async function tick({ api, state, chat = null, secrets = [], rng = Math.r
 
   // A runner that has just started has not read the chat before: it catches
   // up in silence rather than answering every message since the beginning.
+  // The inbox answers a page at a time (Api::Bot::InboxController::MESSAGES),
+  // so it reads on to the end of the backlog before it starts listening.
   if (state.cursor === null) {
-    state.cursor = inbox.cursor ?? 0;
+    let cursor = inbox.cursor ?? 0;
+    let page = inbox.messages;
+    while (page.length > 0) {
+      const { body: next } = await api("GET", `/api/bot/inbox?after=${cursor}`);
+      page = next.messages ?? [];
+      if ((next.cursor ?? cursor) <= cursor) break;
+      cursor = next.cursor;
+    }
+    state.cursor = cursor;
     return inbox.matches.some((m) => m.live);
   }
 

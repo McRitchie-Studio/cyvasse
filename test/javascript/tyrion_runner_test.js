@@ -108,6 +108,23 @@ test("a runner that has just started catches up on the chat in silence", async (
   });
 });
 
+test("catching up reads past the inbox's page of 50, so a restart answers nothing old", async () => {
+  const backlog = Array.from({ length: 120 }, (_, i) => ({ id: i + 1, match_id: 2, from: "arya", text: `old ${i + 1}` }));
+  await withServer((call) => {
+    if (call.path.startsWith("/api/bot/inbox")) {
+      const after = Number(new URL(call.path, "http://x").searchParams.get("after"));
+      const messages = backlog.filter((m) => m.id > after).slice(0, 50);
+      return [200, { matches: [{ id: 2, live: true, action: null }], messages, cursor: messages.at(-1)?.id ?? after }];
+    }
+  }, async ({ base, calls }) => {
+    const state = newState();
+    await tick({ api: makeApi({ base, token: TOKEN }), state, log: quiet });
+    assert.equal(state.cursor, 120, "the whole backlog, not its first page");
+    await tick({ api: makeApi({ base, token: TOKEN }), state, log: quiet });
+    assert.ok(!calls.some((c) => c.method === "POST"), "nothing old answered");
+  });
+});
+
 test("a refused move is logged and left for the next pass; a server error throws", async () => {
   const { state: view } = stateInPlay();
   await withServer((call) => {
