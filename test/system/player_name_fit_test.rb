@@ -89,7 +89,7 @@ class PlayerNameFitTest < ApplicationSystemTestCase
         assert bot[:words].all?(1), "at #{label} a word of the computer's name broke: #{bot.inspect}"
         navbar = page.evaluate_script(<<~JS)
           (() => {
-            const el = [...document.querySelectorAll("nav *")].find((n) =>
+            const el = [...document.querySelectorAll("header[data-pin=nav] *")].find((n) =>
               n.children.length === 0 && n.textContent.trim() === #{LONG_NAME.to_json} && n.getClientRects().length > 0)
             return el ? (#{LAYOUT_JS.strip})(el) : null
           })()
