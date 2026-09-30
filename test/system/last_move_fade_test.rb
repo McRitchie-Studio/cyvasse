@@ -170,6 +170,7 @@ class LastMoveFadeTest < ApplicationSystemTestCase
   end
 
   def start_game
+    assert_controllers_connected("cyvasse-game", "cyvasse-openings")
     select "Crown Forward", from: "Opening"
     within("[data-controller=cyvasse-openings]") { click_on "Load opening" }
     assert_text "Loaded Crown Forward."

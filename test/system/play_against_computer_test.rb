@@ -59,15 +59,12 @@ class PlayAgainstComputerTest < ApplicationSystemTestCase
     assert_selector ".cyvasse-dock .dock-unit", count: 18
   end
 
-  # A placed unit picked up again is marked orange, not left setup-blue.
+  # A placed unit picked up again is marked by the selection's orange glow.
   def pick_up_shows_orange
     find("svg.cyvasse-board g.hex[data-hex='88']").click
     assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='88']"
-    # The fill eases over 0.25 s, so wait for it to settle.
-    page.document.synchronize(3) do
-      fill = page.evaluate_script("getComputedStyle(document.querySelector(\"g.hex[data-hex='88'] .hex-poly\")).fill")
-      raise Capybara::ExpectationNotMet, "the selected hex should be orange, was #{fill}" unless fill == "rgb(255, 165, 0)"
-    end
+    glow = page.evaluate_script("(() => { const s = getComputedStyle(document.querySelector(\"g.hex[data-hex='88'] .hex-glow\")); return [s.display, s.fill] })()")
+    assert_equal [ "inline", 'url("#hex-glow")' ], glow, "the selected hex glows orange"
     find("svg.cyvasse-board g.hex[data-hex='88']").click
   end
 
