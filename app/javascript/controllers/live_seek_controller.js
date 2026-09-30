@@ -9,7 +9,7 @@ import { secondsLeft, SplashGate, COUNT_TICK_MS, SEARCH_POLL_MS, SPLASH_POLL_MS 
 // the computer; the server's answer fills in the opponent and the game opens
 // once the splash has run (cyvasse/seek_splash).
 export default class extends Controller {
-  static targets = ["count", "searching", "splash", "you", "opponent", "computerTag", "message", "youInitial", "opponentInitial", "progress"]
+  static targets = ["count", "searching", "splash", "you", "opponent", "computerTag", "message", "opponentAvatar", "progress"]
   static values = { url: String, endsAt: String, serverTime: String, splashMs: Number, you: String }
 
   connect() {
@@ -95,33 +95,17 @@ export default class extends Controller {
     clearTimeout(this.pollTimer)
     this.startSplash({ ask: false })
     this.fill(data.you, data.opponent)
-    if (data.opponent_portrait) this.portrait(this.opponentInitialTarget, data.opponent_portrait, data.opponent)
+    if (data.opponent_avatar) this.opponentAvatarTarget.innerHTML = data.opponent_avatar
     this.computerTagTarget.hidden = !data.computer
     this.gate.arrive(data.match_url)
     clearTimeout(this.openTimer)
     this.openTimer = setTimeout(() => Turbo.visit(this.gate.url), this.gate.wait(Date.now()))
   }
 
+  // Your avatar is on the page from the start; the opponent's is a pending
+  // ring until the server's answer brings it, rendered by players/avatar.
   fill(you, opponent) {
     this.youTarget.textContent = you
     this.opponentTarget.textContent = opponent
-    this.youInitialTarget.textContent = initial(you)
-    this.opponentInitialTarget.textContent = initial(opponent)
   }
-
-  // A computer player's portrait in place of its initial.
-  portrait(target, src, name) {
-    const img = document.createElement("img")
-    img.src = src
-    img.alt = name || ""
-    img.className = "live-seek-portrait"
-    img.dataset.avatar = "bot-portrait"
-    target.replaceChildren(img)
-    target.classList.add("live-seek-avatar-portrait")
-  }
-}
-
-function initial(name) {
-  if (!name || name === "…") return "?"
-  return name.replace(/^Guest_/, "G").charAt(0).toUpperCase()
 }

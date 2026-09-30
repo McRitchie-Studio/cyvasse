@@ -98,6 +98,19 @@ class HomePageTest < ActionView::TestCase
     assert_match %r{/#{slug}-mobile-\h+\.webp\z}, preloads.to_h.invert.fetch("(max-width: 640px)")
   end
 
+  # Full bleed (task cyvasse-full-bleed-home): the hero is the layout's :hero
+  # slot, not the page body inside <main>, and it is not a rounded card.
+  test "the hero fills the :hero slot, square, with nothing left in the body" do
+    view.define_singleton_method(:logged_in?) { false }
+    view.define_singleton_method(:current_user) { nil }
+    body = render template: "pages/index"
+
+    assert_no_match(/home-hero/, body, "nothing of the hero inside <main>")
+    hero = Nokogiri::HTML5.fragment(view.content_for(:hero).to_s).at_css("section.home-hero")
+    assert hero, "the hero is in the :hero slot"
+    assert_empty hero["class"].split.grep(/\A(rounded|mx-|px-|max-w-)/), "no card corners or gutters"
+  end
+
   test "a signed-in player is named and not offered Sign in" do
     render_home(user: User.new(name: "Arya", email: "arya@example.test"))
 
@@ -110,6 +123,9 @@ class HomePageTest < ActionView::TestCase
   def render_home(user:)
     view.define_singleton_method(:logged_in?) { user.present? }
     view.define_singleton_method(:current_user) { user }
-    render template: "pages/index"
+    body = render template: "pages/index"
+    # The hero goes to the layout's :hero slot (full bleed, outside <main>),
+    # so what the page shows is that slot plus its body.
+    @rendered = view.content_for(:hero).to_s + body
   end
 end
