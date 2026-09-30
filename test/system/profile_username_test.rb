@@ -41,6 +41,7 @@ class ProfileUsernameSystemTest < ApplicationSystemTestCase
         click_button "Save"
       end
       assert_text "You play as No_One."
+      # A phone's navbar shows the avatar alone, so the name is checked at desktop.
       within("header") { assert_text "No_One" } unless phone
       assert_equal "No_One", @arya.reload.username
       assert_equal "Arya", @arya.name, "the card saves the username alone, never the engine's form"
