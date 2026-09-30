@@ -8,19 +8,23 @@ require "application_system_test_case"
 # borders, the threat outline among them, draw over all of it; and the art
 # never takes a click, so a hex under a neighbour's art still answers its own.
 #
-# The pixels are the browser's own: the board is shot with every piece's art
-# hidden, then with one piece's art shown at a time, and the pixels that
-# differ are that piece's drawing, clip and all.
+# The pixels are the browser's own: the board is shot with everything on it
+# hidden, then with one piece's art alone shown at a time, and the pixels
+# that differ are that piece's drawing, clip and all. (Diffing against the
+# whole board instead picks up raster speckle along every hex outline.)
 #
 # ART_OVERLAP_SHOTS=<dir> saves the board as art-overlap-<skin>.png (dark).
 class PieceArtOverlapTest < ApplicationSystemTestCase
   W = 60.0
   H = W * 2 / Math.sqrt(3)
   TOLERANCE = 1.0 # board units, for antialiasing along the cut
+  # One fixed opponent (see with_seeded_random), so the same threat outline
+  # crosses the same art every run.
+  SEED = 7
 
   %w[vector pencil].each do |skin|
     test "#{skin}: art is cut at its hex's right and lower sides, rises past its upper ones, and never hides a click or the threat outline" do
-      visit play_path(skin: skin)
+      with_seeded_random(Integer(ENV.fetch("AOV_SEED", SEED))) { visit play_path(skin: skin) }
       assert_selector "[data-controller=cyvasse-game][data-skin=#{skin}][data-phase=setup]"
       assert_controllers_connected "cyvasse-game", "cyvasse-openings"
       select "Crown Forward", from: "Opening"
@@ -36,6 +40,7 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
       pieces = measure(skin)
       assert_equal 38, pieces.size
 
+      puts pieces.map { |pc| [pc["hex"], pc["pixels"], pc["forbidden"], pc["upper_reach"]] }.inspect if ENV["AOV_DEBUG"]
       pieces.each do |piece|
         assert_operator piece["pixels"], :>, 50, "#{skin}: the #{piece["unit"]} on hex #{piece["hex"]} draws something"
         assert_equal 0, piece["forbidden"],
@@ -86,17 +91,49 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
   def board_shot
     rect = page.evaluate_script(<<~JS)
       (() => { const r = document.querySelector(".cyvasse-board").getBoundingClientRect();
-        return { x: r.left + scrollX, y: r.top + scrollY, width: r.width, height: r.height }; })()
+        // Whole CSS pixels, so the shot's first pixel is exactly where the analysis maps it.
+        const x = Math.floor(r.left + scrollX), y = Math.floor(r.top + scrollY);
+        window.__artClip = { x, y, width: Math.ceil(r.right + scrollX) - x, height: Math.ceil(r.bottom + scrollY) - y };
+        return window.__artClip; })()
     JS
     page.driver.browser.execute_cdp("Page.captureScreenshot", format: "png", captureBeyondViewport: true,
       clip: rect.merge("scale" => 1))["data"]
   end
 
+  # Everything on the board hidden but the art of the hex given (none for nil).
   def show_art(hex)
     page.execute_script(<<~JS, hex)
-      for (const art of document.querySelectorAll(".cyvasse-board .unit-art")) {
-        art.style.visibility = art.closest("g.hex").dataset.hex === String(arguments[0]) ? "visible" : "hidden";
+      let style = document.getElementById("art-overlap-alone");
+      if (!style) {
+        style = document.createElement("style"); style.id = "art-overlap-alone";
+        // Not the defs: a hidden clip path shape clips everything away.
+        style.textContent = ".cyvasse-board > :not(defs, g.hex), .cyvasse-board g.hex > :not(.unit-art), .cyvasse-board .unit-art:not(.is-alone) { visibility: hidden !important; }";
+        document.head.append(style);
       }
+      for (const art of document.querySelectorAll(".cyvasse-board .unit-art")) {
+        art.classList.toggle("is-alone", art.closest("g.hex").dataset.hex === String(arguments[0]));
+      }
+    JS
+  end
+
+  def show_board
+    page.execute_script(<<~JS)
+      document.getElementById("art-overlap-alone")?.remove();
+      for (const art of document.querySelectorAll(".cyvasse-board .unit-art")) art.classList.remove("is-alone");
+    JS
+  end
+
+  # Decodes a board shot into window[name] (its ImageData).
+  def keep_shot(name, png)
+    page.evaluate_async_script(<<~JS, name, png)
+      const [name, png, done] = arguments;
+      const img = new Image(); img.src = "data:image/png;base64," + png;
+      img.decode().then(() => {
+        const canvas = document.createElement("canvas"); canvas.width = img.width; canvas.height = img.height;
+        const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0);
+        window[name] = ctx.getImageData(0, 0, img.width, img.height);
+        done(true);
+      }).catch((e) => done(String(e)));
     JS
   end
 
@@ -108,20 +145,14 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
   # keeps the board-unit points it drew, for the outline and click checks.
   def measure(skin)
     hexes = page.evaluate_script("[...document.querySelectorAll('g.hex.has-unit')].map((g) => g.dataset.hex)")
+    keep_shot("__artFull", board_shot)
     show_art(nil)
-    page.evaluate_async_script(<<~JS, board_shot)
-      const done = arguments[arguments.length - 1];
-      window.__artBase = null;
-      const img = new Image(); img.src = "data:image/png;base64," + arguments[0];
-      img.decode().then(() => {
-        const canvas = document.createElement("canvas"); canvas.width = img.width; canvas.height = img.height;
-        const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0);
-        window.__artBase = ctx.getImageData(0, 0, img.width, img.height);
-        done(true);
-      }).catch((e) => done(String(e)));
-    JS
+    keep_shot("__artBase", board_shot)
+    show_art(hexes.first)
+    puts page.evaluate_script("(() => { const g = document.querySelector('g.hex[data-hex=\\'' + arguments[0] + '\\']'); const i = g.querySelector('.unit-image'); return [g.querySelector('.unit-art').getAttribute('class'), getComputedStyle(i).visibility, getComputedStyle(g.querySelector('.hex-poly')).visibility, i.getAttribute('href'), document.querySelector('.cyvasse-board').tagName]; })()", hexes.first).inspect if ENV["AOV_DEBUG"]
+    File.binwrite("/private/tmp/claude-501/-Users-alex-projects/34ccb176-615e-4ad0-a040-adfb5790104d/scratchpad/aov-alone.png", board_shot.unpack1("m")) if ENV["AOV_DEBUG"]
     pieces = hexes.map { |hex| show_art(hex); analyse(hex, board_shot) }
-    page.execute_script("for (const art of document.querySelectorAll('.cyvasse-board .unit-art')) art.style.visibility = ''")
+    show_board
     pieces
   end
 
@@ -136,7 +167,8 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
         const base = window.__artBase.data;
         const svg = document.querySelector(".cyvasse-board");
         const group = svg.querySelector(`g.hex[data-hex="${hex}"]`);
-        const rect = svg.getBoundingClientRect();
+        const clip = window.__artClip;
+        const rect = { left: clip.x - scrollX, top: clip.y - scrollY, width: clip.width, height: clip.height };
         const toBoard = svg.getScreenCTM().inverse();
         const m = group.transform.baseVal.consolidate().matrix;
         const kx = rect.width / img.width, ky = rect.height / img.height;
@@ -158,10 +190,13 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
           p.x = rect.left + (px + 0.5) * kx; p.y = rect.top + (py + 0.5) * ky;
           const b = p.matrixTransform(toBoard);
           const x = b.x - m.e, y = b.y - m.f;
+          // Art reaches no further than its clip (cyvasse/art_clip, well
+          // inside this window); a pixel outside it is some other repaint.
+          if (Math.abs(x) > W || y < -H || y > H) continue;
           pixels++;
           points.push([Math.round(b.x * 10) / 10, Math.round(b.y * 10) / 10]);
           const bad = inHex(x, y, W, 0) || inHex(x, y, W / 2, 0.75 * H) || inHex(x, y, -W / 2, 0.75 * H) || y > hh + TOL;
-          if (bad) { forbidden++; worst ??= [Math.round(x * 10) / 10, Math.round(y * 10) / 10]; }
+          if (bad) { forbidden++; worst ??= []; if (worst.length < 12) worst.push([Math.round(x * 10) / 10, Math.round(y * 10) / 10]); }
           upper = Math.max(upper, pastUpper(x, y));
         }
         done({ hex, unit: group.dataset.unit, tier: group.dataset.tier, team: group.dataset.team,
@@ -170,35 +205,54 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
     JS
   end
 
-  # A solid threat line that some piece's art spans (drawn pixels on both
-  # sides of it, along it) is not changed along its middle by that art: the
-  # outline draws over the art. The art under the line proves the check bites.
+  # Where a piece's art, drawn alone, has pixels under the middle of a solid
+  # threat line, the whole board still shows the line's own colour there: the
+  # outline draws over the art. The art found under the line proves the check
+  # bites.
   def assert_threat_outline_over_art(pieces, skin)
     lines = page.evaluate_script(<<~JS)
       [...document.querySelectorAll(".cyvasse-board .hex-edge[data-kind='perimeter'], .cyvasse-board .hex-edge[data-kind='danger']")]
-        .map((l) => [l.dataset.kind, +l.getAttribute("x1"), +l.getAttribute("y1"), +l.getAttribute("x2"), +l.getAttribute("y2")])
+        .map((l) => [l.dataset.kind, +l.getAttribute("x1"), +l.getAttribute("y1"), +l.getAttribute("x2"), +l.getAttribute("y2"), getComputedStyle(l).stroke])
     JS
     refute_empty lines, "#{skin}: the threat outline is on"
-    spanned = []
+    covered = []
     pieces.each do |piece|
-      lines.each do |kind, x1, y1, x2, y2|
+      lines.each do |kind, x1, y1, x2, y2, stroke|
         len = Math.hypot(x2 - x1, y2 - y1)
         ux, uy = (x2 - x1) / len, (y2 - y1) / len
-        near = { 1 => 0, -1 => 0 }
-        on_line = 0
-        piece["points"].each do |x, y|
+        under = piece["points"].select do |x, y|
           t = (x - x1) * ux + (y - y1) * uy
-          next unless t > len * 0.2 && t < len * 0.8
-          d = (x - x1) * -uy + (y - y1) * ux
-          on_line += 1 if d.abs < 0.6
-          near[d.positive? ? 1 : -1] += 1 if d.abs.between?(2.5, 6)
+          t > len * 0.2 && t < len * 0.8 && ((x - x1) * -uy + (y - y1) * ux).abs < 0.6
         end
-        next unless near.values.all? { |count| count >= 3 }
-        spanned << [ piece["unit"], piece["hex"], kind ]
-        assert_equal 0, on_line, "#{skin}: the #{piece["unit"]} on hex #{piece["hex"]} draws over the #{kind} line"
+        next if under.size < 3
+
+        covered << [ piece["unit"], piece["hex"], kind ]
+        want = stroke.scan(/\d+/).first(3).map(&:to_i)
+        board_pixels(under).each do |rgb|
+          off = rgb.zip(want).sum { |a, b| (a - b).abs }
+          assert_operator off, :<, 60, "#{skin}: the #{kind} line over the #{piece["unit"]}'s art on hex #{piece["hex"]} shows its own colour #{want.inspect}, not #{rgb.inspect}"
+        end
       end
     end
-    refute_empty spanned, "#{skin}: some piece's art spans a threat line, so the check bites"
+    refute_empty covered, "#{skin}: some piece's art lies under a threat line, so the check bites"
+  end
+
+  # The whole board's colour at board-unit points (from the shot measure took).
+  def board_pixels(points)
+    page.evaluate_script(<<~JS, points)
+      (() => {
+        const full = window.__artFull, clip = window.__artClip;
+        const svg = document.querySelector(".cyvasse-board"), ctm = svg.getScreenCTM(), p = svg.createSVGPoint();
+        const kx = full.width / clip.width, ky = full.height / clip.height;
+        return arguments[0].map(([x, y]) => {
+          p.x = x; p.y = y;
+          const c = p.matrixTransform(ctm);
+          const px = Math.floor((c.x + scrollX - clip.x) * kx), py = Math.floor((c.y + scrollY - clip.y) * ky);
+          const i = (py * full.width + px) * 4;
+          return [full.data[i], full.data[i + 1], full.data[i + 2]];
+        });
+      })()
+    JS
   end
 
   # A point of a hex's own that the art of the hex below it covers: a click
