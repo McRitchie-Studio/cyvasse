@@ -31,7 +31,6 @@ class UserMailer < ApplicationMailer
     @magic_url = magic_link_url_for(token)
     @site_host = URI.parse(@magic_url).host
     @greeting_name = greeting_name(email)
-    @ttl_minutes = Studio.magic_link_ttl.in_minutes.round
     mail(to: email, subject: "Your #{@app_name} sign-in link")
   end
 
