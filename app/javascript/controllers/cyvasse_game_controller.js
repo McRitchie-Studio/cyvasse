@@ -12,6 +12,7 @@ import { LastMoveMarker, lastMoveKey } from "cyvasse/last_move"
 import { playIntent, setupIntent } from "cyvasse/selection"
 import { smartLineup, smartSetupMode, SMART_LABELS, recentPicks, rememberPick } from "cyvasse/smart_setup"
 import { hexLabel, hexStates, selectionNote } from "cyvasse/hex_label"
+import { setupScrollBy } from "cyvasse/setup_fit"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -448,27 +449,14 @@ export default class extends Controller {
   showBoardForSetup({ recheck = true } = {}) {
     const fit = this.hasArmyTarget ? this.setupFit : ""
     if (!fit) return
-    let { top: boxTop, bottom: boxBottom } = this.boardTarget.getBoundingClientRect()
-    if (fit === "page") {
-      const army = this.armyTarget.getBoundingClientRect()
-      boxTop = Math.min(boxTop, army.top)
-      boxBottom = Math.max(boxBottom, army.bottom)
-    }
-    const pinned = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0
-    const top = pinned + 4
-    const bottom = (fit === "bottom" ? this.armyTarget.getBoundingClientRect().top : window.innerHeight) - 4
-    // Already on the screen: leave it. Otherwise centre it in the room, so
-    // a line of copy above it that wraps anew (the status: "Your army is in
-    // place") has slack to take up. Too tall for the room, the foot first:
-    // the navbar collapses as the page scrolls, which lifts the board
-    // further, so the room under it is only known afterwards. The board is
-    // capped to fit the collapsed room (game.css). The strip over the board
-    // may tuck under the navbar; the board itself may not.
-    if (boxTop >= top - 0.5 && boxBottom <= bottom + 0.5) return
-    const room = bottom - top
-    const height = boxBottom - boxTop
-    const by = height <= room ? boxTop - (top + (room - height) / 2) : boxBottom - bottom
-    if (Math.abs(by) < 1) return
+    const by = setupScrollBy({
+      fit,
+      board: this.boardTarget.getBoundingClientRect(),
+      army: this.armyTarget.getBoundingClientRect(),
+      pinned: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0,
+      viewportHeight: window.innerHeight
+    })
+    if (!by) return
     const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
     window.scrollBy({ top: by, behavior: still ? "auto" : "smooth" })
     if (!recheck) return
