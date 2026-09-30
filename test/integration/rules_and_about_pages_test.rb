@@ -126,7 +126,7 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
   test "rules carries its banner image" do
     get rules_path
 
-    assert_select "header.page-banner img[src*='/assets/backgrounds/cyvasse_rules_background-']"
+    assert_select "header.page-banner img[src*='/assets/backgrounds/rules/capture-the-king-']"
   end
 
   test "about credits Alex and thanks every mentor and gSchool" do
