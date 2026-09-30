@@ -152,7 +152,7 @@
         <section id="class-<%= unit_class.name.downcase %>" class="unit-class">
           <h3 class="unit-class-title text-xs font-semibold uppercase tracking-widest text-muted mb-4"><%= unit_class.name %></h3>
           <%# Thirds on a wide screen, halves on a tablet, one a row on a phone;
-              a third is narrow enough that the card stacks its stats (.unit-card). %>
+              each card is a centred portrait column at every width (.unit-card). %>
           <div class="unit-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <% unit_class.units.each do |unit| %>
               <%= render "pages/unit_card", unit:, id: "unit-#{unit.slug}" %>

@@ -18,6 +18,12 @@ module Rulebook
     def jumps
       movement.match(/\A(\d+) \+ (\d+)\z/)&.captures&.map(&:to_i)
     end
+
+    # The Pieces this unit trumps, in rulebook order, so the unit card can
+    # draw each one's art; empty when it trumps nothing.
+    def trumped_pieces
+      trumps.map { |name| Piece.all.find { _1.name == name } || raise(KeyError, "no piece named #{name}") }
+    end
   end
 
   UnitClass = Data.define(:name, :units)
@@ -93,12 +99,4 @@ module Rulebook
   def self.mountain_count = CyvasseRules::Units::ARMY.count("mountain")
   def self.army_unit_count = army_size - mountain_count
   def self.unit_kind_count = (CyvasseRules::Units::ARMY.uniq - [ "mountain" ]).size
-
-  # "Light Horse", "Elephant and Dragon", "Rabble, Spearman and Elephant"; an
-  # em dash when the unit trumps nothing (the original printed "--").
-  def self.trump_list(unit)
-    return "—" if unit.trumps.empty?
-
-    unit.trumps.to_sentence(two_words_connector: " and ", last_word_connector: " and ")
-  end
 end

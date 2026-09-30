@@ -1,27 +1,43 @@
-<%# One unit's art and stats, read from Rulebook. The Units list gives each card
-    an id; the Special Rules cards reuse it without one and pass `highlight`,
-    the stats their rule is about (:movement, :strength, :range, :trump), which
-    take the gold marker the old tutorial screenshots circled by hand.
-    The card sizes itself to its column, not the screen (a container query in
-    application.css): in a narrow column, such as the Units list's thirds, the
-    art and name share a row and the stats take the card's full width below,
-    so a long trump list wraps instead of squeezing beside the art.
+<%# One unit's art and stats, read from Rulebook, as a portrait card (Alex's
+    wireframe, task cyvasse-rules-unit-card-layout): the piece art centred at
+    the top, the name under it, then one centred column of stats, each a small
+    label over its value. A trump is drawn as the trumped piece's own art, in
+    the reader's skin, the way the match sidebar's unit card shows it.
+    The Units list gives each card an id; the Special Rules cards reuse it
+    without one and pass `highlight`, the stats their rule is about
+    (:movement, :strength, :range, :trump), which take the gold marker the old
+    tutorial screenshots circled by hand.
     Locals: unit (Rulebook::Unit), id (optional), highlight (optional). %>
 <% highlight = local_assigns.fetch(:highlight, []) %>
 <% stats = [ [ :movement, "Movement", unit.movement ], [ :strength, "Strength", unit.strength ] ]
    stats << [ :range, "Range", unit.range ] if unit.range
-   stats << [ :trump, "Trump", Rulebook.trump_list(unit) ] %>
-<article <%= tag.attributes(id: local_assigns[:id]) %> class="unit-card card p-3" data-unit="<%= unit.slug %>">
+   stats << [ :trump, "Trump", unit.trumped_pieces ] %>
+<article <%= tag.attributes(id: local_assigns[:id]) %> class="unit-card card p-4" data-unit="<%= unit.slug %>">
   <div class="unit-card-body">
-    <figure class="piece-tile unit-card-art shrink-0" data-skin="<%= current_skin %>">
+    <figure class="piece-tile unit-card-art" data-skin="<%= current_skin %>">
       <%= image_tag unit.piece.image(current_skin), alt: unit.name, loading: "lazy", decoding: "async" %>
     </figure>
     <h4 class="unit-card-name text-lg font-bold text-heading leading-tight"><%= unit.name %></h4>
-    <dl class="unit-stats text-sm grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+    <dl class="unit-stats">
       <% stats.each do |key, label, value| %>
         <% marked = highlight.include?(key) %>
-        <dt class="<%= marked ? "unit-stat-marked font-semibold text-heading" : "text-muted" %>" data-stat="<%= key %>"><%= label %></dt>
-        <dd class="<%= marked ? "unit-stat-marked font-semibold text-heading" : "text-body" %>" data-stat="<%= key %>"><%= value %></dd>
+        <div class="unit-stat<%= " unit-stat-marked" if marked %>" data-stat="<%= key %>">
+          <dt class="unit-stat-label text-xs font-semibold uppercase tracking-wider <%= marked ? "text-heading" : "text-muted" %>" data-stat="<%= key %>"><%= label %></dt>
+          <% if key == :trump %>
+            <dd class="unit-stat-value unit-trumps text-heading" data-stat="trump">
+              <% if value.empty? %>
+                <span aria-label="None">—</span>
+              <% else %>
+                <% value.each do |piece| %>
+                  <%= image_tag piece.image(current_skin), alt: "Trumps #{piece.name}", title: "Trumps #{piece.name}",
+                        class: "unit-trump-icon", data: { trump: piece.slug }, loading: "lazy", decoding: "async" %>
+                <% end %>
+              <% end %>
+            </dd>
+          <% else %>
+            <dd class="unit-stat-value text-xl font-bold text-heading leading-snug" data-stat="<%= key %>"><%= value %></dd>
+          <% end %>
+        </div>
       <% end %>
     </dl>
   </div>
