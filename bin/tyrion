@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Tyrion's runner: plays the `tyrion` computer player's matches over /api/bot
+# from any machine that can reach the site (script/tyrion/runner.mjs; README,
+# "Tyrion's runner"). Node 20+. The importmap hook lets it import the game
+# engine (app/javascript/cyvasse) unchanged.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+exec node --import ./test/javascript/support/register.mjs script/tyrion/runner.mjs "$@"
