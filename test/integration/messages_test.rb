@@ -163,13 +163,12 @@ class MessagesTest < ActionDispatch::IntegrationTest
   end
 
   test "a player who has played no human gets the empty hub with Play Now" do
-    guest = User.create_guest!
-    tyrion = User.seed_computer_player!("tyrion")
-    Match.create!(home_user: guest, away_user: tyrion, match_status: Match::FINISHED)
-    post link_consume_path(token: "none") # no session
     get conversations_path
-    assert_response :redirect
+    assert_response :redirect, "signed out: sent to sign in"
 
+    tyrion = User.seed_computer_player!("tyrion")
+    bot_match = Match.create!(home_user: @cersei, away_user: tyrion, match_status: Match::FINISHED)
+    Message.post_in_match!(bot_match, tyrion, "Well played.")
     log_in_as(@cersei)
     get conversations_path
     assert_select "[data-chat-hub-empty]", /Play a human to start a conversation/
