@@ -7,6 +7,14 @@ Studio.configure do |config|
   config.smooth_load = true
   # A player's one public name everywhere (User#player_name).
   config.welcome_message = ->(user) { "Welcome to Cyvasse, #{user.player_name}!" }
+  # The navbar shows that public name too ("Guest_4821"), not display_name,
+  # which is a real name first and stays for email greetings and the admin
+  # pages (task cyvasse-contrast-and-names). And every Cyvasse view says
+  # "Sign in", so the engine navbar's signed-out button does as well
+  # (test/views/sign_in_wording_test.rb). Both since studio-engine 0.80.0,
+  # which is what let Cyvasse drop its copy of components/_user_nav.
+  config.navbar_user_name = :player_name
+  config.sign_in_label = "Sign in"
   # Magic link always; Google only where its OAuth client is configured
   # (CyvasseGoogleSignIn, config/initializers/omniauth.rb). Never :wallet, the
   # web3 bolt-on: Cyvasse signs no transactions.
