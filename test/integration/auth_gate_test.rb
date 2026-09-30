@@ -67,7 +67,8 @@ class AuthGateTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
-    assert_select "p", text: /Signed in as Carl Test/
+    # The public name (User#player_name), the username, not the real name.
+    assert_select "p", text: /Signed in as carl\./
   end
 
   test "a magic link is single-use" do

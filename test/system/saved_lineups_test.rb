@@ -18,6 +18,9 @@ class SavedLineupsSystemTest < ApplicationSystemTestCase
     visit play_path
     assert_selector "[data-controller=cyvasse-game][data-phase=setup]"
     assert_selector ".cyvasse-dock .dock-unit", count: 19
+    # The dock shows the board is live; the lineup buttons answer to their own
+    # controller, which may connect later.
+    assert_controllers_connected "cyvasse-game", "cyvasse-setups"
 
     click_on "Back Wall"
     assert_no_selector ".cyvasse-dock .dock-unit"
@@ -43,6 +46,7 @@ class SavedLineupsSystemTest < ApplicationSystemTestCase
     sign_in(@arya)
     visit match_path(match)
     assert_selector ".cyvasse-dock .dock-unit", count: 19
+    assert_controllers_connected "cyvasse-match", "cyvasse-setups"
 
     click_on "Back Wall"
     assert_no_selector ".cyvasse-dock .dock-unit"
@@ -55,7 +59,7 @@ class SavedLineupsSystemTest < ApplicationSystemTestCase
 
   def sign_in(user)
     visit link_path(token: Studio::Link.create_magic_link(email: user.email).token)
-    assert_text "Signed in as #{user.name}"
+    assert_text "Signed in as #{user.player_name}"
   end
 
   def screenshot(name)

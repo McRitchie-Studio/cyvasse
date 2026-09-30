@@ -8,8 +8,6 @@ class LiveSeeksController < ApplicationController
   before_action :set_seek, only: %i[show computer]
   helper_method :splash_ms
 
-  SPLASH = 5.seconds
-
   def create
     user = current_user || rescue_and_log { start_guest }
     return redirect_to(username_path, notice: "Choose a player name to play live.") if user.username.blank?
@@ -50,11 +48,18 @@ class LiveSeeksController < ApplicationController
     return { status: "searching", ends_at: @seek.ends_at.iso8601(3), server_time: Time.current.iso8601(3) } unless match
 
     opponent = match.opponent_of(current_user)
-    { status: "matched", match_url: match_path(match), you: current_user.username,
-      opponent: match.display_name_of(opponent), computer: opponent.computer?, splash_ms: splash_ms }
+    { status: "matched", match_url: match_path(match), you: current_user.player_name,
+      opponent: opponent.player_name, computer: opponent.computer?,
+      opponent_portrait: opponent_portrait_url(opponent), splash_ms: splash_ms }
+  end
+
+  # A computer player's seeded portrait for the splash, or nil (its initial).
+  def opponent_portrait_url(opponent)
+    portrait = opponent.computer? && helpers.bot_portrait(opponent)
+    helpers.asset_path(portrait) if portrait
   end
 
   def splash_ms
-    ((Rails.configuration.x.live_splash_time.presence || SPLASH).to_f * 1000).round
+    (LiveSeek.splash_time.to_f * 1000).round
   end
 end

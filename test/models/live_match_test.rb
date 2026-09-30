@@ -39,7 +39,7 @@ class LiveMatchTest < ActiveSupport::TestCase
 
     assert match.live?
     assert match.away_user.computer?
-    assert_includes LiveMatch::COMPUTER_NAMES.values, match.display_name_of(match.away_user)
+    assert_includes LiveMatch::COMPUTER_NAMES.values, match.away_user.player_name
     assert match.away_ready?
     assert_not match.home_ready?
     assert_equal Match::ACCEPTED, match.match_status
@@ -66,6 +66,23 @@ class LiveMatchTest < ActiveSupport::TestCase
       assert_not match.home_auto_set_up?
       assert_equal [ 0, 1 ], [ match.home_strikes, match.away_strikes ]
       assert_in_delta Time.current, match.clock_started_at, 1
+    end
+  end
+
+  test "setup grace starts the setup clock after it, the same deadline for both seats" do
+    match = Match.start_live!(@home, @away, rng: @rng, setup_grace: 5.seconds)
+    ends_at = match.live_clock_ends_at
+    assert_in_delta Time.current + 65.seconds, ends_at, 1
+    assert_equal [ ends_at.iso8601(3) ] * 2, [ @home, @away ].map { |user| match.live_state_for(user).dig(:clock, :ends_at) }
+    travel 64.seconds do
+      match.tick!(rng: @rng)
+      assert_not match.reload.home_ready?, "the splash's five seconds are not taken from the 60"
+      assert_equal [ 0, 0 ], [ match.home_strikes, match.away_strikes ]
+    end
+    travel 66.seconds do
+      match.tick!(rng: @rng)
+      assert match.reload.in_progress?
+      assert_equal [ 1, 1 ], [ match.home_strikes, match.away_strikes ]
     end
   end
 
@@ -217,7 +234,7 @@ class LiveMatchTest < ActiveSupport::TestCase
     assert_equal 60, live[:clock][:seconds]
     assert_equal 10, live[:clock][:warning]
     assert live[:computer]
-    assert_equal match.display_name_of(match.away_user), match.state_for(@home)[:opponent][:username]
+    assert_equal match.away_user.player_name, match.state_for(@home)[:opponent][:username]
     assert_nil Match.challenge!(@home, "brienne").state_for(@home)[:live], "an ordinary match has no live state"
   end
 

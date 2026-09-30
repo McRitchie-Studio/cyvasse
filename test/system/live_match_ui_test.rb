@@ -44,7 +44,7 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     @arya = User.create!(email: "arya@example.com", name: "Arya", username: "arya")
     @match = Match.start_live!(@arya, computer: true, rng: Random.new(4))
     visit link_path(token: Studio::Link.create_magic_link(email: @arya.email).token)
-    assert_text "Signed in as Arya"
+    assert_text "Signed in as arya"
   end
 
   def rewind_clock(seconds)
@@ -57,34 +57,47 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     assert_selector "[data-cyvasse-match-target=clockLabel]", text: "Set up your army"
     assert_selector "[data-cyvasse-match-target=clockSeconds]", text: /\A(59|60)s\z/
     assert_selector ".match-versus-bot", text: "Computer"
-    assert_text @match.display_name_of(@match.away_user)
+    assert_text @match.away_user.player_name
     assert_no_text "Chat with"
     assert_no_selector "[data-cyvasse-match-target=deadline]", visible: true
   end
 
-  test "[e2e] the versus card stacks you over the computer, its piece art beside its name, and fits a phone" do
+  test "[e2e] the versus card stacks you over the computer, its portrait beside its name, and fits a phone" do
     visit match_path(@match)
-    them = @match.display_name_of(@match.away_user)
+    bot = @match.away_user
+    them = bot.player_name
     assert_selector "h1.match-versus [data-side=me] [data-avatar=piece] img[src*='pieces/vector/']"
-    assert_selector "h1.match-versus [data-side=them] [data-avatar=bot-fallback][aria-label='#{them}'] img[src*='pieces/vector/']"
+    assert_selector "h1.match-versus [data-side=them] img[data-avatar=bot-portrait][alt='#{them}'][src*='bots/#{bot.username}-']"
+    assert_no_selector "h1.match-versus [data-avatar=bot-fallback]"
     assert_selector "h1.match-versus [data-side=them]", text: them
-    me, vs, bot = %w[[data-side=me]\ [data-avatar] .match-versus-vs [data-side=them]\ [data-avatar]].map do |css|
+    assert portrait_loaded?, "the portrait image loaded"
+    me, vs, bot_top = %w[[data-side=me]\ [data-avatar] .match-versus-vs [data-side=them]\ [data-avatar]].map do |css|
       page.evaluate_script("document.querySelector('h1.match-versus #{css}').getBoundingClientRect().top")
     end
     assert_operator me, :<, vs
-    assert_operator vs, :<, bot
-    page.save_screenshot(Rails.root.join("tmp/screenshots/versus-desktop.png")) if ENV["SCREENSHOTS"]
+    assert_operator vs, :<, bot_top
+    page.save_screenshot(Rails.root.join("tmp/screenshots/bot-portraits-versus-desktop.png")) if ENV["SCREENSHOTS"]
 
     # The phone viewport outlives the test in a shared browser: always undo it.
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 360, height: 800, deviceScaleFactor: 1, mobile: true)
+    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
     begin
-      assert_selector "h1.match-versus [data-avatar=bot-fallback]"
+      assert_selector "h1.match-versus [data-avatar=bot-portrait]"
+      assert portrait_loaded?, "the portrait image loaded at 390px"
       scroll, client = page_widths
-      assert_operator scroll, :<=, client, "no sideways scroll at 360px"
-      page.save_screenshot(Rails.root.join("tmp/screenshots/versus-phone.png")) if ENV["SCREENSHOTS"]
+      assert_operator scroll, :<=, client, "no sideways scroll at 390px"
+      page.save_screenshot(Rails.root.join("tmp/screenshots/bot-portraits-versus-390.png")) if ENV["SCREENSHOTS"]
     ensure
       page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
     end
+  end
+
+  # The versus card's portrait is decoded and square on screen.
+  def portrait_loaded?
+    page.evaluate_script(<<~JS)
+      (() => { const img = document.querySelector("h1.match-versus img[data-avatar=bot-portrait]")
+               const box = img.getBoundingClientRect()
+               return img.complete && img.naturalWidth > 0 && Math.abs(box.width - box.height) < 1 })()
+    JS
   end
 
   test "ten seconds from the end the player is told to hurry" do
@@ -129,7 +142,8 @@ class LiveMatchUiTest < ApplicationSystemTestCase
 
   test "the live poll mid-setup keeps the army the player has placed" do
     visit match_path(@match)
-    click_on "Random Setup"
+    assert_controllers_connected "cyvasse-match"
+    find("button.cyvasse-smart").click
     assert_no_selector ".cyvasse-dock .dock-unit"
     # The opponent readying writes the match: a new version reaches the poll.
     travel(2.seconds) { @match.reload.touch }
@@ -140,7 +154,8 @@ class LiveMatchUiTest < ApplicationSystemTestCase
 
   test "a poll answered after the army is submitted never puts the old state back" do
     visit match_path(@match)
-    click_on "Random Setup"
+    assert_controllers_connected "cyvasse-match"
+    find("button.cyvasse-smart").click
     # Hold each poll's answer so one is still in flight when the army goes in.
     page.execute_script(<<~JS)
       window.__loaded = []
@@ -164,7 +179,7 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     @match.update_columns(whos_turn: Match::AWAY, bot_due_at: 1.hour.from_now) unless @match.seat_to_move == :away
     visit match_path(@match)
     assert_selector ".live-clock.is-thinking [data-cyvasse-match-target=clockLabel]",
-                    text: "#{@match.display_name_of(@match.away_user)} is thinking…"
+                    text: "#{@match.away_user.player_name} is thinking…"
   end
 
   # Select our units in turn until one has somewhere to go, and take the

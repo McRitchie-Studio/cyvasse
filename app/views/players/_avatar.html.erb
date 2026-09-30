@@ -1,6 +1,6 @@
 <%# A player's avatar (AvatarsHelper), styled with utilities so it works on any page.
     Locals: user, name (the name beside it), size (Tailwind size classes). %>
-<% name ||= user.display_name %>
+<% name ||= user.player_name %>
 <% size ||= "w-12 h-12 text-lg" %>
 <% shape = "#{size} player-avatar shrink-0 rounded-full" %>
 <% if user.computer? %>

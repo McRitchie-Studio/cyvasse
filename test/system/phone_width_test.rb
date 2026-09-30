@@ -18,7 +18,7 @@ class PhoneWidthTest < ApplicationSystemTestCase
       assert_selector "svg.cyvasse-board g.hex", count: 91
       assert_fits width
 
-      random_setup!
+      smart_setup!
       watch_widest_page
       click_on "Ready"
 
@@ -41,14 +41,14 @@ class PhoneWidthTest < ApplicationSystemTestCase
     arya = User.create!(email: "arya@example.com", name: "Arya", username: "arya")
     match = Match.start_live!(arya, computer: true, rng: Random.new(4))
     visit link_path(token: Studio::Link.create_magic_link(email: arya.email).token)
-    assert_text "Signed in as Arya"
+    assert_text "Signed in as arya"
 
     phone!(390)
     visit match_path(match)
     assert_selector ".cyvasse-dock .dock-unit", count: 19
     assert_fits 390
 
-    random_setup!
+    smart_setup!
     watch_widest_page
     click_on "Ready"
 

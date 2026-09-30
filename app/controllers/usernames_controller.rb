@@ -10,7 +10,7 @@ class UsernamesController < ApplicationController
     @return_to = safe_return_path(params[:return_to], matches_path)
     saved = rescue_and_log(target: current_user) { current_user.update(username: params[:username].to_s.strip) }
     if saved
-      redirect_to @return_to, notice: "You play as #{current_user.username}.", status: :see_other
+      redirect_to @return_to, notice: "You play as #{current_user.player_name}.", status: :see_other
     else
       render :edit, status: :unprocessable_entity
     end

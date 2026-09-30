@@ -8,8 +8,8 @@ require "application_system_test_case"
 #   (#hex-deploy), darker than the plain board; once a unit is picked, the
 #   empty hexes it may go to light up (#hex-drop).
 # - "Ready" is the panel's main call to action: a filled violet button,
-#   disabled and muted until every unit is on the board. "Random Setup" is a
-#   hollow outline button.
+#   disabled and muted until every unit is on the board. "✨ Smart Setup"
+#   (test/system/smart_setup_card_test.rb) leads the card until then.
 class SetupLookTest < ApplicationSystemTestCase
   test "the setup rows are dark and textured, the board slate, and Ready waits for a full army" do
     visit play_path
@@ -31,21 +31,6 @@ class SetupLookTest < ApplicationSystemTestCase
     # Ready is there from the start, but disabled and muted.
     ready = find_button("Ready", disabled: true)
     assert_operator ready.style("opacity")["opacity"].to_f, :<, 0.6
-    random = find_button("Random Setup")
-    assert_includes random[:class], "btn-outline"
-    assert_equal "rgba(0, 0, 0, 0)", random.style("background-color")["background-color"]
-    # Ready leads; Random Setup sits under it, as wide but smaller.
-    ready_box, random_box = page.evaluate_script(<<~JS)
-      ["[data-cyvasse-game-target=startButton]", "[data-action='cyvasse-game#randomSetup']"].map((s) => {
-        const b = document.querySelector(s)
-        const r = b.getBoundingClientRect()
-        return { top: r.top, bottom: r.bottom, width: r.width, height: r.height, font: parseFloat(getComputedStyle(b).fontSize) }
-      })
-    JS
-    assert_operator random_box["top"], :>=, ready_box["bottom"], "Random Setup is under Ready"
-    assert_in_delta ready_box["width"], random_box["width"], 1, "both are full width"
-    assert_operator random_box["height"], :<, ready_box["height"]
-    assert_operator random_box["font"], :<, ready_box["font"]
 
     # Picking a unit lights the empty hexes it may go to.
     first(".cyvasse-dock .dock-unit").click
@@ -70,7 +55,7 @@ class SetupLookTest < ApplicationSystemTestCase
     assert_operator art, :<=, hex, "the art box stays inside the hex"
 
     # A full army enables Ready: a solid violet fill at full strength.
-    click_on "Random Setup"
+    find("button.cyvasse-smart").click
     ready = find_button("Ready")
     sleep 0.4 # the button eases out of its muted state
     assert_equal "1", ready.style("opacity")["opacity"]

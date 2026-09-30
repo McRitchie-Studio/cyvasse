@@ -1,11 +1,12 @@
 <% content_for(:title, "Finding an opponent · Cyvasse") %>
+<% preload_modules "seek" %>
 <section class="max-w-md mx-auto text-center py-12 px-4"
          data-controller="live-seek"
          data-live-seek-url-value="<%= live_seek_path(@seek, format: :json) %>"
          data-live-seek-ends-at-value="<%= @seek.ends_at.iso8601(3) %>"
          data-live-seek-server-time-value="<%= Time.current.iso8601(3) %>"
          data-live-seek-splash-ms-value="<%= splash_ms %>"
-         data-live-seek-you-value="<%= current_user.username %>">
+         data-live-seek-you-value="<%= current_user.player_name %>">
   <div data-live-seek-target="searching">
     <div class="live-seek-radar mx-auto mb-6" aria-hidden="true">
       <span></span><span></span><span></span>
@@ -52,6 +53,8 @@
   .live-seek-card { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.25rem 0.75rem; border-radius: 1rem; background: color-mix(in srgb, var(--color-cta, #8E82FE) 10%, transparent); border: 1px solid color-mix(in srgb, var(--color-cta, #8E82FE) 30%, transparent); }
   .live-seek-avatar { width: 3.5rem; height: 3.5rem; border-radius: 9999px; display: grid; place-items: center; font-size: 1.5rem; font-weight: 800; color: #fff; background: #3b82f6; }
   .live-seek-avatar-them { background: #dc2626; }
+  .live-seek-avatar-portrait { background: #f4ecd8; overflow: hidden; box-shadow: 0 0 0 2px var(--color-cta, #8E82FE); }
+  .live-seek-portrait { width: 100%; height: 100%; object-fit: cover; }
   .live-seek-name { font-size: 1.2rem; font-weight: 800; overflow-wrap: anywhere; line-height: 1.2; }
   .live-seek-vs { font-size: 1.75rem; font-weight: 900; color: var(--color-cta, #8E82FE); flex: none; }
   .live-seek-tag { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 0.4rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: color-mix(in srgb, var(--color-cta, #8E82FE) 22%, transparent); color: var(--color-cta, #8E82FE); }

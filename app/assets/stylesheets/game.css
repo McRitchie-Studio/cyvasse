@@ -243,37 +243,48 @@
 .cyvasse-board .hex-cursor.is-on { display: inline; }
 .cyvasse-board .hex-cursor.is-focus { stroke-width: 4; }
 
-/* The rotator banner: slides in from the left, out to the right. */
+/* The rotator banner: slides in from the left, out to the right, in its
+ * own slot above the board. It never sits over the board, where it hid the
+ * computer's selected unit and its move (UX audit #2). The slot keeps its
+ * height while the banner is hidden, so the board never jumps; a line that
+ * wraps on a phone grows upward, away from the board. */
+.cyvasse-banner-slot {
+  position: relative;
+  min-height: 2.75rem;
+  margin-bottom: 0.25rem;
+}
+
 .cyvasse-banner {
   position: absolute;
-  top: 42%;
+  bottom: 0;
   left: 50%;
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1.25rem;
   border-radius: 0.5rem;
   background: rgb(0 0 0 / 0.8);
   border: 1px solid rgb(255 255 255 / 0.6);
   color: white;
   font-weight: 700;
-  font-size: 1.125rem;
-  /* One line where it fits; a long line ("Opponent passes · Turn 12 · …")
+  font-size: 1rem;
+  line-height: 1.5rem;
+  /* One line where it fits; a long line ("Opponent passes · Turn 6 · …")
    * wraps on a phone rather than running past the board. */
   width: max-content;
   max-width: calc(100% - 1rem);
   text-align: center;
   pointer-events: none;
   opacity: 0;
-  transform: translate(-150%, -50%);
+  transform: translateX(-150%);
   transition: transform 0.6s ease, opacity 0.6s ease;
 }
 
 .cyvasse-banner.is-showing {
   opacity: 1;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 
 .cyvasse-banner.is-leaving {
   opacity: 0;
-  transform: translate(50%, -50%);
+  transform: translateX(50%);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -283,30 +294,68 @@
   }
 }
 
+/* The units still to place, on see-through tiles; a placed unit leaves a
+ * faint dashed slot (.dock-slot) so the grid never changes size. */
 .cyvasse-dock {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr));
-  gap: 0.375rem;
+  grid-template-columns: repeat(auto-fill, minmax(3.5rem, 1fr));
+  gap: 0.25rem;
 }
 
-.cyvasse-dock:empty {
-  display: none;
+.dock-unit,
+.dock-slot {
+  aspect-ratio: 1;
+  border-radius: 0.5rem;
 }
 
 .dock-unit {
-  aspect-ratio: 1;
   display: grid;
   grid-template: minmax(0, 1fr) / minmax(0, 1fr);
-  padding: 0.25rem;
-  border-radius: 0.5rem;
-  border: 2px solid var(--color-border);
-  background: #f7f4ec;
+  padding: 0.125rem;
+  border: 1px solid transparent;
+  background: transparent;
   cursor: pointer;
+  transition: background-color 120ms, border-color 120ms;
+}
+
+/* A phone has no hover: scoped, so a tapped tile does not keep the tint. */
+@media (hover: hover) {
+  .dock-unit:hover {
+    background-color: rgb(139 92 246 / 0.12);
+    border-color: rgb(139 92 246 / 0.45);
+  }
+}
+
+.dock-unit:focus-visible {
+  background-color: rgb(139 92 246 / 0.12);
+  border-color: rgb(139 92 246 / 0.45);
 }
 
 .dock-unit[aria-pressed="true"] {
+  background-color: rgb(255 165 0 / 0.14);
   border-color: orange;
-  box-shadow: 0 0 0 2px orange;
+  box-shadow: 0 0 0 1px orange;
+}
+
+.dock-slot {
+  border: 1px dashed rgb(139 92 246 / 0.25);
+}
+
+/* Both skins draw in dark ink (black horses, iron, pencil linework), which
+ * sinks into the dark card. In the dark theme the tile stays see-through,
+ * with no opaque fill: a soft light glow sits behind the art only, and the
+ * art carries a light rim. The pencil art, all linework, takes a firmer rim.
+ * The light theme keeps the bare tile. */
+html.dark .dock-unit {
+  background-image: radial-gradient(closest-side, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.07) 65%, rgb(255 255 255 / 0));
+}
+
+html.dark .dock-unit img {
+  filter: drop-shadow(0 0 1px rgb(255 255 255 / 0.45)) drop-shadow(0 0 3px rgb(255 255 255 / 0.2));
+}
+
+html.dark [data-skin="pencil"] .dock-unit img {
+  filter: drop-shadow(0 0 1px rgb(255 255 255 / 0.6)) drop-shadow(0 0 4px rgb(255 255 255 / 0.25));
 }
 
 .dock-unit img,
@@ -485,27 +534,56 @@
   display: none;
 }
 
+/* During setup the status line runs to two lines once the army is placed;
+ * keep room for both from the start, so the army card under it never jumps. */
+[data-phase="setup"] .match-panel-status [data-cyvasse-match-target="status"] {
+  min-height: 2lh;
+}
+
 .match-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.match-links {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 1rem;
 }
 
-.match-actions .cyvasse-threat-toggles {
+.match-links .cyvasse-threat-toggles {
   margin-left: 0;
   font-size: 0.875rem;
 }
 
-/* One forfeit shows at a time, by the status the board keeps current. */
+/* One forfeit shows at a time, by the status the board keeps current. It
+ * ends the game, so it sits apart from the links, below a rule. */
 .match-forfeit {
   display: none;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
 }
 
 [data-match-status="pending"] .match-forfeit[data-forfeit="pregame"],
 [data-match-status="new"] .match-forfeit[data-forfeit="pregame"],
 [data-match-status="in progress"] .match-forfeit[data-forfeit="play"] {
-  display: inline-flex;
+  display: flex;
+}
+
+/* A danger outline, never the green fill of a Play button. The ink is the
+ * engine's contrast-safe text red (--color-danger-ink), not the fill red. */
+.match-forfeit-button {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-danger, #EF4444) 60%, transparent);
+  color: var(--color-danger-ink, var(--color-danger, #EF4444));
+  font-weight: 600;
+}
+
+.match-forfeit-button:hover,
+.match-forfeit-button:focus-visible {
+  background: color-mix(in srgb, var(--color-danger, #EF4444) 12%, transparent);
 }
 
 /* The versus card (matches/_versus): you over them, each an avatar beside a
@@ -590,27 +668,56 @@
   .cyvasse-board.is-arrival .hex .unit-shade { transition: none; }
 }
 
-/* The "Your army" panel: Ready is the main call to action, a full-width
- * filled violet button that stays muted until every unit is on the board;
- * Random Setup sits under it, full width too but smaller and hollow. */
-.cyvasse-setup-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+/* The "Your army" card (games/_army_card). One grid, five rows: heading,
+ * lead, dock, Ready, tail. The lead and tail rows are each one button tall
+ * whatever they hold, and the dock keeps a slot per unit, so no state change
+ * moves Ready, the dock or anything under the card. With nothing placed the
+ * Smart Setup button leads, filled; after that it sits in the tail, hollow,
+ * and the lead shows the count. Ready stays muted until the army is placed. */
+.cyvasse-army {
+  --army-slot: 2.75rem;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto var(--army-slot) auto var(--army-slot) var(--army-slot);
+  grid-template-areas: "heading" "lead" "dock" "ready" "tail";
 }
 
-.cyvasse-setup-actions .btn {
+.cyvasse-army > h2 { grid-area: heading; }
+.cyvasse-army .cyvasse-dock { grid-area: dock; }
+.cyvasse-army .cyvasse-ready { grid-area: ready; }
+.cyvasse-army .cyvasse-smart { grid-area: tail; }
+.cyvasse-army[data-army-mode="smart"] .cyvasse-smart { grid-area: lead; }
+
+.cyvasse-army .btn {
   width: 100%;
+  height: var(--army-slot);
 }
 
-.cyvasse-ready {
+.cyvasse-army-count {
+  grid-area: lead;
+  align-self: center;
+  text-align: center;
+  margin: 0;
+}
+
+.cyvasse-army[data-army-mode="smart"] .cyvasse-army-count {
+  visibility: hidden;
+}
+
+.cyvasse-ready,
+.cyvasse-army[data-army-mode="smart"] .cyvasse-smart {
   color: #fff;
   background-color: #7c3aed;
+  border: 1px solid transparent;
   box-shadow: 0 0 0 1px rgb(167 139 250 / 0.5), 0 6px 18px -6px rgb(124 58 237 / 0.7);
 }
 
-.cyvasse-ready:hover:not(:disabled) {
-  background-color: #6d28d9;
+@media (hover: hover) {
+  .cyvasse-ready:hover:not(:disabled),
+  .cyvasse-army[data-army-mode="smart"] .cyvasse-smart:hover {
+    background-color: #6d28d9;
+  }
 }
 
 .cyvasse-ready:disabled {
@@ -619,13 +726,17 @@
   filter: saturate(0.5);
 }
 
-.cyvasse-outline {
-  border-color: #8b5cf6;
+.cyvasse-smart {
+  color: inherit;
+  background-color: transparent;
+  border: 1px solid #8b5cf6;
+  box-shadow: none;
 }
 
-.cyvasse-outline:hover {
-  background-color: rgb(139 92 246 / 0.15);
-  color: inherit;
+@media (hover: hover) {
+  .cyvasse-smart:hover {
+    background-color: rgb(139 92 246 / 0.15);
+  }
 }
 
 /* The strip above the board: the start-over hint while a piece is picked,
@@ -714,6 +825,136 @@
   accent-color: #e25c3c;
 }
 
+/* The board key (games/_threat_toggle, BoardLegendHelper): a small "?" by the
+ * threat switches that opens a panel over the board, one swatch per look a
+ * hex takes in play. The swatches copy the board rules above; the board looks
+ * the same in both themes, so they do too, and only the panel follows it. */
+.cyvasse-legend {
+  position: relative;
+}
+
+.cyvasse-legend-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-text-secondary, inherit);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.cyvasse-legend-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.cyvasse-legend-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border-strong, var(--color-border));
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cyvasse-legend[open] .cyvasse-legend-mark {
+  border-color: currentColor;
+}
+
+.cyvasse-legend-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.375rem);
+  right: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.375rem 0.75rem;
+  width: min(22rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  color: var(--color-text-body, inherit);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  list-style: none;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+/* In the match panel the key sits at the left of a wrapped row. */
+.match-actions .cyvasse-legend-panel {
+  right: auto;
+  left: 0;
+  width: min(17rem, calc(100vw - 2rem));
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cyvasse-legend-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cyvasse-legend-swatch {
+  flex: none;
+  width: 0.875rem;
+  height: 1rem;
+  overflow: visible;
+}
+
+.cyvasse-legend-swatch polygon {
+  fill: hsl(220 11% 17%);
+  stroke: white;
+  stroke-width: 1;
+}
+
+.cyvasse-legend-swatch[data-swatch="selected"] polygon { fill: orange; stroke: orange; }
+.cyvasse-legend-swatch[data-swatch="yours"] polygon { fill: hsl(217 60% 30%); stroke: #3b82f6; stroke-width: 2; }
+.cyvasse-legend-swatch[data-swatch="enemy"] polygon { fill: hsl(0 55% 28%); stroke: #dc2626; stroke-width: 2; }
+.cyvasse-legend-swatch[data-swatch="move"] polygon { fill: hsl(240 44% 47%); }
+.cyvasse-legend-swatch[data-swatch="attack"] polygon { fill: hsl(10 44% 47%); stroke: hsl(0 100% 66%); stroke-width: 2; }
+.cyvasse-legend-swatch[data-swatch="sunken"] polygon { fill: hsl(220 4% 11%); stroke: hsl(220 4% 34%); }
+.cyvasse-legend-swatch[data-swatch="ghost"] polygon { fill: hsl(226 30% 22%); stroke: hsl(226 95% 70%); stroke-dasharray: 2 1.5; }
+.cyvasse-legend-swatch[data-swatch="field"] polygon { fill: hsl(4 45% 26%); stroke: hsl(354 60% 44%); }
+.cyvasse-legend-swatch[data-swatch="blocked"] polygon { fill: hsl(214 12% 20%); stroke: hsl(214 16% 58%); stroke-dasharray: 1.5 1.5; }
+.cyvasse-legend-swatch[data-swatch="reach"] polygon { stroke: #ef4444; stroke-width: 2; }
+.cyvasse-legend-swatch[data-swatch="danger"] polygon { fill: hsl(25 70% 30%); stroke: #f97316; stroke-width: 2; }
+.cyvasse-legend-swatch[data-swatch="focus"] polygon { stroke: yellow; stroke-width: 2; }
+
+/* A phone keeps only the "?"; the name stays for screen readers. */
+@media (max-width: 639px) {
+  .cyvasse-legend-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* The switches wrap on a phone and the "?" can land at the left of its
+   * own row, so the panel hangs from the strip's right edge, not the "?". */
+  .cyvasse-board-bar,
+  .match-actions {
+    position: relative;
+  }
+
+  .cyvasse-legend {
+    position: static;
+  }
+
+  .cyvasse-legend-panel,
+  .match-actions .cyvasse-legend-panel {
+    left: auto;
+    right: 0;
+    grid-template-columns: minmax(0, 1fr);
+    width: min(15rem, calc(100vw - 2rem));
+  }
+}
+
 /* The opponent's reach (.is-threatened, from renderThreats) is outlined only
  * round its rim: a solid red "perimeter" edge (above) where the area meets
  * the rest of the board or the board's edge. In cyvasse/edges' "dual"
@@ -751,5 +992,97 @@
   .cyvasse-board .hex-edge[data-kind="danger"] {
     animation: none;
     opacity: 0.9;
+  }
+}
+
+/* The setup clock's copy in the army card: shown only in the phone dock. */
+.cyvasse-army-clock {
+  display: none;
+}
+
+/* Phone setup dock (task cyvasse-phone-setup-dock). On a phone the army card
+ * followed the board, so picking a unit and placing it meant scrolling
+ * between them, 19 times, on a running clock. During setup it docks instead:
+ * a sheet fixed to the bottom of the screen, clear of the home indicator,
+ * holding the count (and a live match's clock), every unit in three rows of
+ * seven, and Smart Setup beside Ready. The rest of the panel (openings, saved
+ * lineups) stays in the page, padded clear of the sheet. The controller
+ * measures the sheet into --dock-sheet; the fallback is its usual height.
+ * The board is capped to the screen left above the sheet and the pinned
+ * navbar, and picking a unit scrolls it into view there
+ * (showBoardAboveDock), so a whole setup needs no scrolling. Nothing in the
+ * sheet moves as the army is placed: every tile keeps its slot and Smart
+ * Setup keeps one place, only its label and fill change. */
+@media (max-width: 640px) {
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) {
+    --dock-sheet-h: var(--dock-sheet, calc(15.5rem + env(safe-area-inset-bottom, 0px)));
+    padding-bottom: calc(var(--dock-sheet-h) + 0.5rem);
+  }
+
+  /* The pinned navbar (about 6.5rem once collapsed) and the board's bar
+   * (2.5rem) share the screen with the board and the sheet. */
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) .cyvasse-board {
+    max-height: calc(100svh - var(--dock-sheet-h) - 9.5rem);
+  }
+
+  .cyvasse-setup-controls .cyvasse-army {
+    --army-slot: 2.75rem;
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 40;
+    margin: 0;
+    gap: 0.5rem 0.75rem;
+    padding: 0.625rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    border-radius: 1rem 1rem 0 0;
+    border-bottom-width: 0;
+    box-shadow: 0 -10px 24px -14px rgb(0 0 0 / 0.45);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: 1.25rem auto var(--army-slot);
+    grid-template-areas: "heading meta" "dock dock" "smart ready";
+  }
+
+  .cyvasse-setup-controls .cyvasse-army > h2 {
+    align-self: center;
+    text-align: left;
+    line-height: 1.25rem;
+  }
+
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-army-count {
+    grid-area: meta;
+    justify-self: start;
+    line-height: 1.25rem;
+    white-space: nowrap;
+  }
+
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-army-clock:not([hidden]) {
+    display: block;
+    grid-area: meta;
+    justify-self: end;
+    align-self: center;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25rem;
+    color: var(--color-heading, inherit);
+  }
+
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-army-clock.is-warning {
+    color: #dc2626;
+  }
+
+  /* On the dark dock sheet (a bg-surface card) #dc2626 is 2.31:1. The dark
+   * theme takes the engine's danger ink, the red derived to clear WCAG AA
+   * 4.5:1 on every dark surface (task cyvasse-contrast-and-names). Light mode
+   * keeps #dc2626, 4.83:1 on the white card. */
+  html.dark .cyvasse-setup-controls .cyvasse-army .cyvasse-army-clock.is-warning {
+    color: var(--color-danger-ink);
+  }
+
+  .cyvasse-setup-controls .cyvasse-army[data-army-mode] .cyvasse-smart {
+    grid-area: smart;
+  }
+
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-dock {
+    grid-template-columns: repeat(7, minmax(0, 3.25rem));
+    justify-content: center;
   }
 }
