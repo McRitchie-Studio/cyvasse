@@ -36,8 +36,17 @@ gem "jwt", "~> 3.1"
 gem "omniauth"
 gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
-# Use Redis adapter to run Action Cable in production
-# gem "redis", ">= 4.0.1"
+# Pin redis below 6 for ActionCable's redis pubsub adapter (config/cable.yml,
+# production). studio-engine declares `redis >= 4.0.1` with NO upper bound, so
+# bundler resolved redis 6.0.0 — but ActionCable 8.1's redis adapter declares
+# `gem "redis", ">= 4", "< 6"`, and in production ActionCable.server.pubsub
+# raised "can't activate redis (>= 4, < 6), already activated redis-6.0.0":
+# /cable still upgraded (101) but no broadcast reached a subscriber, so live
+# chat never updated. The hub hit the same float and pins it the same way
+# (mcritchie-studio Gemfile). test/lib/redis_cable_adapter_test.rb guards it.
+#
+# Lift it deliberately, in its own task, once Rails' adapter accepts redis 6.
+gem "redis", "~> 5.4"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
