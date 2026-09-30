@@ -31,7 +31,8 @@ class LastMoveFadeTest < ApplicationSystemTestCase
       assert_equal 'url("#hex-base")', style("g.hex[data-hex='#{hex}'] .hex-poly")["fill"], "no solid orange fill"
     end
     stops = page.evaluate_script("[...document.querySelectorAll('#last-move-glow stop')].map((s) => Number(s.getAttribute('stop-opacity')))")
-    assert stops.all? { |o| o < 0.7 }, "a soft glow, not a solid fill: #{stops}"
+    assert stops.all? { |o| o <= 0.75 }, "a soft glow, not a solid fill: #{stops}"
+    assert_equal stops.sort.reverse, stops, "strongest at the centre, easing off to the edge"
     assert_equal 1.0, page.evaluate_script("Number(getComputedStyle(document.querySelector(\"g.hex[data-hex='58'] .unit-shade\")).opacity)"),
       "the moved unit keeps its team shade"
 

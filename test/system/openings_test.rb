@@ -36,19 +36,22 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     assert_operator shade_opacity(56), :==, 1.0
     find("g.hex[data-hex='66']").click
 
-    # The cues let the orange and red through by thinning the shade.
+    # An attack lets its red through by thinning the shade. The last move's
+    # glow sits over the shade instead, so the moved unit keeps its colour.
     mark(56, "is-last-move")
-    assert_operator shade_opacity(56), :<, 0.3
+    assert_operator shade_opacity(56), :==, 1.0
+    assert_glow 56
     mark(56, "is-attack")
     assert_operator shade_opacity(56), :<, 0.3
     unmark(56)
     assert_operator shade_opacity(56), :==, 1.0
 
-    # The last move keeps a team mark whatever the unit is worth: a rabble
-    # (rank 1, the faintest shade) on hex 79 gets a blue edge.
+    # The last move is a glow, never a ring, whatever the unit is worth: a
+    # rabble (rank 1, the faintest shade) on hex 79 wears no edge.
     assert_selector "g.hex[data-hex='79'][data-rank='1'][data-team='1']"
     mark(79, "is-last-move")
-    assert_team_edge 79, "rgb(59, 130, 246)"
+    assert_glow 79
+    assert_no_edge 79
     screenshot("last-move-rabble")
     # The keyboard's focus edge still shows over the team mark.
     page.execute_script("arguments[0].focus()", find("g.hex[data-hex='80']"))
@@ -68,7 +71,8 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     assert_selector "g.hex[data-team='0'][data-rank='10'] .unit-shade[fill='url(#shade-0-10)']"
     enemy_rabble = find("g.hex.has-unit[data-team='0'][data-rank='1']", match: :first)["data-hex"].to_i
     mark(enemy_rabble, "is-last-move")
-    assert_team_edge enemy_rabble, "rgb(220, 38, 38)"
+    assert_glow enemy_rabble
+    assert_no_edge enemy_rabble
     screenshot("last-move-enemy-rabble")
     unmark(enemy_rabble)
     screenshot("play")
@@ -112,14 +116,16 @@ class OpeningsSystemTest < ApplicationSystemTestCase
     page.execute_script("document.querySelector(\"g.hex[data-hex='#{hex}']\").classList.remove('is-last-move', 'is-attack'); #{CONTROLLER}.renderEdges()")
   end
 
-  # The team mark is the hex's highlight edges (renderEdges), four wide.
-  def assert_team_edge(hex, colour)
-    edges = page.evaluate_script(<<~JS)
-      [...document.querySelectorAll("svg.cyvasse-board line.hex-edge[data-between~='#{hex}']")]
-        .filter((l) => l.dataset.kind).map((l) => [getComputedStyle(l).stroke, parseFloat(getComputedStyle(l).strokeWidth)])
-    JS
-    assert_not_empty edges, "hex #{hex} has a team edge"
-    assert_includes edges, [ colour, 4.0 ], "hex #{hex} team edge"
+  # The last move's mark is a glow inside the hex (game.css .last-move-glow).
+  def assert_glow(hex)
+    assert_equal "inline", page.evaluate_script("getComputedStyle(document.querySelector(\"g.hex[data-hex='#{hex}'] .last-move-glow\")).display")
+  end
+
+  # ... and it draws no highlight edge round the hex (cyvasse/edges): in play
+  # the threat outline may still pass it, but no last-move or team edge.
+  def assert_no_edge(hex)
+    kinds = page.evaluate_script("[...document.querySelectorAll(\"line.hex-edge[data-kind][data-between~='#{hex}']\")].map((l) => l.dataset.kind)")
+    assert_empty kinds.grep(/\A(last-move|team-)/), "hex #{hex} wears no last-move edge: #{kinds}"
   end
 
   # The hex's own edge (it fades over 0.25s).

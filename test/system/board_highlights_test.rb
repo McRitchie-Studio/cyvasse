@@ -12,7 +12,6 @@ class BoardHighlightsTest < ApplicationSystemTestCase
   RED = "rgb(239, 68, 68)".freeze
   WHITE = "rgb(255, 255, 255)".freeze
   ORANGE = "rgb(255, 165, 0)".freeze
-  BLUE = "rgb(59, 130, 246)".freeze
 
   setup do
     # Motion allowed, whatever an earlier test in this browser emulated.
@@ -122,21 +121,20 @@ class BoardHighlightsTest < ApplicationSystemTestCase
     assert edges.any? { |e| e["kind"] == "perimeter" }
 
     # The last move beside a unit of yours just moved (the elephant, not in
-    # danger, so its team edge shows): their shared edge is
-    # the last move's orange, whole; the unit keeps its team edge elsewhere.
+    # danger): a glow inside both hexes, and no edge of its own; the threat
+    # outline is drawn as it was (task cyvasse-last-move-fade).
     find("body").send_keys(:escape)
+    before = edge_table.to_h { |e| [ e["between"], e["kind"] ] }
     page.execute_script("const ctrl = #{CONTROLLER}; ctrl.game.lastMove = [47, 48]; ctrl.render()")
     assert_selector "svg.cyvasse-board g.hex.is-last-move", count: 2
     mouse_away
     screenshot("last-move-team")
     edges = edge_table
-    shared = edges.find { |e| (e["between"] & [ 47, 48 ]).size == 2 }
-    assert_equal [ "last-move", ORANGE, "inline" ], shared.values_at("kind", "stroke", "display")
-    assert_equal 1, edges.count { |e| (e["between"] & [ 47, 48 ]).size == 2 }, "one line for the shared edge"
-    own = edges.select { |e| e["between"].include?(48) } - [ shared ]
-    assert own.any? { |e| e["kind"] == "team-1" && e["stroke"] == BLUE }, "the moved unit keeps its blue edge"
+    assert_empty edges.select { |e| e["kind"].to_s.match?(/\A(last-move|team-)/) }, "the last move draws no edge"
+    assert_equal before, edges.to_h { |e| [ e["between"], e["kind"] ] }, "every edge as it was before the move was marked"
+    assert_equal [ "inline" ], page.evaluate_script("[47, 48].map((h) => getComputedStyle(document.querySelector(`g.hex[data-hex='${h}'] .last-move-glow`)).display)").uniq
     assert_equal [ WHITE ], page.evaluate_script("[47, 48].map((h) => getComputedStyle(document.querySelector(`g.hex[data-hex='${h}'] .hex-poly`)).stroke)").uniq,
-      "no half-width team stroke under the shared edge"
+      "the hexes keep their thin white edges"
 
     # The keyboard's focus edge is drawn over every border.
     page.execute_script("arguments[0].focus()", find("g.hex[data-hex='45']"))

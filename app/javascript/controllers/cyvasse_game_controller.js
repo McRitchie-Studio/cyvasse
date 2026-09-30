@@ -203,9 +203,6 @@ export default class extends Controller {
 
   connect() {
     this.timers = new Set()
-    // The last move's glow clears ten seconds after the move lands, whatever
-    // redraws come between (cyvasse/last_move).
-    this.lastMoveMarker = new LastMoveMarker({ onExpire: () => this.clearLastMove() })
     this.buildBoard()
     this.newGame()
   }
@@ -788,6 +785,8 @@ export default class extends Controller {
   // animation-delay), so the glow carries on rather than starting over.
   markLastMove() {
     const game = this.game
+    // Made here, not in connect(): the match board has its own connect().
+    this.lastMoveMarker ??= new LastMoveMarker({ onExpire: () => this.clearLastMove() })
     const moved = game.phase === "setup" ? [] : [...game.lastMove, game.utilMove].filter((hex) => hex != null)
     const { hexes, elapsed } = this.lastMoveMarker.mark(game.phase === "setup" ? "" : lastMoveKey(game), moved)
     this.boardTarget.style.setProperty("--last-move-delay", `${-elapsed}ms`)
