@@ -155,11 +155,15 @@ class SeoMetaTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_noindex "/matches/:id"
 
-    %w[/matches /inbox /username].each do |path|
+    %w[/matches /conversations /username].each do |path|
       get path
       assert_response :success, path
       assert_noindex path
     end
+
+    # /inbox is a redirect to the chat hub now, so its noindex is /conversations'.
+    get "/inbox"
+    assert_redirected_to "/conversations"
   end
 
   test "the admin pages are noindex" do

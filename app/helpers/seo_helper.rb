@@ -25,8 +25,6 @@ module SeoHelper
 
   def current_seo_page = @seo_page
 
-  def seo_indexable? = @seo_page.present?
-
   def seo_json_ld = @seo_json_ld || []
 
   # An absolute URL for a path on this site.

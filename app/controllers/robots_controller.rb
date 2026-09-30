@@ -5,8 +5,10 @@
 # Public pages are allowed; the paths behind a sign-in, the admin, the bot
 # API, the sign-in and onboarding flows and the match and live-seek pages are
 # disallowed. Those pages also carry <meta name="robots" content="noindex">
-# (SeoHelper), which is what keeps a page Google already knows out of the
-# index: robots.txt only stops the crawl.
+# (SeoHelper), but a crawler that obeys the Disallow never fetches them, so it
+# never reads that tag: robots.txt stops the crawl, and a URL Google already
+# knows can stay listed as a bare link. To drop one from the index, lift its
+# Disallow so Googlebot can read the noindex, or remove it in Search Console.
 class RobotsController < ApplicationController
   skip_before_action :require_authentication
 

@@ -10,7 +10,7 @@
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="<%= seo_canonical_url %>">
   <meta property="og:site_name" content="<%= SeoPage::SITE_NAME %>">
-  <meta property="og:type" content="<%= page.key == :home ? "website" : "article" %>">
+  <meta property="og:type" content="<%= %i[rules about].include?(page.key) ? "article" : "website" %>">
   <meta property="og:locale" content="en_US">
   <meta property="og:title" content="<%= page.title %>">
   <meta property="og:description" content="<%= page.description %>">
