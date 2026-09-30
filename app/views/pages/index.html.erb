@@ -41,3 +41,40 @@
   <%= render "pages/home_gallery_captions", slides: @gallery %>
 </section>
 <% end %>
+
+<%# Below the hero, the words a search engine reads (task cyvasse-seo-profile):
+    what Cyvasse is, how to play it here, and the FAQ, whose questions and
+    answers are SeoPage.faq, the same text as the page's FAQPage JSON-LD. %>
+<article class="home-intro max-w-3xl mx-auto py-12 space-y-10">
+  <section id="what-is-cyvasse" class="rules-prose">
+    <h2>What is Cyvasse?</h2>
+    <p>
+      Cyvasse is the strategy board game from George R. R. Martin's
+      <i>A Song of Ice and Fire</i>, the books behind <i>Game of Thrones</i>.
+      Two players hide their armies behind a screen, set them up in secret on
+      a hexagonal board, then lift the screen and fight until one King falls.
+      The books name the pieces but never the rules, so this site gives the
+      game a complete rulebook and lets you play it.
+    </p>
+    <p>
+      Cyvasse is free to play online in your browser. Press
+      <strong>Play Now</strong> for a live game against another player,
+      <%= link_to "play the computer", play_path %> whenever you like, or
+      challenge a friend by username. New to the game? The
+      <%= link_to "rules", rules_path %> take a few minutes to learn, and the
+      <%= link_to "pieces", pieces_path %> page shows every unit.
+    </p>
+  </section>
+
+  <section id="faq" class="rules-prose">
+    <h2>Questions</h2>
+    <dl class="space-y-5">
+      <% SeoPage.faq.each do |question, answer| %>
+        <div>
+          <dt class="font-semibold text-heading mb-1"><%= question %></dt>
+          <dd class="text-secondary leading-relaxed"><%= answer %></dd>
+        </div>
+      <% end %>
+    </dl>
+  </section>
+</article>
