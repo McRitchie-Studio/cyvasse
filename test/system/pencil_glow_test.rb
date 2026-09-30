@@ -83,6 +83,20 @@ class PencilGlowTest < ApplicationSystemTestCase
     end
   end
 
+  test "pencil: a redraw partway through carries the ring's fade on, counting the time run once" do
+    visit play_path(skin: "pencil")
+    start_game("pencil")
+    stage(POSITION, last_move: [ 26, 25 ])
+    sleep 3
+    page.execute_script("#{CONTROLLER}.render()")
+    progress = page.evaluate_script(<<~JS)
+      document.querySelector("svg.cyvasse-board g.hex[data-hex='25'] .unit-disc").getAnimations()
+        .find((a) => a.animationName === "cyvasse-last-move-rim").effect.getComputedTiming().progress
+    JS
+    assert_operator progress, :>, 0.2, "the ring's fade runs from the move, not the redraw"
+    assert_operator progress, :<, 0.45, "a redraw must not jump the ring's fade ahead"
+  end
+
   test "pencil, less motion: the rings are steady, the last move's fainter" do
     motion("reduce")
     visit play_path(skin: "pencil")
