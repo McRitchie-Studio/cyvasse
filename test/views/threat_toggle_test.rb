@@ -31,7 +31,7 @@ class ThreatToggleTest < ActionView::TestCase
         end
       end
     end
-    %w[selected yours enemy move attack sunken reach danger focus].each do |key|
+    %w[selected last-move yours enemy move attack sunken reach danger focus].each do |key|
       assert_select ".cyvasse-legend-entry[data-legend=#{key}]", 1, "the key explains #{key}"
     end
   end

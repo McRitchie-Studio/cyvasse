@@ -939,8 +939,9 @@ html.dark [data-skin="pencil"] .dock-unit img {
 }
 
 .cyvasse-legend-swatch[data-swatch="selected"] polygon { fill: orange; stroke: orange; }
-.cyvasse-legend-swatch[data-swatch="yours"] polygon { fill: hsl(217 60% 30%); stroke: #3b82f6; stroke-width: 2; }
-.cyvasse-legend-swatch[data-swatch="enemy"] polygon { fill: hsl(0 55% 28%); stroke: #dc2626; stroke-width: 2; }
+.cyvasse-legend-swatch[data-swatch="last-move"] polygon { fill: hsl(34 72% 42%); }
+.cyvasse-legend-swatch[data-swatch="yours"] polygon { fill: hsl(217 60% 30%); }
+.cyvasse-legend-swatch[data-swatch="enemy"] polygon { fill: hsl(0 55% 28%); }
 .cyvasse-legend-swatch[data-swatch="move"] polygon { fill: hsl(240 44% 47%); }
 .cyvasse-legend-swatch[data-swatch="attack"] polygon { fill: hsl(10 44% 47%); stroke: hsl(0 100% 66%); stroke-width: 2; }
 .cyvasse-legend-swatch[data-swatch="sunken"] polygon { fill: hsl(220 4% 11%); stroke: hsl(220 4% 34%); }

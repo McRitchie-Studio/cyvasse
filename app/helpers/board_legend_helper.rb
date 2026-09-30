@@ -11,9 +11,11 @@ module BoardLegendHelper
   BoardLegendEntry = Data.define(:key, :label, :marks)
 
   BOARD_LEGEND = [
-    BoardLegendEntry.new("selected", "Selected, last move", %w[is-selected is-last-move selected last-move]),
-    BoardLegendEntry.new("yours", "Your unit", %w[team-1]),
-    BoardLegendEntry.new("enemy", "Enemy unit", %w[team-0]),
+    BoardLegendEntry.new("selected", "Selected", %w[is-selected selected]),
+    BoardLegendEntry.new("last-move", "Last move (fades)", %w[is-last-move last-move-glow]),
+    # A unit's team is its hex's shade (TEAM_SHADE in the controller); no edge.
+    BoardLegendEntry.new("yours", "Your unit", %w[#3b82f6]),
+    BoardLegendEntry.new("enemy", "Enemy unit", %w[#dc2626]),
     BoardLegendEntry.new("move", "Move here", %w[is-move is-lit ring]),
     BoardLegendEntry.new("attack", "Attack", %w[is-attack is-target target]),
     BoardLegendEntry.new("sunken", "Can pass, can't stop", %w[is-sunken]),
