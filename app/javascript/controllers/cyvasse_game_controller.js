@@ -581,6 +581,11 @@ export default class extends Controller {
     const corners = cornersAt(0.97)
     // Inset, inside the band a highlight edge draws over.
     const dangerCorners = cornersAt(0.935)
+    // The art is clipped to its hex's outline: however large its size tier
+    // draws it (game.css), no wing, arm or snow foot reaches a neighbour.
+    const artClip = el("clipPath", { id: "hex-art-clip" })
+    artClip.append(el("polygon", { points: corners }))
+    defs.append(artClip)
 
     for (const hex of HEXES) {
       const cx = PAD + (11 - hex.size) * W / 2 + (hex.x - 0.5) * W
@@ -595,7 +600,9 @@ export default class extends Controller {
       const danger = el("polygon", { class: "danger-edge", points: dangerCorners, fill: "url(#danger-edge)" })
       const disc = el("circle", { class: "unit-disc", r: 27 })
       const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
-      group.append(polygon, texture, shade, danger, disc, image)
+      const art = el("g", { class: "unit-art", "clip-path": "url(#hex-art-clip)" })
+      art.append(image)
+      group.append(polygon, texture, shade, danger, disc, art)
       svg.append(group)
       this.hexNodes.set(hex.index, { group, polygon, shade, disc, image })
       this.hexCentres.set(hex.index, { x: cx, y: cy, row: hex.y })

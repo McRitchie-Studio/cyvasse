@@ -127,7 +127,9 @@
 /* Vector art that already fills its canvas, capped from its drawn pixels.
  * The dragon's wings and tail, the elephant's rider and the trebuchet's arm
  * reach their hex's slanted edges at or near full size, so they grow only a
- * little; past these caps they spill into the hexes around them. The
+ * little. The controller clips every piece's art to its hex outline
+ * (#hex-art-clip), so nothing reaches a neighbour; these caps keep the clip
+ * to a trim of wing tips rather than a visible crop. The
  * mountain stands on a flat, full-width snow foot that runs past the hex's
  * lower edges into the hexes below if it grows much, so it draws only a
  * little larger than it did (0.86). The dragon, elephant and mountain so grow less than a medium

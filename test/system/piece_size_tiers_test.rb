@@ -6,7 +6,8 @@ require "application_system_test_case"
 # both skins and for both armies. The old team shade that deepened with a
 # piece's worth is gone: every piece takes the same faint rim of its team's
 # colour. However large, no drawing leaves the box of its hex's white outline,
-# and the art never takes a click from the hex under it.
+# the art is clipped to that outline so nothing crosses a slanted edge, and the
+# art never takes a click from the hex under it.
 #
 # PIECE_TIER_SHOTS=<dir> saves the board as size-tiers-<skin>-<phase>.png.
 class PieceSizeTiersTest < ApplicationSystemTestCase
@@ -103,6 +104,10 @@ class PieceSizeTiersTest < ApplicationSystemTestCase
         %w[right bottom].each { |side| assert_operator rect[side], :<=, hex[side] + 0.5, "#{piece["unit"]} #{name} crosses its hex's #{side} (hex #{piece["hex"]})" }
       end
       assert_equal "none", piece["pointer_events"], "the #{piece["unit"]} art never takes the hex's click"
+      # The box above is square to the screen, so it cannot see a wing crossing
+      # a slanted edge; the clip can: the art is cut to its hex's own outline.
+      assert_equal "url(#hex-art-clip)", piece["clip"], "the #{piece["unit"]} art is clipped to its hex (hex #{piece["hex"]})"
+      assert_equal piece["hex_points"], piece["clip_points"], "the art's clip is its hex's outline"
     end
   end
 
@@ -161,7 +166,10 @@ class PieceSizeTiersTest < ApplicationSystemTestCase
             },
             disc: rect(group.querySelector(".unit-disc").getBoundingClientRect()),
             hex_rect: rect(group.querySelector(".hex-poly").getBoundingClientRect()),
-            pointer_events: getComputedStyle(image).pointerEvents
+            pointer_events: getComputedStyle(image).pointerEvents,
+            clip: image.parentElement.getAttribute("clip-path"),
+            clip_points: document.querySelector("#hex-art-clip polygon")?.getAttribute("points") ?? null,
+            hex_points: group.querySelector(".hex-poly").getAttribute("points")
           });
         }
         done(pieces);

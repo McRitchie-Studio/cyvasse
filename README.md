@@ -387,7 +387,8 @@ piece matters shows in the size of its art instead, in three tiers
 (`sizeTier` in `cyvasse/units.js`, scaled in `app/assets/stylesheets/game.css`):
 rabble, spearman and crossbowman are small; the king and both horses a bit
 bigger; the trebuchet, catapult, elephant, dragon and mountains biggest. In the
-pencil skin the parchment disc and its drawing scale together. The art never
+pencil skin the parchment disc and its drawing scale together. The art is
+clipped to its hex's outline, so no piece reaches a neighbour, and it never
 takes a click: the hex under it is the whole hit target.
 
 ## Leaderboard
