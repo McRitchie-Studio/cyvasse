@@ -1413,7 +1413,8 @@ html.dark [data-skin="pencil"] .dock-unit img {
  * lifted beside the versus card, about 8.75rem; each with a 1rem margin. The
  * environment bar dev, test and QA show above the navbar (.studio-bar-stack,
  * 2.5rem) scrolls away with the page but is on the screen at the top, so it
- * counts. A screen of normal height (900px and more) keeps the full 44rem. */
+ * counts. A screen tall enough for the lead and the board both keeps the
+ * full 44rem: about 925px on /play (965px under the bar), 785px on a match. */
 @media (min-width: 1024px) {
   .cyvasse-game {
     --board-lead: 18.5rem;
@@ -1496,9 +1497,11 @@ html.dark [data-skin="pencil"] .dock-unit img {
  * row, held open for a banner that shows two seconds a turn, left a band of
  * about 100px between the versus card and the board. Now the row is a 1rem
  * strip under a tighter gap; the banner and the start-over hint, which shares
- * the strip, rise from its foot over the gap and the versus card's bottom
- * padding while they show. Nothing is laid out anew when either comes or
- * goes, so the board never jumps, and neither is ever drawn over the board. */
+ * the strip, rise from its foot over the gap and the versus card's foot while
+ * they show (the hint within the card's bottom padding; the taller banner, for
+ * its two seconds, a little into the card). Nothing is laid out anew when
+ * either comes or goes, so the board never jumps, and neither is ever drawn
+ * over the board. */
 @media (max-width: 1023px) and (orientation: portrait) {
   .match-layout > .cyvasse-board-wrap {
     margin-top: -1.125rem; /* the grid's 1.5rem gap, less 0.375rem */
