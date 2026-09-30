@@ -30,8 +30,8 @@
               </defs>
             <% end %>
             <polygon points="7,1 13,4.5 13,11.5 7,15 1,11.5 1,4.5" />
-            <%# The pencil skin's piece stands on a parchment disc, and there the glow rings the disc (game.css --rim-glow). %>
-            <% if entry.key.in?(%w[selected last-move]) %>
+            <%# The pencil skin's piece stands on a parchment disc: there the glow rings the disc (game.css --rim-glow), and the disc's own rim is its team's colour. %>
+            <% if entry.key.in?(%w[selected last-move yours enemy]) %>
               <circle class="cyvasse-legend-disc" cx="7" cy="8" r="4" />
             <% end %>
           </svg>

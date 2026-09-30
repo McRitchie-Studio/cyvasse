@@ -176,7 +176,9 @@ const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", u
 
 // Every unit's hex carries a faint rim of its team's colour from the edge in
 // (blue yours, red theirs), the same for every piece: it says whose piece it
-// is, nothing more. How much a piece matters now shows in the size of its art
+// is, nothing more. The pencil skin's parchment disc draws the same colours as
+// its own thin rim (game.css --cyvasse-team-1 and --cyvasse-team-0; keep the
+// two in step). How much a piece matters now shows in the size of its art
 // (units.js sizeTier, scaled in game.css); the rim no longer deepens with the
 // piece's worth (Alex, September 29, 2026).
 const TEAM_SHADE = { 1: "#3b82f6", 0: "#dc2626" }
@@ -680,13 +682,16 @@ export default class extends Controller {
       const shade = el("polygon", { class: "unit-shade", points: corners })
       const glow = el("polygon", { class: "hex-glow", points: corners, fill: "url(#hex-glow)" })
       const danger = el("polygon", { class: "danger-edge", points: dangerCorners, fill: "url(#danger-edge)" })
+      // The pencil skin's glow ring (game.css .unit-ring): under the disc,
+      // showing only outside the disc's own team rim.
+      const ring = el("circle", { class: "unit-ring", r: 27 })
       const disc = el("circle", { class: "unit-disc", r: 27 })
       const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
       const art = el("g", { class: "unit-art", "clip-path": "url(#hex-art-clip)" })
-      art.append(disc, image)
+      art.append(ring, disc, image)
       group.append(polygon, texture, shade, glow, danger, art)
       svg.append(group)
-      this.hexNodes.set(hex.index, { group, polygon, shade, glow, disc, image })
+      this.hexNodes.set(hex.index, { group, polygon, shade, glow, disc, ring, image })
       this.hexCentres.set(hex.index, { x: cx, y: cy, row: hex.y })
     }
 
@@ -862,9 +867,9 @@ export default class extends Controller {
       // render() takes the class off and puts it back in one pass, so a fade
       // already running keeps its start time; the new delay would then count
       // the elapsed time twice and jump the glow ahead. Start it over, so the
-      // delay alone sets how far through it is. The pencil skin's disc rim
-      // (game.css cyvasse-last-move-rim) runs on the same clock.
-      for (const fade of [node.glow, node.disc].flatMap((layer) => layer.getAnimations?.() ?? [])) {
+      // delay alone sets how far through it is. The pencil skin's glow ring
+      // (game.css .unit-ring, cyvasse-last-move-rim) runs on the same clock.
+      for (const fade of [node.glow, node.ring].flatMap((layer) => layer.getAnimations?.() ?? [])) {
         if (fade.animationName?.startsWith("cyvasse-last-move")) { fade.cancel(); fade.play() }
       }
     }

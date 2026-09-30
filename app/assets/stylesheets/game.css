@@ -142,38 +142,62 @@
 }
 
 /* The pencil skin is black linework on a transparent ground; a parchment disc
- * keeps it readable on the black board. */
+ * keeps it readable on the black board.
+ *
+ * The disc covers most of its hex, and with it the hex's team shade (blue
+ * yours, red theirs, .unit-shade): so the disc draws its own thin rim in its
+ * team's colour (task cyvasse-pencil-team-rim). The colours are the shade's
+ * own (cyvasse_game_controller TEAM_SHADE; keep the two in step). The rim is
+ * the disc's own edge, so nothing drawn over the hex (the last move's and the
+ * selection's orange ring outside it, the danger pulse from the hex's edges
+ * in) ever covers it. */
+:root {
+  --cyvasse-team-1: #3b82f6;
+  --cyvasse-team-0: #dc2626;
+}
+
 [data-skin="pencil"] .cyvasse-board .has-unit .unit-disc {
   fill: #f7f4ec;
+  stroke-width: 3;
 }
+
+[data-skin="pencil"] .cyvasse-board .has-unit[data-team="1"] .unit-disc { stroke: var(--cyvasse-team-1); }
+[data-skin="pencil"] .cyvasse-board .has-unit[data-team="0"] .unit-disc { stroke: var(--cyvasse-team-0); }
 
 /* The pencil skin's glow (task cyvasse-pencil-glow-visibility). Its parchment
  * disc covers most of the hex, so the hex glow above showed only as faint
  * orange corners, grey-brown over a blue team's rim. On a pencil piece the
- * glow also rings the disc: a warm orange rim with a soft halo, inside the
- * piece's art clip (so it is cut where the disc is) and under the art's
- * linework. --rim-glow is the ring's strength, 0 to 1: it fades with the last
- * move over the same ten seconds and on the same --last-move-delay clock, and
- * breathes with the selection's pulse, never below 0.65. The vector skin has
- * no disc and keeps the hex glow alone. */
+ * glow also rings the disc: a warm orange ring with a soft halo, just outside
+ * the disc's team rim (.unit-ring, a wide stroke under the disc, so only its
+ * outer part shows), inside the piece's art clip (so it is cut where the disc
+ * is) and under the art's linework. --rim-glow is the ring's strength, 0 to
+ * 1: it fades with the last move over the same ten seconds and on the same
+ * --last-move-delay clock, and breathes with the selection's pulse, never
+ * below 0.65. The vector skin has no disc and keeps the hex glow alone. */
 @property --rim-glow {
   syntax: "<number>";
   inherits: false;
   initial-value: 1;
 }
 
-[data-skin="pencil"] .cyvasse-board .has-unit:is(.is-last-move, .is-selected) .unit-disc {
+.cyvasse-board .unit-ring {
+  display: none;
+  fill: none;
+}
+
+[data-skin="pencil"] .cyvasse-board .has-unit:is(.is-last-move, .is-selected) .unit-ring {
+  display: inline;
   stroke: #ff9a1f;
-  stroke-width: 2.5;
+  stroke-width: 10;
   stroke-opacity: var(--rim-glow);
   filter: drop-shadow(0 0 2.5px rgb(255 140 26 / calc(0.95 * var(--rim-glow))));
 }
 
-[data-skin="pencil"] .cyvasse-board .has-unit.is-selected .unit-disc {
+[data-skin="pencil"] .cyvasse-board .has-unit.is-selected .unit-ring {
   animation: cyvasse-selected-rim 1.8s ease-in-out infinite;
 }
 
-[data-skin="pencil"] .cyvasse-board .has-unit.is-last-move:not(.is-selected) .unit-disc {
+[data-skin="pencil"] .cyvasse-board .has-unit.is-last-move:not(.is-selected) .unit-ring {
   animation: cyvasse-last-move-rim 10s ease-in forwards;
   animation-delay: var(--last-move-delay, 0ms);
 }
@@ -190,12 +214,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-skin="pencil"] .cyvasse-board .has-unit.is-last-move:not(.is-selected) .unit-disc {
+  [data-skin="pencil"] .cyvasse-board .has-unit.is-last-move:not(.is-selected) .unit-ring {
     animation: none;
     --rim-glow: 0.6;
   }
 
-  [data-skin="pencil"] .cyvasse-board .has-unit.is-selected .unit-disc {
+  [data-skin="pencil"] .cyvasse-board .has-unit.is-selected .unit-ring {
     animation: none;
     --rim-glow: 1;
   }
@@ -220,7 +244,8 @@
  * clip that once trimmed a wide drawing at every side now frees the upper
  * ones, and the cut along the bottom is the tile's own edge. */
 .cyvasse-board .unit-image,
-.cyvasse-board .unit-disc {
+.cyvasse-board .unit-disc,
+.cyvasse-board .unit-ring {
   pointer-events: none;
   --tier-scale: 1.1;
   --art-anchor: 14px;
@@ -228,15 +253,15 @@
   transform: translateY(var(--art-anchor)) scale(var(--art-scale)) translateY(calc(-1 * var(--art-anchor)));
 }
 
-.cyvasse-board .hex[data-tier="medium"] :is(.unit-image, .unit-disc) { --tier-scale: 1.2; }
-.cyvasse-board .hex[data-tier="large"] :is(.unit-image, .unit-disc) { --tier-scale: 1.35; }
+.cyvasse-board .hex[data-tier="medium"] :is(.unit-image, .unit-disc, .unit-ring) { --tier-scale: 1.2; }
+.cyvasse-board .hex[data-tier="large"] :is(.unit-image, .unit-disc, .unit-ring) { --tier-scale: 1.35; }
 
 /* The pencil skin draws its piece as a token: black linework on a parchment
  * disc (radius 27), the art at 0.84 of the disc, the disc at 0.83 of the art
  * box. Disc and art grow together, by the same tiers, and take the same clip:
  * a large token rises over the hexes behind it and is cut flat along its
  * tile's right and lower sides. */
-[data-skin="pencil"] .cyvasse-board .unit-disc { --art-scale: calc(0.83 * var(--tier-scale)); }
+[data-skin="pencil"] .cyvasse-board :is(.unit-disc, .unit-ring) { --art-scale: calc(0.83 * var(--tier-scale)); }
 [data-skin="pencil"] .cyvasse-board .unit-image { --art-scale: calc(0.84 * 0.83 * var(--tier-scale)); }
 
 /* A hex the ripple has lit (.is-lit) carries a faint diagonal hatch over its
@@ -1094,6 +1119,14 @@ html.dark [data-skin="pencil"] .dock-unit img {
   animation: cyvasse-selected-rim 1.8s ease-in-out infinite;
   stroke-opacity: var(--rim-glow);
 }
+
+/* Your piece and the enemy's show the disc's team rim, as on the board. */
+[data-skin="pencil"] .cyvasse-legend-swatch:is([data-swatch="yours"], [data-swatch="enemy"]) .cyvasse-legend-disc {
+  stroke-width: 1;
+  filter: none;
+}
+[data-skin="pencil"] .cyvasse-legend-swatch[data-swatch="yours"] .cyvasse-legend-disc { stroke: var(--cyvasse-team-1); }
+[data-skin="pencil"] .cyvasse-legend-swatch[data-swatch="enemy"] .cyvasse-legend-disc { stroke: var(--cyvasse-team-0); }
 
 @media (prefers-reduced-motion: reduce) {
   .cyvasse-legend-swatch[data-swatch="selected"] polygon { animation: none; }
