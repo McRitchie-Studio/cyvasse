@@ -15,6 +15,11 @@
 # cookie contract is reviewed. Hosting (epic piece 8) sets the secret and the
 # flag together.
 #
+# The shared cookie can only ever reach the old cyvasse.mcritchie.studio host.
+# Cyvasse lives on cyvasse.xyz now (lib/cyvasse/canonical_host.rb), a
+# different site the hub's cookie cannot reach, so hub SSO does not work there
+# whatever the flag says; there the cookie falls back to the request host.
+#
 # Off the flag the cookie is Cyvasse's own. On a developer desk its key is
 # overridable (CYVASSE_SESSION_KEY) so two stacks on localhost do not trample
 # each other's session, the collision turf-monster hit with TM_SESSION_KEY.
@@ -31,7 +36,11 @@ module CyvasseSessionCookie
     base = { secure: production, httponly: true, same_site: :lax }
 
     if production && shared?(env)
-      base.merge(key: HUB_KEY, domain: HUB_DOMAIN)
+      # A list, not a string: Rails scopes the cookie to the entry the request
+      # host ends with, and leaves it host-only when none matches. A bare
+      # string would send Domain=.mcritchie.studio from cyvasse.xyz, which
+      # the browser rejects, and no one could stay signed in there.
+      base.merge(key: HUB_KEY, domain: [ HUB_DOMAIN ])
     elsif production
       base.merge(key: APP_KEY)
     else
