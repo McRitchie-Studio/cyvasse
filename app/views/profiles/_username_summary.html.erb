@@ -1,0 +1,7 @@
+<%# The Username row on /profile, the read page (task
+    cyvasse-profile-username-edit): the public name at a glance, and the way
+    to its card on /profile/edit, where it changes. Locals: user. %>
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <p class="text-heading font-semibold break-all" data-username><%= user.username.presence || "No username yet" %></p>
+  <%= link_to "Change", edit_profile_path(anchor: "username"), class: "btn btn-secondary btn-sm" %>
+</div>

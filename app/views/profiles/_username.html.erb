@@ -1,0 +1,51 @@
+<%# The Username card on /profile/edit (task cyvasse-profile-username-edit),
+    a row of studio-engine's profile page (config/initializers/studio.rb,
+    Studio.profile_sections). Locals: user.
+
+    ITS OWN FORM AND ITS OWN SAVE. The engine renders every edit row inside its
+    one profile form, and a form cannot nest in another (the parser drops the
+    inner <form> tag). So the input and the button name their form with the
+    `form` attribute, and the form itself is drawn outside the engine's, in the
+    layout's :detached_forms slot. The engine's form never submits the
+    username, and its unsaved-changes check never sees it.
+
+    It saves through UsernamesController#update, the same rules as onboarding
+    and /username (User). A refusal comes back here with the name tried and
+    the reason (flash). A legacy name that fails today's rules arrives with a
+    suggestion filled in, as onboarding's username step does. %>
+<% form_id = "profile-username-form" %>
+<% playable = user.username_playable? %>
+<% attempt = flash[:username_attempt] %>
+<% error = flash[:username_error] %>
+<% value = attempt || (playable ? user.username : user.suggested_username) %>
+
+<% content_for :detached_forms do %>
+  <%= form_with url: username_path, method: :patch, id: form_id, data: { turbo: false } do %>
+    <%= hidden_field_tag :return_to, edit_profile_path, id: nil %>
+    <%= hidden_field_tag :from, "profile", id: nil %>
+  <% end %>
+<% end %>
+
+<div id="username" class="space-y-3 scroll-mt-24">
+  <p class="text-secondary text-sm">
+    Other players see this name and challenge you by it. 3 to 20 letters, digits or underscores.
+  </p>
+  <% if !playable && user.username.present? %>
+    <p class="text-sm text-secondary" data-legacy-username>
+      Your old name, <strong class="text-heading"><%= user.username %></strong>, doesn't fit today's rules, so here is a suggestion.
+    </p>
+  <% end %>
+  <div>
+    <label class="block text-sm text-secondary mb-2 font-medium" for="profile_username">Username</label>
+    <div class="flex flex-wrap items-center gap-3">
+      <input type="text" name="username" id="profile_username" form="<%= form_id %>"
+             value="<%= value %>" class="input-field flex-1 min-w-0 basis-48" required
+             maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false"
+             <% if error %>aria-invalid="true" aria-describedby="profile_username_error"<% end %>>
+      <button type="submit" form="<%= form_id %>" class="btn btn-primary shrink-0">Save</button>
+    </div>
+  </div>
+  <% if error %>
+    <p id="profile_username_error" class="text-sm text-danger-ink" role="alert"><%= error %></p>
+  <% end %>
+</div>

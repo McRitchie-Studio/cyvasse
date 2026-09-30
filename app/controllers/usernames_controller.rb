@@ -47,7 +47,7 @@ class UsernamesController < ApplicationController
 
   def back_to_profile(error, attempt: nil)
     flash[:username_error] = error
-    flash[:username_attempt] = attempt if attempt
+    flash[:username_attempt] = attempt.first(40) if attempt
     redirect_to edit_profile_path(anchor: "username"), status: :see_other
   end
 
