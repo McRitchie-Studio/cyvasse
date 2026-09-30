@@ -1,0 +1,14 @@
+<%# The home hero's link to Cyvasse Night (CyvasseNight), shown until the
+    night is over. Locals: night. %>
+<% if night.banner? %>
+  <p class="mb-5">
+    <%= link_to night_path, class: "night-home-banner", data: { night_banner: true } do %>
+      <% if night.during? %>
+        <span><%= CyvasseNight::TITLE %> · Live now</span>
+      <% else %>
+        <span><%= CyvasseNight::TITLE %> · <%= night.short_date_label %>, <%= night.short_time_label %></span>
+      <% end %>
+      <span aria-hidden="true">→</span>
+    <% end %>
+  </p>
+<% end %>

@@ -1,0 +1,129 @@
+<% seo_page :night, json_ld: [ night_json_ld(@night) ] %>
+<% preload_modules "night" %>
+
+<%# Cyvasse Night (CyvasseNight, NightsController). One page in three
+    phases, chosen on the server: before (countdown, calendar, how it works),
+    during (Play Now, who is here, tonight's leaderboard) and after (the next
+    night, tonight's final board). The hero's countdown ticks on the server's
+    clock and reloads the page once when the phase changes. %>
+<% hero = "backgrounds/home/dragon.webp"
+   hero_mobile = "backgrounds/home/dragon-mobile.webp" %>
+<% content_for(:head) do %>
+  <link rel="preload" as="image" href="<%= image_path(hero) %>" media="(min-width: 641px)" fetchpriority="high">
+  <link rel="preload" as="image" href="<%= image_path(hero_mobile) %>" media="(max-width: 640px)" fetchpriority="high">
+<% end %>
+
+<article class="night-page max-w-3xl mx-auto space-y-8" data-night-phase="<%= @phase %>">
+  <header class="page-banner night-hero relative overflow-hidden rounded-xl"
+          data-controller="night-countdown"
+          data-night-countdown-start-value="<%= @night.starts_at.iso8601 %>"
+          data-night-countdown-end-value="<%= @night.ends_at.iso8601 %>"
+          data-night-countdown-server-time-value="<%= Time.current.iso8601(3) %>"
+          data-night-countdown-phase-value="<%= @phase %>"
+          data-night-countdown-zone-value="<%= CyvasseNight::ZONE %>">
+    <picture>
+      <source media="(max-width: 640px)" srcset="<%= image_path(hero_mobile) %>">
+      <%= image_tag hero, alt: "", class: "absolute inset-0 w-full h-full object-cover", width: 1800, height: 600,
+                          decoding: "async", loading: "eager", fetchpriority: "high" %>
+    </picture>
+    <div class="relative page-banner-scrim px-4 py-10 sm:px-8 sm:py-14 text-center">
+      <p class="night-kicker" data-night-kicker>
+        <%= { before: "Live event", during: "Live now", after: "That's a wrap" }.fetch(@phase) %>
+      </p>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
+        <span class="whitespace-nowrap">Cyvasse Night</span>
+        <span class="night-sep" aria-hidden="true">·</span>
+        <span class="whitespace-nowrap"><%= @night.date_label %></span>
+        <span class="night-sep" aria-hidden="true">·</span>
+        <span class="whitespace-nowrap"><%= @night.time_label %></span>
+      </h1>
+      <p class="text-white/85">
+        <time datetime="<%= @night.starts_at.iso8601 %>" data-night-mountain-time><%= @night.date_label %>, <%= @night.window_label %></time>
+      </p>
+      <p class="text-white/85 mt-1" data-night-countdown-target="local" data-night-local hidden>
+        Your time: <span class="font-semibold text-white" data-night-countdown-target="localTime"></span>
+      </p>
+
+      <% unless @phase == :after %>
+        <% parts = night_countdown_parts(@phase == :before ? @night.starts_at : @night.ends_at) %>
+        <div class="mt-8" data-night-countdown>
+          <p class="night-countdown-label" data-night-countdown-target="label">
+            <%= @phase == :before ? "Starts in" : "Ends in" %>
+          </p>
+          <div class="night-countdown" role="timer" aria-live="off">
+            <% [ [ :days, "Days", parts[:days].to_s ], [ :hours, "Hours", format("%02d", parts[:hours]) ],
+                 [ :minutes, "Min", format("%02d", parts[:minutes]) ], [ :seconds, "Sec", format("%02d", parts[:seconds]) ] ].each do |unit, label, value| %>
+              <div class="night-countdown-tile">
+                <span class="night-countdown-value" data-night-countdown-target="<%= unit %>" data-unit="<%= unit %>"><%= value %></span>
+                <span class="night-countdown-unit"><%= label %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @phase == :during %>
+        <div class="mt-8">
+          <%= button_to "Play Now", live_seeks_path, class: "btn btn-primary btn-lg text-xl px-10", form: { class: "inline-block" } %>
+        </div>
+        <p class="night-presence mt-4" data-night-presence>
+          <% if @presence.online.positive? %>
+            <%= night_presence_line(@presence) %>
+          <% else %>
+            Be the first here: press Play Now and the next player in is yours.
+          <% end %>
+        </p>
+      <% end %>
+    </div>
+  </header>
+
+  <% case @phase %>
+  <% when :before %>
+    <section class="card p-5 sm:p-6" aria-labelledby="night-calendar-title" data-night-calendar>
+      <h2 id="night-calendar-title" class="text-xl font-bold text-heading mb-2">Save the date</h2>
+      <p class="text-secondary mb-4">Put it in your calendar so 7 PM Mountain finds you at the board.</p>
+      <div class="flex flex-wrap gap-3">
+        <%= link_to "Google Calendar", night_google_calendar_url(@night), class: "btn btn-primary",
+                    target: "_blank", rel: "noopener", data: { night_google: true } %>
+        <%= link_to "Apple, Outlook (.ics)", night_path(format: :ics), class: "btn btn-secondary",
+                    data: { night_ics: true, turbo: false } %>
+      </div>
+    </section>
+
+    <section class="card p-5 sm:p-6" aria-labelledby="night-how-title" data-night-how>
+      <h2 id="night-how-title" class="text-xl font-bold text-heading mb-3">How it works</h2>
+      <ol class="night-steps">
+        <li><strong class="text-heading">Come at <%= @night.time_label %>.</strong> Everyone arrives together, so there is always someone to play.</li>
+        <li><strong class="text-heading">Press Play Now.</strong> It will be right here on this page, and on the home page. No account needed.</li>
+        <li><strong class="text-heading">Get matched live.</strong> You are paired with another player searching at the same moment, not the computer.</li>
+        <li><strong class="text-heading">Top the leaderboard.</strong> Every game finished tonight scores a point and every win three. Play as many as you like until 10 PM.</li>
+      </ol>
+      <p class="text-secondary mt-4">
+        New to Cyvasse? The <%= link_to "rules", rules_path, class: "underline underline-offset-2" %> take a few minutes,
+        and you can warm up <%= link_to "against the computer", play_path, class: "underline underline-offset-2" %> any time.
+      </p>
+    </section>
+  <% when :after %>
+    <section class="card p-5 sm:p-6 text-center" aria-labelledby="night-next-title" data-night-next>
+      <h2 id="night-next-title" class="text-xl font-bold text-heading mb-2">Next Cyvasse Night coming soon</h2>
+      <p class="text-secondary mb-4">Thanks for playing. Live games run every day; the leaderboard keeps counting.</p>
+      <%= link_to "See the leaderboard", leaderboard_path, class: "btn btn-primary" %>
+    </section>
+  <% end %>
+
+  <% if @tonight %>
+    <section class="card p-4 sm:p-5" aria-labelledby="night-board-title" data-night-leaderboard>
+      <div class="flex items-baseline justify-between gap-3 mb-3">
+        <h2 id="night-board-title" class="text-sm font-semibold uppercase tracking-widest text-secondary">Tonight's leaderboard</h2>
+        <%= link_to "All players", leaderboard_path, class: "text-sm text-secondary underline underline-offset-2" %>
+      </div>
+      <% if @tonight.empty? %>
+        <p class="text-secondary" data-night-leaderboard-empty>
+          <%= @phase == :during ? "No games finished yet tonight. The first win puts you on top." : "No live games were finished tonight." %>
+        </p>
+      <% else %>
+        <%= render "leaderboards/rows", rows: @tonight, board: "live" %>
+      <% end %>
+    </section>
+  <% end %>
+</article>

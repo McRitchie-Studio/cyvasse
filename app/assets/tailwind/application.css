@@ -708,3 +708,112 @@ header nav a[href="/conversations"] > span {
   border-color: rgb(var(--color-primary-rgb) / 0.6);
   background: rgb(var(--color-primary-rgb) / 0.1);
 }
+
+/* Cyvasse Night (nights/show, nights/_home_banner). The hero is the page
+ * banner's art under its black scrim, so its type and tiles are white in
+ * both themes; the cards below it are the engine's .card, themed. */
+.night-kicker {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  padding: 0.2rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.5);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.night-sep {
+  margin: 0 0.35rem;
+  color: rgb(255 255 255 / 0.7);
+}
+
+.night-countdown-label {
+  color: rgb(255 255 255 / 0.85);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+/* Four equal tiles that fit a 375px phone: minmax(0, 1fr) lets each shrink
+ * below its number's intrinsic width instead of pushing the page sideways. */
+.night-countdown {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  max-width: 24rem;
+  margin: 0 auto;
+}
+
+.night-countdown-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: 0.6rem 0.25rem;
+  border-radius: 0.5rem;
+  background: rgb(0 0 0 / 0.45);
+  border: 1px solid rgb(255 255 255 / 0.2);
+  color: #fff;
+}
+
+.night-countdown-value {
+  font-size: 1.875rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.night-countdown-unit {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.85);
+}
+
+.night-presence {
+  color: rgb(255 255 255 / 0.9);
+}
+
+.night-presence strong {
+  color: #fff;
+}
+
+.night-steps {
+  list-style: decimal;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.6rem;
+  color: var(--color-text-body);
+  line-height: 1.6;
+}
+
+/* The home hero's link to the night: a quiet white pill over the art. */
+.night-home-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  padding: 0.35rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.6);
+  background: rgb(0 0 0 / 0.35);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.night-home-banner:hover,
+.night-home-banner:focus-visible {
+  background: rgb(0 0 0 / 0.55);
+  border-color: #fff;
+}
+
+.night-home-banner:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
