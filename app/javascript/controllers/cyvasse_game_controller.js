@@ -457,13 +457,17 @@ export default class extends Controller {
     const pinned = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0
     const top = pinned + 4
     const bottom = (fit === "bottom" ? this.armyTarget.getBoundingClientRect().top : window.innerHeight) - 4
-    // The foot first: the navbar collapses as the page scrolls, which lifts
-    // the board further, so the room under it is only known afterwards. The
-    // board is capped to fit the collapsed room (game.css). The strip over
-    // the board may tuck under the navbar; the board itself may not.
-    let by = 0
-    if (boxBottom > bottom) by = boxBottom - bottom
-    else if (boxTop < top) by = Math.max(boxTop - top, boxBottom - bottom)
+    // Already on the screen: leave it. Otherwise centre it in the room, so
+    // a line of copy above it that wraps anew (the status: "Your army is in
+    // place") has slack to take up. Too tall for the room, the foot first:
+    // the navbar collapses as the page scrolls, which lifts the board
+    // further, so the room under it is only known afterwards. The board is
+    // capped to fit the collapsed room (game.css). The strip over the board
+    // may tuck under the navbar; the board itself may not.
+    if (boxTop >= top - 0.5 && boxBottom <= bottom + 0.5) return
+    const room = bottom - top
+    const height = boxBottom - boxTop
+    const by = height <= room ? boxTop - (top + (room - height) / 2) : boxBottom - bottom
     if (Math.abs(by) < 1) return
     const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
     window.scrollBy({ top: by, behavior: still ? "auto" : "smooth" })

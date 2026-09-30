@@ -151,7 +151,7 @@ class SetupLayoutFitTest < ApplicationSystemTestCase
     assert_operator army["right"], :<=, view["width"] + 1, "#{moment}: the army card runs off the screen's right"
     overlap = [ board["right"], army["right"] ].min - [ board["left"], army["left"] ].max > 1 &&
               [ board["bottom"], army["bottom"] ].min - [ board["top"], army["top"] ].max > 1
-    refute overlap, "#{moment}: the army card covers the board"
+    refute overlap, "#{moment}: the army card covers the board #{box.inspect}"
     assert_operator ready["top"], :>=, army["top"] - 1, "#{moment}: Ready is in the army card"
     assert_operator ready["bottom"], :<=, army["bottom"] + 1, "#{moment}: Ready is in the army card"
     assert_equal 0, box["armyScroll"], "#{moment}: the army card needs no scrolling of its own"
