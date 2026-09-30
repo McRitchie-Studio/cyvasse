@@ -87,6 +87,7 @@ export default class extends GameController {
     this.opponentTarget.textContent = state.opponent.username
     this.renderDeadline()
     this.render()
+    this.showBoardWhenSetupOpens()
     this.showComputerStep()
     if (arriving) this.animateArrival()
     this.startLiveClock()
@@ -321,6 +322,7 @@ export default class extends GameController {
     const clock = live?.clock
     const them = this.state.opponent.username
     this.clockTarget.hidden = !live || this.state.phase === "over" || (!clock && !live.thinking)
+    if (this.hasArmyClockTarget) this.armyClockTarget.hidden = true
     if (this.clockTarget.hidden) return
 
     this.clockTarget.classList.toggle("is-thinking", !!live.thinking)
@@ -332,7 +334,9 @@ export default class extends GameController {
       return
     }
 
-    const remaining = Math.max(0, (Date.parse(clock.ends_at) - (Date.now() + (this.clockOffset || 0))) / 1000)
+    // A Play Now setup clock starts after the versus splash (LiveMatch
+    // setup_grace): a board opened early holds at the full clock until then.
+    const remaining = Math.min(clock.seconds, Math.max(0, (Date.parse(clock.ends_at) - (Date.now() + (this.clockOffset || 0))) / 1000))
     const mine = clock.kind === "setup" ? this.state.can_set_up : this.state.your_turn
     const warning = remaining <= clock.warning
     let label
@@ -345,6 +349,12 @@ export default class extends GameController {
     this.clockLabelTarget.textContent = label
     this.clockSecondsTarget.textContent = `${Math.ceil(remaining)}s`
     this.clockBarTarget.style.width = `${Math.min(100, (remaining / clock.seconds) * 100)}%`
+    // The docked army sheet's copy of the setup clock (games/_army_card).
+    if (this.hasArmyClockTarget && clock.kind === "setup" && mine) {
+      this.armyClockTarget.hidden = false
+      this.armyClockTarget.textContent = this.clockSecondsTarget.textContent
+      this.armyClockTarget.classList.toggle("is-warning", warning)
+    }
 
     // Out of time: ask the server now rather than at the next poll.
     if (remaining === 0 && this.firedFor !== clock.ends_at) {

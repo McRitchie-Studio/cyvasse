@@ -191,7 +191,7 @@ const CONTROLS = "button, a, input, label, select, textarea, summary, [role=butt
 
 export default class extends Controller {
   static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent", "hint", "threatToggle",
-    "army", "smartButton", "armyCount", "fallen"]
+    "army", "smartButton", "armyCount", "armyClock", "fallen"]
   static values = { skin: { type: String, default: "vector" }, images: Object, skins: Object, pace: { type: Number, default: 1 } }
 
   connect() {
@@ -201,6 +201,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.dockObserver?.disconnect()
     this.cursorEvents?.abort()
     this.clearTimers()
     this.bannerBox.hide()
@@ -221,6 +222,8 @@ export default class extends Controller {
     this.setupControlsTarget.hidden = false
     this.hideBanner()
     this.render()
+    this.setupBoardShown = false
+    this.showBoardWhenSetupOpens()
   }
 
   // "✨ Smart Setup", "✨ Place All", "✨ New Setup" (cyvasse/smart_setup):
@@ -386,6 +389,65 @@ export default class extends Controller {
     if (this.game.phase !== "setup") return
     this.selectedUnitId = event.currentTarget.dataset.unitId
     this.render()
+    this.showBoardAboveDock()
+  }
+
+  // ---- The phone setup dock (game.css, "phone setup dock") -------------------
+  // On a phone the army card is a sheet fixed to the bottom of the screen
+  // during setup. Its measured height (--dock-sheet) pads the page, so the
+  // panel under the board scrolls clear of it, and sets the board's scroll
+  // margin, so the board is never left under it.
+
+  watchDock() {
+    this.dockObserver?.disconnect()
+    if (!this.hasArmyTarget || !window.ResizeObserver) return
+    this.dockObserver = new ResizeObserver(() => this.measureDock())
+    this.dockObserver.observe(this.armyTarget)
+  }
+
+  get docked() {
+    return this.hasArmyTarget && getComputedStyle(this.armyTarget).position === "fixed"
+  }
+
+  measureDock() {
+    const height = this.docked ? Math.ceil(this.armyTarget.getBoundingClientRect().height) : 0
+    if (height > 0) this.element.style.setProperty("--dock-sheet", `${height}px`)
+    else this.element.style.removeProperty("--dock-sheet")
+  }
+
+  // Setup opening on a phone: the player's own five rows are the board's
+  // bottom, under the sheet until the page scrolls. Bring the board above
+  // the sheet once, as a pick does, after the sheet has laid out, so those
+  // rows are in view before the first pick.
+  showBoardWhenSetupOpens() {
+    if (this.setupControlsTarget.hidden || this.setupBoardShown) return
+    this.setupBoardShown = true
+    requestAnimationFrame(() => {
+      this.measureDock()
+      this.showBoardAboveDock()
+    })
+  }
+
+  // A unit picked from the sheet: bring the whole board into view between
+  // the pinned navbar and the sheet, once, so every placement after needs no
+  // scrolling. By hand, not scrollIntoView: the page's root clips sideways
+  // (overflow-x: clip), and Chrome then scrolls it into view not at all.
+  showBoardAboveDock() {
+    if (!this.docked) return
+    const board = this.boardTarget.getBoundingClientRect()
+    const pinned = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0
+    const top = pinned + 4
+    const bottom = this.armyTarget.getBoundingClientRect().top - 4
+    // The sheet's edge first: the navbar collapses as the page scrolls, which
+    // lifts the board further, so the room under it is only known afterwards.
+    // The board is capped to fit the collapsed room (game.css). The strip
+    // over the board may tuck under the navbar; the board itself may not.
+    let by = 0
+    if (board.bottom > bottom) by = board.bottom - bottom
+    else if (board.top < top) by = Math.max(board.top - top, board.bottom - bottom)
+    if (Math.abs(by) < 1) return
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    window.scrollBy({ top: by, behavior: still ? "auto" : "smooth" })
   }
 
   setupClick(hex) {
@@ -575,6 +637,7 @@ export default class extends Controller {
     on("pointerleave", () => this.moveCursor(this.hoverCursor, null))
     on("focusin", (e) => this.moveCursor(this.focusCursor, e.target.matches?.(":focus-visible") ? e.target.closest("[data-hex]") : null))
     on("focusout", () => this.moveCursor(this.focusCursor, null))
+    this.watchDock()
 
     // What a screen reader says after a threatened unit's name (renderThreats).
     // Hidden text, joined to the name with aria-labelledby (which reads hidden
