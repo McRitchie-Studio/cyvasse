@@ -16,9 +16,10 @@ require "application_system_test_case"
 # (label from PENCIL_GLOW_LABEL, default "after").
 class PencilGlowTest < ApplicationSystemTestCase
   CONTROLLER = "Stimulus.getControllerForElementAndIdentifier(document.querySelector('[data-controller=cyvasse-game]'), 'cyvasse-game')".freeze
-  # Their elephant has just moved 48 -> 58; their king on 1, their rabble on
-  # 25 (unmarked, for comparison); your elephant on 59, your king on 91, your
-  # rabble on 70 (unmarked).
+  # Their catapult on 36, king on 1, elephant on 58 and rabble on 25; your
+  # king on 91, elephant on 59 and rabble on 70. The rim is measured on the
+  # small rabbles, whose discs sit well inside their hexes, clear of any
+  # orange highlight edge (the selection's, the danger pulse's).
   POSITION = { "0-15" => 36, "0-17" => 1, "0-6" => 58, "0-1" => 25, "1-17" => 91, "1-6" => 59, "1-1" => 70 }.freeze
   # A clearly orange pixel: warm, red well over green, green well over blue.
   ORANGE = "(r, g, b) => r > 170 && r - g > 30 && g - b > 40"
@@ -34,51 +35,50 @@ class PencilGlowTest < ApplicationSystemTestCase
   test "pencil: the last move and the selection ring the disc in orange; the last move's ring fades" do
     visit play_path(skin: "pencil")
     start_game("pencil")
-    stage(POSITION, last_move: [ 48, 58 ])
+    # Their rabble has just moved 26 -> 25.
+    stage(POSITION, last_move: [ 26, 25 ])
     mouse_away
     freeze_last_move_at(0)
+    shots("last-move")
 
-    moved = rim_orange(58)
-    plain = rim_orange(1)
+    moved = rim_orange(25)
+    plain = rim_orange(70)
     assert_operator plain, :<, 0.05, "an unmarked piece's rim is plain parchment: #{plain}"
     assert_operator moved, :>, 0.35, "the moved piece's rim glows orange (#{moved} of the band, unmarked #{plain})"
 
-    disc = style("g.hex[data-hex='58'] .unit-disc")
-    assert_equal "cyvasse-last-move-rim", disc["animationName"]
-    assert_equal "none", style("g.hex[data-hex='1'] .unit-disc")["stroke"], "an unmarked disc draws no rim"
-
-    shots("last-move")
+    assert_equal "cyvasse-last-move-rim", style("g.hex[data-hex='25'] .unit-disc")["animationName"]
+    assert_equal "none", style("g.hex[data-hex='70'] .unit-disc")["stroke"], "an unmarked disc draws no rim"
 
     # The ring fades with the hex glow: near the end of its ten seconds, most
     # of the orange is gone.
     freeze_last_move_at(9_000)
-    late = rim_orange(58)
+    late = rim_orange(25)
     assert_operator late, :<, moved / 2.0, "the ring fades (#{moved} at the start, #{late} at nine seconds)"
 
-    # Selecting your elephant (a blue piece) rings its disc, and the pulse
+    # Selecting your rabble (a blue piece) rings its disc, and the pulse
     # never lets the ring go: at its faintest it is still clearly orange.
-    find("svg.cyvasse-board g.hex[data-hex='59']").click
-    assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='59']"
+    find("svg.cyvasse-board g.hex[data-hex='70']").click
+    assert_selector "svg.cyvasse-board g.hex.is-selected[data-hex='70']"
     mouse_away
-    assert_equal "cyvasse-selected-rim", style("g.hex[data-hex='59'] .unit-disc")["animationName"]
-    freeze_selection_at(900) # the pulse's faintest point, half way through
-    faint = rim_orange(59)
-    assert_operator rim_orange(70), :<, 0.05, "your unmarked rabble's rim stays plain"
-    assert_operator faint, :>, 0.3, "the selected blue piece's rim is orange even at the pulse's faintest (#{faint})"
     freeze_selection_at(0)
     shots("selected")
+    assert_equal "cyvasse-selected-rim", style("g.hex[data-hex='70'] .unit-disc")["animationName"]
+    freeze_selection_at(900) # the pulse's faintest point, half way through
+    faint = rim_orange(70)
+    assert_operator rim_orange(25), :<, 0.05, "their rabble, no longer the last move, is plain again"
+    assert_operator faint, :>, 0.3, "the selected blue piece's rim is orange even at the pulse's faintest (#{faint})"
   end
 
   test "pencil, less motion: the rings are steady, the last move's fainter" do
     motion("reduce")
     visit play_path(skin: "pencil")
     start_game("pencil")
-    stage(POSITION, last_move: [ 48, 58 ])
-    disc = style("g.hex[data-hex='58'] .unit-disc")
+    stage(POSITION, last_move: [ 26, 25 ])
+    disc = style("g.hex[data-hex='25'] .unit-disc")
     assert_equal "none", disc["animationName"]
     assert_in_delta 0.6, disc["strokeOpacity"].to_f, 0.01
-    find("svg.cyvasse-board g.hex[data-hex='59']").click
-    disc = style("g.hex[data-hex='59'] .unit-disc")
+    find("svg.cyvasse-board g.hex[data-hex='70']").click
+    disc = style("g.hex[data-hex='70'] .unit-disc")
     assert_equal [ "none", "1" ], disc.values_at("animationName", "strokeOpacity")
   ensure
     motion("no-preference")
@@ -152,8 +152,8 @@ class PencilGlowTest < ApplicationSystemTestCase
   def freeze_last_move_at(ms) = freeze("cyvasse-last-move", ms)
   def freeze_selection_at(ms) = freeze("cyvasse-selected", ms)
 
-  # The share of pixels in a band about the disc's upper rim (from 10 to 2
-  # o'clock, the side no clip cuts) that read clearly orange.
+  # The share of pixels in a band about the disc's upper rim (from half past
+  # ten to half past one, the side no clip cuts) that read clearly orange.
   def rim_orange(hex)
     box = page.evaluate_script(<<~JS)
       (() => {
@@ -180,7 +180,7 @@ class PencilGlowTest < ApplicationSystemTestCase
           const dx = (px + 0.5 - cx) / k, dy = (py + 0.5 - cy) / k;
           const d = Math.hypot(dx, dy);
           const angle = Math.atan2(-dy, dx) * 180 / Math.PI; // 0 = 3 o'clock, 90 = 12
-          if (angle < 30 || angle > 150 || Math.abs(d - radius) > 2) continue;
+          if (angle < 45 || angle > 135 || Math.abs(d - radius) > 2) continue;
           band++;
           const i = (py * img.width + px) * 4;
           if (orange(data[i], data[i + 1], data[i + 2])) hits++;
