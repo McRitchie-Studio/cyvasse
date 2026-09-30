@@ -127,10 +127,12 @@ class CyvasseRules::RulesTest < ActiveSupport::TestCase
       assert_equal before, [ game.position(0), game.position(1), game.offense, game.turn ], "#{what}: nothing moved"
     end
 
-    result = game.play!([ [ 46, 49 ], [ 49, 51 ] ])
-    assert_equal [ 49, 51 ], result.last_move
+    # The light horse's second jump reaches one hex (September 29, 2026).
+    assert_raises(Game::IllegalMove, "a second jump of two") { game.play!([ [ 46, 49 ], [ 49, 51 ] ]) }
+    result = game.play!([ [ 46, 49 ], [ 49, 50 ] ])
+    assert_equal [ 49, 50 ], result.last_move
     assert_equal 46, result.util_move, "the first jump's start stays marked"
-    assert_equal 51, game.units.find { |u| u.team == Game::HOME && u.index == 8 }.hex
+    assert_equal 50, game.units.find { |u| u.team == Game::HOME && u.index == 8 }.hex
   end
 
   # A king in the corner behind its own two mountains and its trebuchet, the
