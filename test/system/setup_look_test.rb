@@ -43,8 +43,11 @@ class SetupLookTest < ApplicationSystemTestCase
     assert_no_selector "svg.cyvasse-board g.hex.is-drop"
     assert_button "Ready", disabled: true
 
-    # The piece art fills most of its hex without spilling over the edge:
-    # its box is about as wide as the hex (the vector art carries a margin).
+    # The piece art fills most of its hex: its box is about as wide as the hex
+    # (the vector art carries a margin). Its box may now run past the hex: a
+    # piece stands on its tile, cut by its clip along the right and lower
+    # sides and free past the upper ones (task cyvasse-piece-art-overlap;
+    # test/system/piece_art_overlap_test.rb holds where its pixels may go).
     art, hex = page.evaluate_script(<<~JS)
       (() => {
         const g = document.querySelector("svg.cyvasse-board g.hex[data-hex='56']")
@@ -52,7 +55,7 @@ class SetupLookTest < ApplicationSystemTestCase
       })()
     JS
     assert_operator art / hex, :>, 0.9, "the art box spans most of the hex"
-    assert_operator art, :<=, hex, "the art box stays inside the hex"
+    assert_operator art, :<=, hex * 1.4, "the art box is no more than the large tier's reach"
 
     # A full army enables Ready: a solid violet fill at full strength.
     find("button.cyvasse-smart").click
