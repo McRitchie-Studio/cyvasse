@@ -1,4 +1,5 @@
 <% content_for(:title, "Play · Cyvasse") %>
+<% preload_modules "game" %>
 <% content_for(:head) do %>
   <%= stylesheet_link_tag "game", "data-turbo-track": "reload" %>
 <% end %>

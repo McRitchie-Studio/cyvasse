@@ -22,9 +22,9 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   end
 
   # Waits until every element carrying each Stimulus identifier has its
-  # controller connected. stimulus-loading's eagerLoadControllersFrom imports
-  # each controller module on its own, so one can connect well after another,
-  # and a click on a server-rendered button before its controller connects is
+  # controller connected. stimulus-loading's lazyLoadControllersFrom
+  # (controllers/index.js) imports a controller's module only when its
+  # data-controller appears, so one can connect well after another, and a click on a server-rendered button before its controller connects is
   # lost without a trace (task cyvasse-system-test-flakes). Wait on this, not
   # on the button, before the first click a controller must answer.
   def assert_controllers_connected(*identifiers)
