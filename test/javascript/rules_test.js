@@ -28,13 +28,13 @@ test("friends and mountains block the way; enemies block it too", () => {
   walled[47] = [ENEMY, "spearman"];
   const { moves, attacks } = legalActions(position(walled), 46);
   assert.deepEqual(moves, []);
-  assert.deepEqual(attacks, [], "a rabble (1) cannot take a spearman (2)");
+  assert.deepEqual(attacks, [], "a rabble (1) cannot take a spearman (3)");
 });
 
 test("a unit captures an enemy of equal or lower strength, not a stronger one", () => {
-  const board = position({ 46: [ALLY, "spearman"], 47: [ENEMY, "rabble"], 45: [ENEMY, "king"], 36: [ENEMY, "heavyhorse"] });
+  const board = position({ 46: [ALLY, "king"], 47: [ENEMY, "rabble"], 45: [ENEMY, "lighthorse"], 36: [ENEMY, "heavyhorse"] });
   const { attacks } = legalActions(board, 46);
-  assert.deepEqual(attacks, [45, 47], "takes the rabble (1) and the king (2), not the heavy horse (3)");
+  assert.deepEqual(attacks, [45, 47], "the king (2) takes the rabble (1) and the light horse (2), not the heavy horse (3)");
 });
 
 test("a capture ends the path: nothing beyond the captured enemy is reached through it", () => {
@@ -45,30 +45,56 @@ test("a capture ends the path: nothing beyond the captured enemy is reached thro
   assert.deepEqual(moves, []);
 });
 
-test("the defender's trump blocks: a light horse cannot take a spearman", () => {
-  const board = position({ 46: [ALLY, "lighthorse"], 47: [ENEMY, "spearman"] });
-  assert.deepEqual(legalActions(board, 46).attacks, []);
+// Rule changes of September 29, 2026 (cyvasse-stats-and-trumps-v3): a trump
+// works on offense only. The attacker takes a unit it trumps whatever the
+// strengths; the defender's trumps never protect it. These replace the
+// legacy "the defender's trump blocks" cases (a light horse could not take a
+// spearman, an elephant could not take a crossbowman), which the new rule
+// reverses.
+test("a trump works on offense: the spearman (3) takes the elephant (4)", () => {
+  const board = position({ 46: [ALLY, "spearman"], 47: [ENEMY, "elephant"] });
+  assert.deepEqual(legalActions(board, 46).attacks, [47]);
 
-  const heavy = position({ 46: [ALLY, "heavyhorse"], 47: [ENEMY, "spearman"] });
-  assert.deepEqual(legalActions(heavy, 46).attacks, [47], "the spearman trumps only the light horse");
+  const heavy = position({ 46: [ALLY, "heavyhorse"], 47: [ENEMY, "elephant"] });
+  assert.deepEqual(legalActions(heavy, 46).attacks, [], "control: the heavy horse (3) does not trump it");
 });
 
-test("the defender's trump blocks: an elephant cannot take a crossbowman", () => {
-  const board = position({ 46: [ALLY, "elephant"], 47: [ENEMY, "crossbowman"] });
-  assert.deepEqual(legalActions(board, 46).attacks, []);
+test("a trump never protects its holder: the elephant takes the spearman that trumps it", () => {
+  const board = position({ 46: [ALLY, "elephant"], 47: [ENEMY, "spearman"] });
+  assert.deepEqual(legalActions(board, 46).attacks, [47]);
 });
 
-test("a crossbowman shoots two hexes over friends and foes, and trumps the elephant", () => {
+test("the rabble (1) trumps the king (2), and the king can still take the rabble", () => {
+  assert.deepEqual(legalActions(position({ 46: [ALLY, "rabble"], 47: [ENEMY, "king"] }), 46).attacks, [47]);
+  assert.deepEqual(legalActions(position({ 46: [ALLY, "king"], 47: [ENEMY, "rabble"] }), 46).attacks, [47]);
+});
+
+test("a range unit defends at 1: an elephant takes a crossbowman, a rabble takes a catapult", () => {
+  assert.equal(UNIT_TYPES.crossbowman.defence, 1);
+  assert.equal(UNIT_TYPES.catapult.defence, 1);
+  assert.equal(UNIT_TYPES.trebuchet.defence, 1);
+  assert.deepEqual(legalActions(position({ 46: [ALLY, "elephant"], 47: [ENEMY, "crossbowman"] }), 46).attacks, [47]);
+  assert.deepEqual(legalActions(position({ 46: [ALLY, "rabble"], 47: [ENEMY, "catapult"] }), 46).attacks, [47]);
+  assert.deepEqual(legalActions(position({ 46: [ALLY, "rabble"], 47: [ENEMY, "trebuchet"] }), 46).attacks, [47]);
+});
+
+test("a light horse (2) cannot take a spearman (3) by strength alone", () => {
+  assert.deepEqual(legalActions(position({ 46: [ALLY, "lighthorse"], 47: [ENEMY, "spearman"] }), 46).attacks, []);
+});
+
+test("a crossbowman shoots two hexes over friends and foes, and trumps nothing", () => {
   const board = position({
     46: [ALLY, "crossbowman"],
     47: [ALLY, "rabble"],
     48: [ENEMY, "elephant"],
     45: [ENEMY, "rabble"],
-    44: [ENEMY, "heavyhorse"]
+    44: [ENEMY, "lighthorse"],
+    36: [ENEMY, "heavyhorse"]
   });
   const { moves, attacks } = legalActions(board, 46);
-  assert.deepEqual(attacks, [45, 48], "the elephant (4) falls to its trump; the heavy horse (3) is too strong");
-  assert.deepEqual(moves, [35, 36, 56, 57], "it walks one hex, and only onto empty ones");
+  assert.deepEqual(UNIT_TYPES.crossbowman.trump, []);
+  assert.deepEqual(attacks, [44, 45], "the rabble (1) and the light horse (2) at two; not the elephant (4) or the heavy horse (3)");
+  assert.deepEqual(moves, [35, 56, 57], "it walks one hex, and only onto empty ones");
 });
 
 test("a shooter stays put and never captures by moving", () => {
@@ -79,9 +105,9 @@ test("a shooter stays put and never captures by moving", () => {
 });
 
 // Rule changes of September 29, 2026: the trebuchet reaches four hexes and
-// trumps the spearman and the light horse as well as the dragon; the king
-// stays safe from it.
-test("the trebuchet cannot move but reaches four hexes, and trumps the dragon, spearman and light horse", () => {
+// trumps only the dragon (it trumped the spearman and the light horse too
+// until the second round); the king stays safe from it.
+test("the trebuchet cannot move but reaches four hexes, and trumps only the dragon", () => {
   const board = position({
     46: [ALLY, "trebuchet"],
     50: [ENEMY, "dragon"], // four away along the middle row
@@ -94,8 +120,8 @@ test("the trebuchet cannot move but reaches four hexes, and trumps the dragon, s
   });
   const { moves, attacks } = legalActions(board, 46);
   assert.deepEqual(moves, []);
-  assert.deepEqual(attacks, [36, 42, 44, 50],
-    "the light horse and spearman (trumped), the rabble (1) and the dragon (trumped) at four; not the king (2 > 1), the heavy horse (3 > 1) or the rabble at five");
+  assert.deepEqual(attacks, [42, 50],
+    "the rabble (1) and the dragon (trumped) at four; not the light horse (2 > 1), the spearman (3 > 1), the king (2 > 1), the heavy horse (3 > 1) or the rabble at five");
 });
 
 test("an open trebuchet's shot reaches every hex within four and none beyond", () => {
@@ -112,13 +138,13 @@ test("the trebuchet never takes the king, wherever it stands in reach", () => {
 });
 
 test("a mountain of either side stops the trebuchet's shot at four", () => {
-  const open = position({ 46: [ALLY, "trebuchet"], 50: [ENEMY, "spearman"] });
-  assert.deepEqual(legalActions(open, 46).attacks, [50], "control: the spearman four away is in reach");
+  const open = position({ 46: [ALLY, "trebuchet"], 50: [ENEMY, "rabble"] });
+  assert.deepEqual(legalActions(open, 46).attacks, [50], "control: the rabble four away is in reach");
 
   for (const side of [ALLY, ENEMY]) {
-    const walled = position({ 46: [ALLY, "trebuchet"], 47: [side, "mountain"], 50: [ENEMY, "spearman"] });
+    const walled = position({ 46: [ALLY, "trebuchet"], 47: [side, "mountain"], 50: [ENEMY, "rabble"] });
     assert.deepEqual(legalActions(walled, 46).attacks, [], `a ${side === ALLY ? "friendly" : "enemy"} mountain on 47`);
-    const far = position({ 46: [ALLY, "trebuchet"], 49: [side, "mountain"], 50: [ENEMY, "spearman"] });
+    const far = position({ 46: [ALLY, "trebuchet"], 49: [side, "mountain"], 50: [ENEMY, "rabble"] });
     assert.deepEqual(legalActions(far, 46).attacks, [], `a ${side === ALLY ? "friendly" : "enemy"} mountain on 49`);
   }
 });
@@ -235,32 +261,51 @@ test("the dragon captures any foot soldier on its lines and flies on past it", (
   assert.ok(moves.includes(49) && moves.includes(51));
 });
 
-test("a crossbowman or dragon stops the dragon; a trebuchet or catapult repels it", () => {
+// Offense-only trumps (September 29, 2026): the trebuchet and catapult trump
+// the dragon, which lets them take it, but no longer repels it. Every enemy
+// shooter and the enemy dragon stop its flight; it takes them where they stand.
+test("any enemy shooter or dragon stops the dragon, and the dragon takes it there", () => {
   const stops = position({ 46: [ALLY, "dragon"], 48: [ENEMY, "crossbowman"], 44: [ENEMY, "dragon"] });
   const stopped = legalActions(stops, 46);
   assert.ok(stopped.attacks.includes(48) && stopped.attacks.includes(44));
   assert.ok(!stopped.moves.includes(49) && !stopped.moves.includes(43));
 
-  const repels = position({ 46: [ALLY, "dragon"], 48: [ENEMY, "catapult"], 44: [ENEMY, "trebuchet"] });
-  const repelled = legalActions(repels, 46);
-  assert.ok(!repelled.attacks.includes(48) && !repelled.attacks.includes(44));
-  assert.ok(!repelled.moves.includes(49) && !repelled.moves.includes(43));
-  assert.ok(repelled.moves.includes(47) && repelled.moves.includes(45));
+  const trumpers = position({ 46: [ALLY, "dragon"], 48: [ENEMY, "catapult"], 44: [ENEMY, "trebuchet"] });
+  const struck = legalActions(trumpers, 46);
+  assert.ok(struck.attacks.includes(48) && struck.attacks.includes(44), "the dragon takes the catapult and the trebuchet");
+  assert.ok(!struck.moves.includes(49) && !struck.moves.includes(43), "and its flight ends there");
+  assert.ok(struck.moves.includes(47) && struck.moves.includes(45));
 });
 
-test("cavalry: a full first jump, then a second jump of two", () => {
+test("a trumped defender still wins when it attacks: dragon and trebuchet each take the other", () => {
+  const dragonAttacks = position({ 46: [ALLY, "dragon"], 50: [ENEMY, "trebuchet"] });
+  assert.deepEqual(legalActions(dragonAttacks, 46).attacks, [50], "the dragon attacks the trebuchet and wins");
+
+  const trebuchetAttacks = position({ 46: [ALLY, "trebuchet"], 50: [ENEMY, "dragon"] });
+  assert.deepEqual(legalActions(trebuchetAttacks, 46).attacks, [50], "the trebuchet attacks the dragon and wins");
+});
+
+// September 29, 2026: light horse 4 then 1, heavy horse 3 then 1.
+test("cavalry: light horse reaches 4 then 1, heavy horse 3 then 1", () => {
   const board = position({ 46: [ALLY, "lighthorse"] });
-  assert.deepEqual(legalActions(board, 46).moves, disc(46, 3));
-  assert.deepEqual(legalActions(board, 46, { jump: 2 }).moves, disc(46, 2));
+  assert.deepEqual(legalActions(board, 46).moves, disc(46, 4));
+  assert.deepEqual(legalActions(board, 46, { jump: 2 }).moves, disc(46, 1));
 
   const heavy = position({ 46: [ALLY, "heavyhorse"] });
-  assert.deepEqual(legalActions(heavy, 46).moves, disc(46, 2));
-  assert.deepEqual(legalActions(heavy, 46, { jump: 2 }).moves, disc(46, 2));
+  assert.deepEqual(legalActions(heavy, 46).moves, disc(46, 3));
+  assert.deepEqual(legalActions(heavy, 46, { jump: 2 }).moves, disc(46, 1));
+});
+
+test("a second jump captures only one hex away", () => {
+  const near = position({ 46: [ALLY, "lighthorse"], 47: [ENEMY, "rabble"] });
+  assert.deepEqual(legalActions(near, 46, { jump: 2 }).attacks, [47]);
+  const far = position({ 46: [ALLY, "lighthorse"], 48: [ENEMY, "rabble"] });
+  assert.deepEqual(legalActions(far, 46, { jump: 2 }).attacks, [], "two away is beyond a second jump of one");
 });
 
 test("the first cavalry jump previews the second as 6x rings, never as moves", () => {
   const { moves, rings } = legalActions(position({ 46: [ALLY, "heavyhorse"] }), 46);
-  for (const index of ring(46, 3).concat(ring(46, 4))) {
+  for (const index of ring(46, 4)) {
     assert.ok(!moves.includes(index));
     assert.ok(rings.get(index) >= 60 && rings.get(index) < 70, `hex ${index} previews as empty`);
   }
@@ -297,9 +342,9 @@ function oracle(board, origin, steps) {
         moves.add(n.index);
         frontier.push(n.index);
       } else if (other.team !== piece.team && other.type.codename !== "mountain") {
+        // Offense-only trumps: only the attacker's trump list counts.
         const trumped = piece.type.trump.includes(other.type.codename);
-        const repels = other.type.trump.includes(piece.type.codename);
-        if (!repels && (trumped || other.type.defence <= piece.type.attack)) attacks.add(n.index);
+        if (trumped || other.type.defence <= piece.type.attack) attacks.add(n.index);
       }
     }
   }
@@ -326,7 +371,7 @@ test("melee moves and captures match a breadth-first oracle on random boards", (
     const type = UNIT_TYPES[kind];
 
     for (const jump of type.rank === "cavalry" ? [1, 2] : [1]) {
-      const steps = jump === 2 ? 2 : type.moveRange;
+      const steps = jump === 2 ? type.secondJump : type.moveRange;
       const { moves, attacks } = legalActions(board, origin, { jump });
       const expected = oracle(board, origin, steps);
       assert.deepEqual({ moves, attacks }, expected, `trial ${trial}: ${kind} on ${origin}, jump ${jump}`);
