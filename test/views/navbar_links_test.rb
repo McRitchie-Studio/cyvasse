@@ -51,6 +51,7 @@ class NavbarLinksViewTest < ActionView::TestCase
     assert_select "#{NAV} a[href='/matches']", 2
     assert_select "#{NAV} a[href='/matches'][aria-current]", 0
   end
+
   # [component] After a game the match page writes the new rank into the
   # navbar (cyvasse/game_over refreshNavRank, production UX audit #14). Its
   # selector finds both rows' Leaderboard links in this navbar, and the badge

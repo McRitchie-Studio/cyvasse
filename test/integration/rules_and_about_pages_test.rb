@@ -104,16 +104,32 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
 
   # Production audit #6: "primary movement is 3 and the secondary is 2" was only
   # the Light Horse. Since Alex cut the Special Rules copy (2026-09-29) the
-  # cavalry card states the rule alone and each horse's jumps live on its unit
-  # card (4 + 1 and 3 + 1).
-  test "the cavalry rule states the double move and leaves the jumps to the unit cards" do
+  # cavalry card states the rule, and UX audit #2 (#6) found "4 + 1" on the
+  # unit cards explained nowhere: the card now reads each horse's two jumps,
+  # from the Rulebook, in one short sentence.
+  test "the cavalry rule states the double move and what 4 + 1 means" do
     get rules_path
 
     body = css_select("#special-rules .special-rule-card[data-rule=cavalry] p").text.squish
-    assert_equal "Cavalry units move or attack twice a turn.", body
+    assert_equal "Cavalry units move or attack twice a turn: a Light Horse up to 4 hexes, then 1 more; " \
+                 "a Heavy Horse 3, then 1.", body
+    assert_equal [ [ 4, 1 ], [ 3, 1 ] ], %w[lighthorse heavyhorse].map { Rulebook.fetch(_1).jumps }, "the numbers are the Rulebook's"
     assert_no_match(/primary movement is 3/, body)
     assert_select "#unit-lighthorse dd", text: "4 + 1"
     assert_select "#unit-heavyhorse dd", text: "3 + 1"
+  end
+
+  # [component] UX audit #2 (#6): the Short Version's Combat line said the
+  # higher Strength always wins. It names the two exceptions the Combat
+  # section explains: trumps win on attack only, and Range units defend at 1.
+  test "the short version's combat line names trumps on attack and the range defence" do
+    get rules_path
+
+    line = css_select("#quick-start dd[data-short=combat]").sole.text.squish
+    assert_match(/equal or lower Strength/, line)
+    assert_match(/A Trump wins on attack only/, line)
+    assert_match(/Range units defend at Strength #{Rulebook::RANGE_DEFENCE}\./, line)
+    assert_operator line.length, :<=, 150, "kept short"
   end
 
   # [component] Alex, 2026-09-29: "All of these descriptions need to be cut into
