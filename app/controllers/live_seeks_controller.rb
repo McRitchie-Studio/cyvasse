@@ -8,8 +8,6 @@ class LiveSeeksController < ApplicationController
   before_action :set_seek, only: %i[show computer]
   helper_method :splash_ms
 
-  SPLASH = 5.seconds
-
   def create
     user = current_user || rescue_and_log { start_guest }
     return redirect_to(username_path, notice: "Choose a player name to play live.") if user.username.blank?
@@ -62,6 +60,6 @@ class LiveSeeksController < ApplicationController
   end
 
   def splash_ms
-    ((Rails.configuration.x.live_splash_time.presence || SPLASH).to_f * 1000).round
+    (LiveSeek.splash_time.to_f * 1000).round
   end
 end

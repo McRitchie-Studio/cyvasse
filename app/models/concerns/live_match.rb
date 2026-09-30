@@ -2,7 +2,9 @@
 # sitting, on short clocks, where nobody is ever left waiting on an absent
 # player.
 #
-#   setup   SETUP_CLOCK from the start for both armies. A computer seat sets
+#   setup   SETUP_CLOCK for both armies, from when their boards open: a match
+#           made by Play Now starts it after the versus splash (setup_grace),
+#           so the splash costs neither player any setup time. A computer seat sets
 #           up at once. A player still not ready when it runs out gets a
 #           random army (the board shows it filling in) and a strike.
 #   play    MOVE_CLOCK per turn. A computer seat plays in visible steps
@@ -45,11 +47,14 @@ module LiveMatch
   class_methods do
     # Start a live match with both armies still to place. `computer: true`
     # seats a computer player in the away seat, which sets up at once.
-    def start_live!(home_user, away_user = nil, computer: false, rng: Random.new)
+    # `setup_grace` delays the setup clock: the versus splash both players
+    # watch before their boards open (LiveSeek.splash_time). The deadline is
+    # one server time, so both players get the same setup time.
+    def start_live!(home_user, away_user = nil, computer: false, rng: Random.new, setup_grace: 0.seconds)
       away_user = computer_player(rng:) if computer
       now = Time.current
       match = create!(home_user:, away_user:, match_status: Match::ACCEPTED, match_against: computer ? "computer" : "human",
-                      live: true, turn: 0, time_of_last_move: now, clock_started_at: now,
+                      live: true, turn: 0, time_of_last_move: now, clock_started_at: now + setup_grace,
                       home_ready: false, away_ready: false, fast_game: true, away_bot: computer)
       match.tick!(rng:)
     end

@@ -63,6 +63,29 @@ class LiveGameOverTest < ApplicationSystemTestCase
     assert_no_button "Forfeit match"
   end
 
+  test "the seat notice clears when the match ends with the page open" do
+    @match.set_up!(@arya, CyvasseRules::Bot.lineup(rng: Random.new(5)))
+    # Arya missed two clocks and took her seat back: the notice warns her.
+    @match.reload.update_columns(home_strikes: 2, home_bot: false, updated_at: Time.current)
+    visit match_path(@match)
+    assert_selector "[data-cyvasse-match-target=notice]", text: "You took back your seat. Miss one more clock"
+
+    @match.reload.resign!(@arya)
+
+    within(MODAL, wait: 10) { assert_selector "h3", text: "You resigned." }
+    # Read the notice off the DOM, not by visibility: with the modal open,
+    # everything behind it can read as not visible, which would pass a
+    # visibility check whatever the notice said.
+    notice = page.evaluate_script(<<~JS)
+      (() => {
+        const el = document.querySelector("[data-cyvasse-match-target=notice]")
+        const seat = document.querySelector("[data-cyvasse-match-target=takeBackSeat]")
+        return { hidden: el.hidden, text: el.dataset.notice || "", seatHidden: seat.hidden }
+      })()
+    JS
+    assert_equal({ "hidden" => true, "text" => "", "seatHidden" => true }, notice, "no seat notice once the match is over")
+  end
+
   test "an opponent's forfeit that lands while the player is away opens the modal when they come back" do
     @match.set_up!(@arya, CyvasseRules::Bot.lineup(rng: Random.new(5)))
     visit match_path(@match)

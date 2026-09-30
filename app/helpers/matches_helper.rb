@@ -9,7 +9,7 @@ module MatchesHelper
       match.ready?(user) ? "your army is in; #{opponent} is setting up" : "set up your army"
     when Match::IN_PROGRESS
       due = match.deadline ? " · due #{time_ago_in_words(match.deadline)} from now" : ""
-      (match.your_turn?(user) ? "turn #{match.turn}, your move" : "turn #{match.turn}, #{opponent} to move") + due
+      (match.your_turn?(user) ? "turn #{match.full_move}, your move" : "turn #{match.full_move}, #{opponent} to move") + due
     else
       finished_summary(match, user)
     end
@@ -25,6 +25,6 @@ module MatchesHelper
 
     won = match.winner_id == user.id
     how = { "king" => "king captured", "resigned" => "resigned", "forfeit" => "out of time" }[match.finish_reason]
-    [ won ? "won" : "lost", how && "(#{how})", "at turn #{match.turn}" ].compact.join(" ")
+    [ won ? "won" : "lost", how && "(#{how})", "at turn #{match.full_move}" ].compact.join(" ")
   end
 end

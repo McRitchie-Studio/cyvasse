@@ -25,8 +25,8 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     assert_select "#unit-trebuchet dd", text: "Dragon, Spearman and Light Horse"
     assert_select "#combat p", text: /Every\s+Mountain blocks a shot, whichever army placed it/
     assert_select "#combat p", text: /Besides the Trebuchet and the Catapult, the King is the one unit that\s+trumps the Dragon/
-    assert_select "#special-rules .tutorial-card[data-tutorial=dragon] p", text: /or a King it strays too close to/
-    assert_select "#special-rules .tutorial-card[data-tutorial=range] figcaption", text: /reaches 4, not 3/
+    assert_select "#special-rules .special-rule-card[data-rule=dragon] p", text: /or a King it strays too close to/
+    assert_select "#special-rules .special-rule-card[data-rule=range] p", text: /shoots 4 hexes/
   end
 
   test "rules states that elephants now move 2" do
@@ -40,7 +40,7 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
   test "rules shows every unit with its vector art and stats" do
     get rules_path
 
-    assert_select ".unit-card", count: 11
+    assert_select "#units .unit-card", count: 11
     Piece.all.each do |piece|
       assert_select "#unit-#{piece.slug}" do
         assert_select "h4", text: piece.name
@@ -64,24 +64,68 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     assert_select "#quick-start dd", text: /neither side can move, it is a draw/
   end
 
-  test "the screenshots from before the April 2015 changes say so" do
+  # Production audit #5: the Special Rules cards were the legacy tutorial
+  # screenshots, a Trebuchet printed with Movement 1 / Range 3. They are live
+  # Rulebook cards now, so a stat change reaches them without an image edit.
+  test "the special rules cards render the trebuchet and heavy horse from the rulebook" do
     get rules_path
 
-    assert_select "#special-rules .tutorial-card[data-tutorial=trump] figcaption",
-                  text: /Before the April 2015 rule changes.*Spearmen no longer trump Heavy Horse/m
-    assert_select "#special-rules .tutorial-card[data-tutorial=range] figcaption",
-                  text: /Before the April 2015 rule changes.*Trebuchets can no longer move/m
-    assert_select "#special-rules .tutorial-card[data-tutorial=trump] figcaption a[href=?]", "/rules#rule-changes"
-    assert_select "#special-rules .tutorial-card[data-tutorial=cavalry] figcaption", 0
-    assert_select "#special-rules .tutorial-card[data-tutorial=dragon] figcaption", 0
+    trebuchet = Rulebook.fetch("trebuchet")
+    heavy_horse = Rulebook.fetch("heavyhorse")
+    assert_select "#special-rules .special-rule-card[data-rule=range] .unit-card[data-unit=trebuchet]" do
+      assert_select "h4", text: "Trebuchet"
+      assert_select "dd[data-stat=movement]", text: trebuchet.movement
+      assert_select "dd[data-stat=range]", text: trebuchet.range.to_s
+      assert_select "dd[data-stat=movement]", text: "1", count: 0
+      assert_select "dd[data-stat=range]", text: "3", count: 0
+      assert_select "dd.unit-stat-marked[data-stat=range]"
+    end
+    assert_select "#special-rules .special-rule-card[data-rule=cavalry] .unit-card[data-unit=heavyhorse]" do
+      assert_select "dd[data-stat=movement]", text: heavy_horse.movement
+      assert_select "dd[data-stat=strength]", text: heavy_horse.strength
+    end
+    assert_select "#special-rules .special-rule-card[data-rule=cavalry] .unit-card[data-unit=lighthorse] dd[data-stat=movement]",
+                  text: Rulebook.fetch("lighthorse").movement
+    assert_select "#special-rules .special-rule-card[data-rule=trump] .unit-card[data-unit=spearman] dd[data-stat=trump]",
+                  text: "Light Horse"
+    assert_select "#special-rules img[src*='/assets/tutorial/']", 0
+    assert_select "#special-rules .unit-card[id]", 0, "the units list owns the unit-<slug> ids"
   end
 
-  test "rules carries the four tutorial images where the tutorial used them" do
+  # Production audit #6: "primary movement is 3 and the secondary is 2" was only
+  # the Light Horse; each horse now gets its own first jump.
+  test "the cavalry rule gives each horse its own movement" do
     get rules_path
 
-    %w[range cavalry dragon trump].each do |image|
-      assert_select "#special-rules .tutorial-card[data-tutorial=#{image}] img[src*='/assets/tutorial/#{image}-'][alt]"
-    end
+    body = css_select("#special-rules .special-rule-card[data-rule=cavalry] p").text.squish
+    assert_includes body, "The Light Horse's first jump reaches 3 and the Heavy Horse's reaches 2"
+    assert_includes body, "the second jump reaches #{Rulebook::CAVALRY_SECOND_JUMP} for both"
+    assert_no_match(/primary movement is 3/, body)
+  end
+
+  test "the rules count 19 pieces of 10 kinds, never 10 military pieces" do
+    get rules_path
+
+    page = response.parsed_body.text.squish
+    assert_no_match(/10 military pieces/i, page)
+    assert_select "#units p", text: /army has 19 pieces: 17 units of 10 kinds, and 2 Mountains/
+  end
+
+  test "the rules no longer promise an in-game tutorial" do
+    get rules_path
+
+    assert_no_match(/tutorial/i, response.parsed_body.text)
+  end
+
+  test "the dragon flies over everything but enemy range units and the enemy dragon" do
+    get rules_path
+
+    assert_select "#moving p", text: /enemy\s+Range units \(Crossbowman, Catapult and Trebuchet\) or the enemy\s+Dragon/
+  end
+
+  test "rules carries its banner image" do
+    get rules_path
+
     assert_select "header.page-banner img[src*='/assets/backgrounds/cyvasse_rules_background-']"
   end
 

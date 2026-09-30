@@ -11,6 +11,9 @@
 # Play Now together are paired once, never twice.
 class LiveSeek < ApplicationRecord
   SEARCH_TIME = 20.seconds
+  # The "You vs them" splash between a match being made and its board
+  # opening (live_seek_controller.js). The setup clock starts after it.
+  SPLASH = 5.seconds
   ALIVE = 4.seconds
   LOCK_KEY = 20_260_929
 
@@ -22,6 +25,9 @@ class LiveSeek < ApplicationRecord
   # How long a search lasts; the browser tests shorten it.
   def self.search_time = Rails.configuration.x.live_search_time.presence || SEARCH_TIME
 
+  # How long the versus splash runs; the browser tests shorten it.
+  def self.splash_time = Rails.configuration.x.live_splash_time.presence || SPLASH
+
   # Start searching for `user`, pairing at once with a live searcher if one is
   # waiting. Any earlier open search of theirs is dropped.
   def self.join!(user, now: Time.current)
@@ -31,7 +37,7 @@ class LiveSeek < ApplicationRecord
                     .where(last_seen_at: (now - ALIVE)..).order(:created_at).first
       seek = create!(user:, last_seen_at: now)
       if partner
-        match = Match.start_live!(partner.user, user)
+        match = Match.start_live!(partner.user, user, setup_grace: splash_time)
         partner.update!(match:)
         seek.update!(match:)
       end
@@ -56,7 +62,7 @@ class LiveSeek < ApplicationRecord
       reload
       update_columns(last_seen_at: now)
       if match.nil? && (computer || now >= ends_at)
-        update!(match: Match.start_live!(user, computer: true))
+        update!(match: Match.start_live!(user, computer: true, setup_grace: self.class.splash_time))
       end
     end
     self

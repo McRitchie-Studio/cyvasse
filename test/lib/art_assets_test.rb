@@ -9,16 +9,22 @@ class ArtAssetsTest < ActiveSupport::TestCase
     "backgrounds" => %w[cyvasse_404_background.png cyvasse_about_background.png cyvasse_background.png
                         cyvasse_message_background.png cyvasse_rules_background.png home],
     "title" => %w[cyvasse_title.png cyvasse_title2.png],
-    "tutorial" => %w[cavalry.png dragon.png range.png trump.png],
     "thanks" => %w[aarongray.jpg alexmcritchie.jpg bobbyblackstock.jpeg bobbywilson.jpg gschool.jpg
                    jefftaggart.jpeg seansmith.jpeg zachklabunde.jpeg]
   }.freeze
 
-  test "backgrounds, title, tutorial and thanks images are all imported" do
+  test "backgrounds, title and thanks images are all imported" do
     EXPECTED.each do |dir, files|
       assert_equal files.sort, Dir.children(IMAGES.join(dir)).sort, "app/assets/images/#{dir}"
     end
     assert IMAGES.join("hex.svg").file?, "hex.svg"
+  end
+
+  # The legacy tutorial screenshots printed unit stats into the image (a
+  # Trebuchet moving 1 and shooting 3); /rules now draws those cards from
+  # Rulebook, so they were dropped rather than left to go stale again.
+  test "the stat-bearing tutorial screenshots are gone" do
+    assert_not IMAGES.join("tutorial").exist?, "app/assets/images/tutorial"
   end
 
   # The originals ran to 600 KB a file; the import compressed them. This keeps a
