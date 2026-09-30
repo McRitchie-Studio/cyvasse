@@ -61,7 +61,39 @@ class RulesPageLayoutTest < ApplicationSystemTestCase
     assert_banner_crop "capture-the-king-mobile-"
   end
 
+  # Alex, 2026-09-29: clicking a stat a Special Rule explains scrolls to that
+  # rule, clear of the sticky navbar, and flashes the card.
+  test "a range value and a trump icon each land on their special rule, below the navbar" do
+    screen!(1440, 900, mobile: false)
+    visit rules_path
+
+    find("#unit-trebuchet dd[data-stat=range] a").click
+    assert_landed_on "rule-range"
+    find("#unit-rabble dd[data-stat=trump] a").click
+    assert_landed_on "rule-trumps"
+  end
+
   private
+
+  def assert_landed_on(id)
+    assert_selector "##{id}.rule-card-flash"
+    assert_equal "##{id}", page.evaluate_script("location.hash")
+    box = nil
+    assert(Capybara.using_wait_time(5) do
+      page.document.synchronize do
+        box = page.evaluate_script(<<~JS)
+          (() => {
+            const nav = [...document.querySelectorAll("body *")].find((el) => ["sticky", "fixed"].includes(getComputedStyle(el).position) && el.getBoundingClientRect().top <= 0 && el.getBoundingClientRect().height > 0)
+            const r = document.getElementById("#{id}").getBoundingClientRect()
+            return { top: r.top, navBottom: nav ? nav.getBoundingClientRect().bottom : 0, height: innerHeight }
+          })()
+        JS
+        raise Capybara::ExpectationNotMet, "#{id} still scrolling: #{box}" unless (box["top"] - box["navBottom"]).between?(0, 60)
+        true
+      end
+    end, "#{id} sits just under the navbar: #{box}")
+    assert_operator box["top"], :<, box["height"], "#{id} is on screen"
+  end
 
   def screen!(width, height, mobile:)
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
