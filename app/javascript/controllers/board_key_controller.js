@@ -24,7 +24,11 @@ export default class extends Controller {
     panel.style.maxHeight = ""
     if (!this.element.open) return
 
-    const toggle = this.element.querySelector("summary").getBoundingClientRect()
+    // Measure the box the panel's top/bottom: 100% resolve against: the key
+    // itself on a wide screen, but on a phone (game.css, max-width 639px) the
+    // whole timer card or board strip, which sits taller than the "?".
+    const anchor = panel.offsetParent || this.element.querySelector("summary")
+    const toggle = anchor.getBoundingClientRect()
     const nav = document.querySelector("header[data-pin=nav]")
     const { placement, maxHeight } = placeKey({
       toggleTop: toggle.top,

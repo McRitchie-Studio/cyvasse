@@ -48,6 +48,18 @@ class RulesAndNavPolishTest < ApplicationSystemTestCase
     screenshot("key-match-390")
     assert_inside box, "the match page's key at 390x844"
     assert_equal "above", box["placement"], "no room under the timer card, so it opens over the board"
+
+    # A small phone held sideways (568x320, under game.css's max-width 639px
+    # rules): the panel hangs from the whole timer card, whose top is some 63px
+    # above the "?". Its room above, measured from the "?", was 63px too
+    # generous, and the capped panel ran 54px under the navbar.
+    key.find("summary").click
+    phone(568, 320)
+    page.execute_script("arguments[0].scrollIntoView({ block: 'end' })", key)
+    key.find("summary").click
+    assert_selector ".match-panel-status details.cyvasse-legend[open][data-placement]"
+    box = page.evaluate_script(PANEL_JS, key)
+    assert_inside box, "the match page's key at 568x320"
   end
 
   test "844x390: the /play board key opens inside the screen" do
