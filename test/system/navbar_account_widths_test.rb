@@ -70,7 +70,6 @@ class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
 
   [ 390, 1440 ].each do |width|
     test "#{width}px signed out: the navbar says Sign in, never Log in" do
-      visit logout_path if respond_to?(:logout_path)
       Capybara.reset_sessions!
       at_width(width, mobile: width < 768)
       visit root_path
