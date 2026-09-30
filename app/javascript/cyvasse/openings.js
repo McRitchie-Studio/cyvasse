@@ -75,7 +75,7 @@ export const OPENINGS = Object.freeze([
     "Spearmen hold both wings, where light horse like to raid: a spearman takes a light horse, and a light horse cannot take a spearman. The king waits in the centre behind the catapult.",
     ["S.E...TE.S", ".R.RC.R..", "L..XKX.L", "H.M.M.H", "..D..."]),
   opening("crossbow-ambush", "Crossbow Ambush",
-    "Spearmen and mountains lead, and the crossbows hide in the second row, two hexes back, to shoot the rabble and light horse that slip through the gap.",
+    "Spearmen and mountains lead, and the crossbows hide in the second row, one row back, to shoot the rabble and light horse that slip through the gap.",
     ["L.S.MM.S.L", "..X.T.X..", ".HECDEH.", "R..K..R", "..R..."]),
   opening("the-keep", "The Keep",
     "The king stands in the middle of the fourth row, flanked by elephants, with the catapult and your dragon above it. The trebuchet fires from between the two front mountains.",
