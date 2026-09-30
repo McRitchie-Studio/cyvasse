@@ -43,7 +43,11 @@ class MatchLayoutSystemTest < ApplicationSystemTestCase
       visit match_path(@match)
       assert_panel_holds_the_noise
       versus, board, panel = [ ".match-versus-card", ".cyvasse-board-wrap", "aside.match-panel" ].map { box(_1) }
-      assert_in_delta board[:top], versus[:top], 1, "the board and the versus card start level"
+      # Task cyvasse-sidebar-reorder lifted the board: the wrap (banner row
+      # and all) now starts above the versus card, and the board itself sits
+      # near the card's top rather than a banner row and a hint row below it.
+      assert_operator board[:top], :<=, versus[:top], "the board's wrap starts level with or above the versus card"
+      assert_in_delta versus[:top], box("svg.cyvasse-board")[:top], 32, "the board's top sits near the versus card's"
       assert_operator versus[:bottom], :<=, panel[:top], "the versus card heads the sidebar"
       assert_operator board[:right], :<=, versus[:left], "the versus card sits right of the board"
       assert_in_delta versus[:left], panel[:left], 1
