@@ -611,7 +611,9 @@ then `heroku config:unset CANONICAL_HOST -a cyvasse` once the apex answers.
 Before the flip, register `https://<host>/auth/google_oauth2/callback` on the
 Google OAuth client, or Google sign-in fails on the new host. To back out,
 `heroku config:unset CANONICAL_REDIRECT -a cyvasse`; browsers that already
-followed a 301 keep it for up to a day (`max-age=86400`).
+followed a 301 keep it for up to an hour (`private, max-age=3600`). The flip
+signs everyone out (the old cookie stays on the old host), guests' in-session
+games included, so flip at a quiet moment.
 
 It feeds the routes' and mailers' `default_url_options`
 (`config/environments/production.rb`, and `ApplicationMailer#default_url_options`,
@@ -627,7 +629,11 @@ already sent survive the hop. It never redirects:
 - anything but GET and HEAD (a redirected POST loses its body; no form or
   webhook breaks),
 - `/up`, which the deploy gates and the release smoke probe on the herokuapp host,
-- `/api/` (the bot runner's bearer-token calls) and `/cable` (the websocket).
+- `/api/` (the bot runner's bearer-token calls) and `/cable` (the websocket),
+- any GET that is not a full-page navigation (`Sec-Fetch-Mode` other than
+  `navigate`, an XHR, or a JSON-only `Accept`): a live match's poll from a page
+  already open on the old host keeps working there, since a 301 to another
+  site would fail CORS and freeze the board while the clock runs.
 
 The bare domain is canonical: `cyvasse.xyz` reaches Heroku by an ALIAS record
 at the apex, and `www.cyvasse.xyz`, also on the Heroku app, is redirected by the
