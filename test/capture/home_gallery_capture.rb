@@ -349,12 +349,14 @@ class HomeGalleryCapture < ApplicationSystemTestCase
     { x:, y:, width: crop[:width], height: crop[:height] }
   end
 
-  # A PNG of a board-unit rectangle, `pixels` wide.
+  # A PNG of a board-unit rectangle, `pixels` wide. Chrome snaps the clip to
+  # whole CSS pixels before it scales, so the clip is rounded here first and
+  # the file comes out exactly `pixels` wide (the srcset's width descriptor).
   def shot(board, rect, pixels, path)
     css = board["scale"]
     clip = { x: board["left"] + rect[:x] * css, y: board["top"] + rect[:y] * css,
-             width: rect[:width] * css, height: rect[:height] * css }
-    clip[:scale] = pixels / clip[:width]
+             width: rect[:width] * css, height: rect[:height] * css }.transform_values(&:round)
+    clip[:scale] = pixels.fdiv(clip[:width])
     data = page.driver.browser.execute_cdp("Page.captureScreenshot", format: "png", captureBeyondViewport: true, clip:)
     File.binwrite(path, Base64.decode64(data.fetch("data")))
   end
