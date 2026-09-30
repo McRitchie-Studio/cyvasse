@@ -160,12 +160,12 @@ test("cavalry jumps twice with the same unit in one turn", () => {
   assert.deepEqual(game.selectableHexes(), [49], "only the horse may finish the turn");
   assert.throws(() => game.act(91, 85), /cannot act now/);
   const reach = game.actionsFrom(49).moves;
-  assert.ok(reach.includes(51) && !reach.includes(46), "the second jump reaches two hexes, not three");
-  const second = game.act(49, 51);
+  assert.ok(reach.includes(50) && !reach.includes(51), "the light horse's second jump reaches one hex, not two");
+  const second = game.act(49, 50);
   assert.equal(second.turnEnded, true);
   assert.equal(game.offense, COMPUTER);
   assert.equal(game.utilMove, 46, "the first jump's start stays marked");
-  assert.deepEqual(game.lastMove, [49, 51]);
+  assert.deepEqual(game.lastMove, [49, 50]);
 });
 
 // The second jump's origin is the hex the first jump ended on, and nothing
@@ -187,8 +187,8 @@ test("cavalry's second jump starts where the first ended, from no other hex", ()
     assert.deepEqual(board(), before, `nothing moved after the refused step from ${from}`);
   }
   assert.equal(game.offense, PLAYER, "the turn still belongs to the horse");
-  assert.equal(game.act(49, 51).turnEnded, true);
-  assert.equal(game.unit("1-8").hex, 51);
+  assert.equal(game.act(49, 50).turnEnded, true);
+  assert.equal(game.unit("1-8").hex, 50);
 });
 
 test("a shooter captures from where it stands", () => {

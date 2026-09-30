@@ -111,8 +111,9 @@ class RulesPageLayoutTest < ApplicationSystemTestCase
       })
     JS
     assert_empty off
-    icons = all("#unit-trebuchet .unit-trump-icon", minimum: 3)
-    assert_equal [ "Trumps Dragon", "Trumps Spearman", "Trumps Light Horse" ], icons.map { _1[:alt] }
+    # The trebuchet trumps only the dragon since the new stats of September 29, 2026.
+    icons = all("#unit-trebuchet .unit-trump-icon", minimum: 1)
+    assert_equal [ "Trumps Dragon" ], icons.map { _1[:alt] }
     scroll_to find("#unit-trebuchet") # the icons load lazily
     painted = "[...document.querySelectorAll('#unit-trebuchet .unit-trump-icon')].every((img) => img.complete && img.naturalWidth > 0)"
     assert(Capybara.using_wait_time(5) do
