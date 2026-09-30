@@ -26,8 +26,8 @@ class SessionCookieTest < ActiveSupport::TestCase
     options = CyvasseSessionCookie.options(production: true, env: { "STUDIO_SSO_SHARED_COOKIE" => "true" })
 
     assert_equal ".mcritchie.studio", cookie_domain_on("cyvasse.mcritchie.studio", options)
-    assert_nil cookie_domain_on("www.cyvasse.xyz", options),
-               "Domain=.mcritchie.studio from www.cyvasse.xyz is rejected by the browser; it must stay host-only"
+    assert_nil cookie_domain_on("cyvasse.xyz", options),
+               "Domain=.mcritchie.studio from cyvasse.xyz is rejected by the browser; it must stay host-only"
   end
 
   test "anything but true leaves the shared cookie off" do

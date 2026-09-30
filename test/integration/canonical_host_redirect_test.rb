@@ -2,11 +2,11 @@ require "test_helper"
 
 # [integration] Cyvasse::CanonicalHostRedirect through the whole middleware
 # stack. The "Cyvasse is back" emails link to cyvasse.mcritchie.studio with a
-# ?ref= delivery token; that host, the herokuapp host and any other now 301 to
-# www.cyvasse.xyz on the same path and query, while /up, the bot API, the
+# ?ref= delivery token; that host, www, the herokuapp host and any other 301 to
+# cyvasse.xyz on the same path and query, while /up, the bot API, the
 # cable and every non-GET stay where they are.
 class CanonicalHostRedirectTest < ActionDispatch::IntegrationTest
-  CANONICAL = "www.cyvasse.xyz".freeze
+  CANONICAL = "cyvasse.xyz".freeze
   OLD_HOST = "cyvasse.mcritchie.studio".freeze
   REF = "AbCdEfGhIjKlMnOpQrSt12".freeze
 
@@ -40,8 +40,8 @@ class CanonicalHostRedirectTest < ActionDispatch::IntegrationTest
     assert_equal "https://#{CANONICAL}/rules", response.location
   end
 
-  test "the herokuapp host and any other host redirect too" do
-    %w[cyvasse-614ed5f7e99d.herokuapp.com cyvasse.xyz].each do |host|
+  test "www, the herokuapp host and any other host redirect too" do
+    %w[www.cyvasse.xyz cyvasse-614ed5f7e99d.herokuapp.com other.example.com].each do |host|
       host! host
       get "/leaderboard"
 
@@ -66,14 +66,14 @@ class CanonicalHostRedirectTest < ActionDispatch::IntegrationTest
   end
 
   test "the canonical host matches whatever its case" do
-    host! "WWW.Cyvasse.XYZ"
+    host! "Cyvasse.XYZ"
     get "/rules"
 
     assert_response :success
   end
 
   test "/up is never redirected, on any host" do
-    [ OLD_HOST, "cyvasse-614ed5f7e99d.herokuapp.com" ].each do |host|
+    [ OLD_HOST, "www.cyvasse.xyz", "cyvasse-614ed5f7e99d.herokuapp.com" ].each do |host|
       host! host
       get "/up"
 

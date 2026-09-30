@@ -16,7 +16,7 @@
 # flag together.
 #
 # The shared cookie can only ever reach the old cyvasse.mcritchie.studio host.
-# Cyvasse lives on www.cyvasse.xyz now (lib/cyvasse/canonical_host.rb), a
+# Cyvasse lives on cyvasse.xyz now (lib/cyvasse/canonical_host.rb), a
 # different site the hub's cookie cannot reach, so hub SSO does not work there
 # whatever the flag says; there the cookie falls back to the request host.
 #
@@ -38,7 +38,7 @@ module CyvasseSessionCookie
     if production && shared?(env)
       # A list, not a string: Rails scopes the cookie to the entry the request
       # host ends with, and leaves it host-only when none matches. A bare
-      # string would send Domain=.mcritchie.studio from www.cyvasse.xyz, which
+      # string would send Domain=.mcritchie.studio from cyvasse.xyz, which
       # the browser rejects, and no one could stay signed in there.
       base.merge(key: HUB_KEY, domain: [ HUB_DOMAIN ])
     elsif production

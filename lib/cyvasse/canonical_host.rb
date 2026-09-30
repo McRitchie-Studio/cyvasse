@@ -1,15 +1,16 @@
 # The one public host Cyvasse lives on, and the one place that says so.
 #
 # Cyvasse moved from cyvasse.mcritchie.studio to its own domain, cyvasse.xyz
-# (task cyvasse-canonical-domain). Heroku serves https://www.cyvasse.xyz; the
-# bare cyvasse.xyz forwards to it at the registrar. Everything that builds an
+# (task cyvasse-canonical-domain). The bare domain is canonical: Heroku serves
+# https://cyvasse.xyz (an ALIAS record at the apex), and www.cyvasse.xyz, like
+# the old host, redirects to it. Everything that builds an
 # absolute URL reads the host from here: the routes' and mailers'
 # default_url_options (config/environments/production.rb, ApplicationMailer),
 # and Cyvasse::CanonicalHostRedirect, which 301s every other host here.
 # Later work (canonical tags, a sitemap, Open Graph image URLs) builds on
 # Cyvasse.canonical_host and Cyvasse.canonical_url rather than a new constant.
 #
-#   production   CANONICAL_HOST, else "www.cyvasse.xyz"
+#   production   CANONICAL_HOST, else "cyvasse.xyz"
 #   elsewhere    CANONICAL_HOST, else nil: a desk or a test keeps the request
 #                host, and nothing redirects
 #
@@ -20,10 +21,10 @@
 # before autoloading is set up.
 module Cyvasse
   module CanonicalHost
-    DEFAULT = "www.cyvasse.xyz".freeze
+    DEFAULT = "cyvasse.xyz".freeze
     PROTOCOL = "https".freeze
 
-    # The host alone ("www.cyvasse.xyz"), or nil where none is enforced.
+    # The host alone ("cyvasse.xyz"), or nil where none is enforced.
     def self.host(env: ENV, production: Rails.env.production?)
       configured = env["CANONICAL_HOST"].to_s.strip.downcase.presence
       configured || (DEFAULT if production)

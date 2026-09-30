@@ -2,7 +2,7 @@
 # POST /auth/google_oauth2 and OmniauthCallbacksController, beside the magic
 # link, as the hub wires it. On only where the OAuth client is configured
 # (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, with
-# https://www.cyvasse.xyz/auth/google_oauth2/callback registered on
+# https://cyvasse.xyz/auth/google_oauth2/callback registered on
 # it); unset, the app stays magic link only and draws no Google button
 # (config/initializers/studio.rb reads the same switch). Tests always run it,
 # against OmniAuth's mock.

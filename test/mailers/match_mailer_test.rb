@@ -58,7 +58,7 @@ class MatchMailerTest < ActionMailer::TestCase
 
   test "match links go to the canonical host where one is set" do
     previous = ENV["CANONICAL_HOST"]
-    ENV["CANONICAL_HOST"] = "www.cyvasse.xyz"
+    ENV["CANONICAL_HOST"] = "cyvasse.xyz"
     match = started_match(@home, @away)
     match.play!(@home, steps_for(GAME.fetch("turns").first))
     your_turn = MatchMailer.your_turn(match.reload, @away)
@@ -66,7 +66,7 @@ class MatchMailerTest < ActionMailer::TestCase
 
     [ your_turn, challenged ].each do |mail|
       [ mail.text_part, mail.html_part ].each do |part|
-        assert_includes part.body.to_s, "https://www.cyvasse.xyz/matches/"
+        assert_includes part.body.to_s, "https://cyvasse.xyz/matches/"
         refute_includes part.body.to_s, "cyvasse.mcritchie.studio"
         refute_includes part.body.to_s, "example.com/matches"
       end
