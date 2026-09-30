@@ -1,9 +1,21 @@
-<%# A page header over one of the original site's background screenshots.
-    Locals: image (logical asset path), title, subtitle (optional). The art
-    is decorative, so its alt is empty and the title carries the meaning; the
-    black scrim keeps the white type legible in both themes. %>
+<%# A page header over a background picture. Locals: image (logical asset
+    path), title, subtitle (optional), mobile_image (optional: a crop for a
+    phone, up to 640 px wide). The art is decorative, so its alt is empty and
+    the title carries the meaning; the black scrim keeps the white type
+    legible in both themes. With a mobile_image the picture is the page's
+    first paint, so it loads eagerly at high priority (the page preloads it).
+    width and height are the wide crop's, which only reserve its ratio:
+    object-cover fills the banner either way. %>
 <header class="page-banner relative overflow-hidden rounded-xl mb-10">
-  <%= image_tag image, alt: "", class: "absolute inset-0 w-full h-full object-cover", decoding: "async" %>
+  <% if local_assigns[:mobile_image] %>
+    <picture>
+      <source media="(max-width: 640px)" srcset="<%= image_path(mobile_image) %>">
+      <%= image_tag image, alt: "", class: "absolute inset-0 w-full h-full object-cover", width: 1800, height: 600,
+                           decoding: "async", loading: "eager", fetchpriority: "high" %>
+    </picture>
+  <% else %>
+    <%= image_tag image, alt: "", class: "absolute inset-0 w-full h-full object-cover", decoding: "async" %>
+  <% end %>
   <div class="relative px-6 py-12 sm:py-16 text-center page-banner-scrim">
     <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-2"><%= title %></h1>
     <% if local_assigns[:subtitle] %>
