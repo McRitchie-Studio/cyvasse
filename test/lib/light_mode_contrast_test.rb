@@ -4,7 +4,8 @@ require "test_helper"
 # cyvasse-contrast-and-names). The brand gold (#C08A2E) is 3.04:1 under white
 # and 2.9:1 as text on the light page; the engine's success green (#4BAF50) is
 # 2.78:1 under white. So the gold CTA fill is the primary scale's 700 shade in
-# both themes, gold text reads --cyvasse-gold-ink (700 light, 400 dark), and
+# both themes, gold text reads --cyvasse-gold-ink (700 light; the gold itself
+# on the dark page, 400 on a dark card), and
 # the green is config.theme_success, deeper. These measure the shades on every
 # surface the engine theme emits, and check the stylesheet still uses them.
 # test/system/contrast_test.rb measures the rendered page.
@@ -38,10 +39,13 @@ class LightModeContrastTest < ActiveSupport::TestCase
       shade = @palette.fetch("--color-primary-700")
       assert_operator ratio(shade, surface), :>=, AA, "light ink #{shade} on #{surface}"
     end
-    @dark_surfaces.each do |surface|
-      shade = @palette.fetch("--color-primary-400")
-      assert_operator ratio(shade, surface), :>=, AA, "dark ink #{shade} on #{surface}"
+    card = @theme.dark_mode_vars.fetch("--color-surface")
+    (@dark_surfaces - [ card ]).each do |ground|
+      gold = @palette.fetch("--color-primary")
+      assert_operator ratio(gold, ground), :>=, AA, "the brand gold as dark ink on #{ground}"
     end
+    assert_operator ratio(@palette.fetch("--color-primary"), card), :<, AA, "if the gold passes on a dark card, the card override can go"
+    assert_operator ratio(@palette.fetch("--color-primary-400"), card), :>=, AA, "the dark card ink"
   end
 
   test "white on the success green clears AA, where the engine default does not" do
@@ -52,7 +56,8 @@ class LightModeContrastTest < ActiveSupport::TestCase
   test "the stylesheet uses those shades" do
     root = @css[/^:root:root \{(.*?)\}/m, 1].to_s
     assert_match "--color-cta: var(--color-primary-700)", root
-    assert_match "--cyvasse-gold-ink: var(--color-primary-400)", root
+    assert_match "--cyvasse-gold-ink: var(--color-primary)", root
+    assert_match "--cyvasse-gold-ink: var(--color-primary-400)", @css[/^html:root\.dark :is\(\.card, \.bg-surface\) \{(.*?)\}/m, 1].to_s
     assert_match "--cyvasse-gold-ink: var(--color-primary-700)", @css[/^html:root:not\(\.dark\) \{(.*?)\}/m, 1].to_s
 
     assert_match "color: var(--cyvasse-gold-ink)", @css[/^\.text-primary,\n\.hover\\:text-primary:hover \{(.*?)\}/m, 1].to_s

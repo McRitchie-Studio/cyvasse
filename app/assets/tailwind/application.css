@@ -21,13 +21,19 @@
  *   :root:root outranks the engine theme's `html:not(.dark)` and `.dark`
  *   blocks, which also set --color-cta.
  * - Gold TEXT reads --cyvasse-gold-ink: the 700 shade on the light page
- *   (5.36:1) and the 400 shade on the dark ones (5.29:1 on a card).
+ *   (5.36:1). On the dark page the brand gold itself passes (5.75:1), so the
+ *   dark theme keeps it; only on a dark card or other bg-surface panel, where
+ *   it is 3.67:1, does it lift to the 400 shade (5.29:1).
  *
  * test/lib/light_mode_contrast_test.rb holds these numbers and
  * test/system/contrast_test.rb measures them in the browser. */
 :root:root {
   --color-cta: var(--color-primary-700);
   --color-cta-hover: var(--color-primary-800);
+  --cyvasse-gold-ink: var(--color-primary);
+}
+
+html:root.dark :is(.card, .bg-surface) {
   --cyvasse-gold-ink: var(--color-primary-400);
 }
 

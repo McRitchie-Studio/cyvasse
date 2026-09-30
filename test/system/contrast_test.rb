@@ -4,8 +4,9 @@ require "application_system_test_case"
 # from getComputedStyle, in the light theme and the dark (task
 # cyvasse-contrast-and-names; production UX audit finding 9): the gold "Log in"
 # button and Play Now, the green buttons on /play, and the gold text of the
-# navbar's app name and current-page link. Normal-size text owes 4.5:1, and
-# every one of these is held to it, the 30px app name included. Also, at 390px
+# navbar's app name and current-page link, and the gold text on a card.
+# Normal-size text owes 4.5:1, and every one of these is held to it, the 30px
+# app name included. Also, at 390px
 # the signed-in navbar shows one theme toggle and no truncated name (finding
 # 10). test/lib/light_mode_contrast_test.rb holds the same shades as numbers.
 # SCREENSHOTS=1 saves each view to tmp/screenshots/contrast-*.png.
@@ -43,6 +44,7 @@ class ContrastSystemTest < ApplicationSystemTestCase
       assert_aa find("header[data-pin=nav] a.btn-primary", text: "Log in"), "Log in (btn-primary)"
       assert_aa find("header[data-pin=nav] .nav-title .text-primary"), "the navbar's gold app name"
       assert_aa find("section.home-hero form button.btn-primary", text: "Play Now"), "Play Now (btn-primary)"
+      assert_aa find("[data-leaderboard-card] .leaderboard-inline-cta strong", text: "Play Now"), "the gold Play Now on the leaderboard card"
       screenshot("home-#{theme}")
     end
 
