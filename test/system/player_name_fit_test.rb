@@ -36,7 +36,7 @@ class PlayerNameFitTest < ApplicationSystemTestCase
         fontSize: parseFloat(style.fontSize),
         wrap: style.overflowWrap, wordBreak: style.wordBreak
       }
-    })(arguments[0])
+    })
   JS
 
   setup do
