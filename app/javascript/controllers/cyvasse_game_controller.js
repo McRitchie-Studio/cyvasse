@@ -10,6 +10,7 @@ import { threats } from "cyvasse/threats"
 import { EDGES, hexClaim, resolveEdges, threatRims, PERIMETER_STYLE } from "cyvasse/edges"
 import { playIntent, setupIntent } from "cyvasse/selection"
 import { smartLineup, smartSetupMode, SMART_LABELS, recentPicks, rememberPick } from "cyvasse/smart_setup"
+import { hexLabel, hexStates, selectionNote } from "cyvasse/hex_label"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -185,7 +186,8 @@ function shadeStops(rank) {
   return [[`${clear}%`, 0], ["100%", edge]]
 }
 
-const CONTROLS = "button, a, input, label, select, textarea, summary, [role=button]"
+// The board key (games/_threat_toggle) counts as a control: reading it keeps the picked piece.
+const CONTROLS = "button, a, input, label, select, textarea, summary, [role=button], .cyvasse-legend"
 
 export default class extends Controller {
   static targets = ["board", "banner", "status", "dock", "setupControls", "startButton", "info", "graveyard", "opponent", "hint", "threatToggle",
@@ -666,7 +668,6 @@ export default class extends Controller {
         delete node.group.dataset.rank
         node.shade.removeAttribute("fill")
       }
-      node.group.setAttribute("aria-label", unit ? `${unit.team === PLAYER ? "Your" : "Enemy"} ${unit.type.name.toLowerCase()}` : `Hex ${index}`)
       if (unit) {
         node.image.setAttribute("href", this.imagesValue[unit.type.codename])
       } else {
@@ -694,12 +695,50 @@ export default class extends Controller {
     }
 
     this.paintGround()
+    this.labelHexes()
     this.renderThreats()
     this.renderHint()
     this.renderDock()
     this.renderStatus()
     this.renderGraveyards()
     this.renderInfo(this.selectedUnitId ? game.unit(this.selectedUnitId) : null)
+  }
+
+  // Each hex's aria-label (cyvasse/hex_label): what stands on it, and while a
+  // unit of the player's is picked, what a click there would do. The picked
+  // unit's hex is aria-pressed; no other hex carries the attribute. Keyboard
+  // play hears the board this way; the status line says what was picked.
+  labelHexes() {
+    const game = this.game
+    const pieceAt = (index) => game.pieceAt(index)
+    let states
+    if (game.phase === "setup") {
+      const selected = this.selectedUnitId && game.unit(this.selectedUnitId)
+      const drops = [...this.hexNodes].filter(([, { group }]) => group.classList.contains("is-drop")).map(([index]) => index)
+      states = selected ? hexStates({ dropHexes: drops, selectedHex: selected.hex ?? null }) : new Map()
+    } else {
+      states = hexStates({ hexes: this.hexNodes.keys(), pieceAt, selectedHex: this.selectedHex, actions: this.actions })
+    }
+    for (const [index, { group }] of this.hexNodes) {
+      const state = states.get(index)
+      const label = hexLabel(index, pieceAt(index), state)
+      if (group.getAttribute("aria-label") !== label) group.setAttribute("aria-label", label)
+      if (state === "selected") group.setAttribute("aria-pressed", "true")
+      else group.removeAttribute("aria-pressed")
+    }
+  }
+
+  // The status line's word on the player's picked unit, or "" (selectionNote).
+  pickedNote() {
+    if (this.selectedHex == null || !this.actions) return ""
+    const unit = this.game.pieceAt(this.selectedHex)
+    return unit?.team === PLAYER ? selectionNote(unit, this.actions) : ""
+  }
+
+  // The status line is the board's one live region: write it only on a
+  // change, so a redraw that says the same thing is not read out again.
+  setStatus(text) {
+    if (this.statusTarget.textContent !== text) this.statusTarget.textContent = text
   }
 
   // Each hex's resting fill, from the classes render() just set. It is the
@@ -843,10 +882,12 @@ export default class extends Controller {
     } else if (game.offense === PLAYER) {
       const turn = fullMove(game.turn)
       text = game.jump === 2 ? `Turn ${turn}: your cavalry jumps again.` : `Turn ${turn}: your move.`
+      const picked = this.pickedNote()
+      if (picked) text = `${text} ${picked}`
     } else {
       text = `Turn ${fullMove(game.turn)}: the opponent is thinking.`
     }
-    this.statusTarget.textContent = this.notice && game.phase === "play" ? `${this.notice} ${text}` : text
+    this.setStatus(this.notice && game.phase === "play" ? `${this.notice} ${text}` : text)
   }
 
   // The fallen card stays hidden until a unit of either side falls.
@@ -913,8 +954,10 @@ export default class extends Controller {
     for (const i of this.actions.moves) this.hexNodes.get(i).group.classList.add("is-move")
     for (const i of this.actions.attacks) this.hexNodes.get(i).group.classList.add("is-attack")
     this.renderEdges()
+    this.labelHexes()
     this.ripple(unit)
     this.renderHint()
+    this.renderStatus()
   }
 
   clearSelection() {
