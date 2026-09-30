@@ -5,12 +5,17 @@
     the reader's skin, the way the match sidebar's unit card shows it. The
     art sits bare on the card, with no parchment tile (the dark theme's glow
     is in application.css).
-    The Units list gives each card an id; the Special Rules cards reuse it
-    without one and pass `highlight`, the stats their rule is about
-    (:movement, :strength, :range, :trump), which take the gold marker the old
-    tutorial screenshots circled by hand.
-    Locals: unit (Rulebook::Unit), id (optional), highlight (optional). %>
-<% highlight = local_assigns.fetch(:highlight, []) %>
+    The Units list gives each card an id and passes `rule_links`: a stat a
+    Special Rule explains (a Range, a horse's two jumps, the Dragon's flight,
+    a trump) links to that rule's card, #rule-<key> (Alex, 2026-09-29). The
+    Special Rules cards reuse the partial without either and pass
+    `highlight`, the stats their rule is about (:movement, :strength, :range,
+    :trump), which take the gold marker the old tutorial screenshots circled
+    by hand.
+    Locals: unit (Rulebook::Unit), id (optional), highlight (optional),
+    rule_links (optional). %>
+<% highlight = local_assigns.fetch(:highlight, [])
+   rule_links = local_assigns.fetch(:rule_links, false) %>
 <%# Strength heads the stats, then Movement (Alex, 2026-09-29); a Range unit
     leads with its Range, the stat that matters most in its class. %>
 <% stats = [ [ :strength, "Strength", unit.strength ], [ :movement, "Movement", unit.movement ] ]
@@ -18,7 +23,20 @@
    stats << [ :trump, "Trump", unit.trumped_pieces ]
    # A long worded value is set short, at the size of a number, with the
    # full meaning kept as its title and for screen readers.
-   short_values = { "Moves in a straight line" => [ "Straight lines", "Moves any distance in a straight line" ] } %>
+   short_values = { "Moves in a straight line" => [ "Straight lines", "Moves any distance in a straight line" ] }
+   # The Special Rules card (pages/_special_rules) that explains a stat, as
+   # [anchor, card title], or nil when no rule is about it.
+   rule_for = lambda do |key|
+     next unless rule_links
+     case key
+     when :range then [ "rule-range", "Range Units" ]
+     when :movement
+       if unit.jumps then [ "rule-cavalry", "Cavalry Units" ]
+       elsif unit.slug == "dragon" then [ "rule-dragon", "Your Dragon" ]
+       end
+     when :trump then [ "rule-trumps", "Trumps" ]
+     end
+   end %>
 <article <%= tag.attributes(id: local_assigns[:id]) %> class="unit-card card p-4" data-unit="<%= unit.slug %>">
   <div class="unit-card-body">
     <figure class="unit-card-art" data-skin="<%= current_skin %>">
@@ -27,7 +45,8 @@
     <h4 class="unit-card-name text-lg font-bold text-heading leading-tight"><%= unit.name %></h4>
     <dl class="unit-stats">
       <% stats.each do |key, label, value| %>
-        <% marked = highlight.include?(key) %>
+        <% marked = highlight.include?(key)
+           anchor, rule = rule_for.call(key) %>
         <div class="unit-stat<%= " unit-stat-marked" if marked %>" data-stat="<%= key %>">
           <dt class="unit-stat-label text-xs font-semibold uppercase tracking-wider <%= marked ? "text-heading" : "text-muted" %>" data-stat="<%= key %>"><%= label %></dt>
           <% if key == :trump %>
@@ -36,18 +55,26 @@
                 <span aria-label="None">—</span>
               <% else %>
                 <% value.each do |piece| %>
-                  <%= image_tag piece.image(current_skin), alt: "Trumps #{piece.name}", title: "Trumps #{piece.name}",
-                        class: "unit-trump-icon", data: { trump: piece.slug }, loading: "lazy", decoding: "async" %>
+                  <% icon = image_tag(piece.image(current_skin), alt: "Trumps #{piece.name}", title: "Trumps #{piece.name}",
+                                      class: "unit-trump-icon", data: { trump: piece.slug }, loading: "lazy", decoding: "async") %>
+                  <% if anchor %>
+                    <a href="#<%= anchor %>" class="unit-stat-link" data-rule-link="<%= anchor %>" aria-label="Trumps <%= piece.name %> — see the <%= rule %> rule"><%= icon %></a>
+                  <% else %>
+                    <%= icon %>
+                  <% end %>
                 <% end %>
               <% end %>
             </dd>
           <% else %>
             <% short, full = short_values[value] %>
-            <% if short %>
-              <dd class="unit-stat-value text-xl font-bold text-heading leading-snug" data-stat="<%= key %>" title="<%= full %>"><span aria-hidden="true"><%= short %></span><span class="sr-only"><%= full %></span></dd>
-            <% else %>
-              <dd class="unit-stat-value text-xl font-bold text-heading leading-snug" data-stat="<%= key %>"><%= value %></dd>
-            <% end %>
+            <dd class="unit-stat-value text-xl font-bold text-heading leading-snug" data-stat="<%= key %>" <%= tag.attributes(title: full) %>>
+              <% text = capture do %><% if short %><span aria-hidden="true"><%= short %></span><span class="sr-only"><%= full %></span><% else %><%= value %><% end %><% end %>
+              <% if anchor %>
+                <a href="#<%= anchor %>" class="unit-stat-link" data-rule-link="<%= anchor %>" aria-label="<%= label %> <%= short ? full.downcase : value %> — see the <%= rule %> rule"><%= text %></a>
+              <% else %>
+                <%= text %>
+              <% end %>
+            </dd>
           <% end %>
         </div>
       <% end %>

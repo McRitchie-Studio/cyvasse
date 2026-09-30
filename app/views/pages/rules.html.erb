@@ -10,7 +10,7 @@
   <link rel="preload" as="image" href="<%= image_path(hero) %>" media="(min-width: 641px)" fetchpriority="high">
   <link rel="preload" as="image" href="<%= image_path(hero_mobile) %>" media="(max-width: 640px)" fetchpriority="high">
 <% end %>
-<article class="max-w-3xl mx-auto rules-page">
+<article class="max-w-3xl mx-auto rules-page" data-controller="rule-links" data-action="click->rule-links#follow">
   <%= render "pages/banner", image: hero, mobile_image: hero_mobile, title: "Rules",
                              subtitle: "The goal of Cyvasse is to capture your opponent's king." %>
 
@@ -134,12 +134,6 @@
     </section>
   </div>
 
-  <section id="special-rules" class="mb-12">
-    <h2 class="text-2xl font-bold text-heading mb-2">Special Rules</h2>
-    <p class="text-secondary leading-relaxed mb-5">Four rules worth knowing before your first game.</p>
-    <%= render "pages/special_rules" %>
-  </section>
-
   <section id="units" class="mb-12">
     <h2 class="text-2xl font-bold text-heading mb-2">Units</h2>
     <p class="text-secondary leading-relaxed mb-6">
@@ -160,12 +154,18 @@
               portrait column at every width (.unit-card). %>
           <div class="unit-grid">
             <% unit_class.units.each do |unit| %>
-              <%= render "pages/unit_card", unit:, id: "unit-#{unit.slug}" %>
+              <%= render "pages/unit_card", unit:, id: "unit-#{unit.slug}", rule_links: true %>
             <% end %>
           </div>
         </section>
       <% end %>
     </div>
+  </section>
+
+  <section id="special-rules" class="mb-12">
+    <h2 class="text-2xl font-bold text-heading mb-2">Special Rules</h2>
+    <p class="text-secondary leading-relaxed mb-5">Four rules worth knowing before your first game.</p>
+    <%= render "pages/special_rules" %>
   </section>
 
   <section id="rule-changes" class="card p-5 mb-6">
