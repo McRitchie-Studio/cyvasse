@@ -64,6 +64,28 @@ class ContrastSystemTest < ApplicationSystemTestCase
     end
   end
 
+  # The setup clock in the phone dock turns red in its last seconds. On the
+  # dark dock sheet (a bg-surface card) #dc2626 was 2.31:1; the dark theme
+  # now takes the engine's danger ink. Light mode keeps #dc2626.
+  %w[light dark].each do |theme|
+    test "#{theme}: the urgent setup clock in the phone dock clears AA" do
+      arya = User.create!(email: "arya-#{theme}@example.com", name: "Arya", username: "arya#{theme}")
+      match = Match.start_live!(arya, computer: true, rng: Random.new(4))
+      visit link_path(token: Studio::Link.create_magic_link(email: arya.email).token)
+      assert_text "Signed in as #{arya.player_name}"
+
+      page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+      visit_in_theme(match_path(match), theme)
+      clock = find(".cyvasse-army .cyvasse-army-clock", text: /\A\d+s\z/)
+      page.execute_script("arguments[0].classList.add('is-warning')", clock)
+
+      assert_aa clock, "the urgent setup clock"
+      color = page.evaluate_script("getComputedStyle(arguments[0]).color", clock)
+      assert_equal "rgb(220, 38, 38)", color, "light mode keeps #dc2626" if theme == "light"
+      screenshot("dock-clock-#{theme}")
+    end
+  end
+
   test "390px: the signed-in navbar shows one theme toggle and the avatar, not a truncated name" do
     guest = User.create_guest!(rng: Random.new(13))
     guest.update!(email: "contrast-phone@example.com")
