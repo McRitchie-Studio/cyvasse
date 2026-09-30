@@ -9,9 +9,11 @@ import { fullMove } from "cyvasse/turns"
 import { threats } from "cyvasse/threats"
 import { EDGES, hexClaim, resolveEdges, threatRims, PERIMETER_STYLE } from "cyvasse/edges"
 import { LastMoveMarker, lastMoveKey } from "cyvasse/last_move"
+import { hexCorners, artClipCorners, pointsAttribute } from "cyvasse/art_clip"
 import { playIntent, setupIntent } from "cyvasse/selection"
 import { smartLineup, smartSetupMode, SMART_LABELS, recentPicks, rememberPick } from "cyvasse/smart_setup"
 import { hexLabel, hexStates, selectionNote } from "cyvasse/hex_label"
+import { setupScrollBy } from "cyvasse/setup_fit"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -203,6 +205,7 @@ export default class extends Controller {
   disconnect() {
     this.lastMoveMarker?.stop()
     this.dockObserver?.disconnect()
+    clearTimeout(this.setupFitTimer)
     this.cursorEvents?.abort()
     this.clearTimers()
     this.bannerBox.hide()
@@ -390,14 +393,14 @@ export default class extends Controller {
     if (this.game.phase !== "setup") return
     this.selectedUnitId = event.currentTarget.dataset.unitId
     this.render()
-    this.showBoardAboveDock()
+    this.showBoardForSetup()
   }
 
-  // ---- The phone setup dock (game.css, "phone setup dock") -------------------
-  // On a phone the army card is a sheet fixed to the bottom of the screen
-  // during setup. Its measured height (--dock-sheet) pads the page, so the
-  // panel under the board scrolls clear of it, and sets the board's scroll
-  // margin, so the board is never left under it.
+  // ---- The setup layouts (game.css, "setup layouts") ------------------------
+  // Under 1024px the army card is a sheet fixed to the screen during setup:
+  // at the bottom held upright, at the right on its side. The bottom sheet's
+  // measured height (--dock-sheet) pads the page, so the panel under the
+  // board scrolls clear of it, and caps the board, so it fits above it.
 
   watchDock() {
     this.dockObserver?.disconnect()
@@ -406,49 +409,60 @@ export default class extends Controller {
     this.dockObserver.observe(this.armyTarget)
   }
 
-  get docked() {
-    return this.hasArmyTarget && getComputedStyle(this.armyTarget).position === "fixed"
+  // Which fit the screen's setup layout keeps (game.css --setup-fit):
+  // "bottom", "side", "page", or "" (a desktop, which needs no help).
+  get setupFit() {
+    return getComputedStyle(this.element).getPropertyValue("--setup-fit").trim()
   }
 
   measureDock() {
-    const height = this.docked ? Math.ceil(this.armyTarget.getBoundingClientRect().height) : 0
+    const bottom = this.hasArmyTarget && this.setupFit === "bottom"
+    const height = bottom ? Math.ceil(this.armyTarget.getBoundingClientRect().height) : 0
     if (height > 0) this.element.style.setProperty("--dock-sheet", `${height}px`)
     else this.element.style.removeProperty("--dock-sheet")
   }
 
-  // Setup opening on a phone: the player's own five rows are the board's
-  // bottom, under the sheet until the page scrolls. Bring the board above
-  // the sheet once, as a pick does, after the sheet has laid out, so those
-  // rows are in view before the first pick.
+  // Setup opening: on a phone the player's own five rows are the board's
+  // bottom, off the screen or under the sheet until the page scrolls. Bring
+  // the board into view once, as a pick does, after the sheet has laid out,
+  // so those rows are in view before the first pick.
   showBoardWhenSetupOpens() {
     if (this.setupControlsTarget.hidden || this.setupBoardShown) return
     this.setupBoardShown = true
     requestAnimationFrame(() => {
       this.measureDock()
-      this.showBoardAboveDock()
+      this.showBoardForSetup()
     })
   }
 
-  // A unit picked from the sheet: bring the whole board into view between
-  // the pinned navbar and the sheet, once, so every placement after needs no
-  // scrolling. By hand, not scrollIntoView: the page's root clips sideways
-  // (overflow-x: clip), and Chrome then scrolls it into view not at all.
-  showBoardAboveDock() {
-    if (!this.docked) return
-    const board = this.boardTarget.getBoundingClientRect()
-    const pinned = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0
-    const top = pinned + 4
-    const bottom = this.armyTarget.getBoundingClientRect().top - 4
-    // The sheet's edge first: the navbar collapses as the page scrolls, which
-    // lifts the board further, so the room under it is only known afterwards.
-    // The board is capped to fit the collapsed room (game.css). The strip
-    // over the board may tuck under the navbar; the board itself may not.
-    let by = 0
-    if (board.bottom > bottom) by = board.bottom - bottom
-    else if (board.top < top) by = Math.max(board.top - top, board.bottom - bottom)
-    if (Math.abs(by) < 1) return
+  // A unit picked from the army card: scroll once so the whole board is on
+  // the screen under the pinned navbar: above a bottom sheet, beside a side
+  // sheet, or (a tablet on its side, "page") with the army card beside it,
+  // both in the page. Every placement after needs no scrolling. By hand, not
+  // scrollIntoView: the page's root clips sideways (overflow-x: clip), and
+  // Chrome then scrolls it into view not at all.
+  //
+  // The scroll collapses the pinned navbar, which then lifts the page under
+  // it by the height it lost; with a board capped close to the screen's
+  // height (a phone on its side), that can lift the board's top under the
+  // navbar. So once the scroll and the collapse have settled, one more pass
+  // puts it right; it moves nothing when the board already fits.
+  showBoardForSetup({ recheck = true } = {}) {
+    const fit = this.hasArmyTarget ? this.setupFit : ""
+    if (!fit) return
+    const by = setupScrollBy({
+      fit,
+      board: this.boardTarget.getBoundingClientRect(),
+      army: this.armyTarget.getBoundingClientRect(),
+      pinned: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0,
+      viewportHeight: window.innerHeight
+    })
+    if (!by) return
     const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
     window.scrollBy({ top: by, behavior: still ? "auto" : "smooth" })
+    if (!recheck) return
+    clearTimeout(this.setupFitTimer)
+    this.setupFitTimer = setTimeout(() => this.showBoardForSetup({ recheck: false }), still ? 300 : 700)
   }
 
   setupClick(hex) {
@@ -593,15 +607,21 @@ export default class extends Controller {
     this.hexNodes = new Map()
     this.hexCentres = new Map()
 
-    const FULL = [[0, -H / 2], [W / 2, -H / 4], [W / 2, H / 4], [0, H / 2], [-W / 2, H / 4], [-W / 2, -H / 4]]
-    const cornersAt = (scale) => FULL.map(([x, y]) => `${(x * scale).toFixed(2)},${(y * scale).toFixed(2)}`).join(" ")
+    const FULL = hexCorners(W, H)
+    const cornersAt = (scale) => pointsAttribute(hexCorners(W, H, scale))
     const corners = cornersAt(0.97)
     // Inset, inside the band a highlight edge draws over.
     const dangerCorners = cornersAt(0.935)
-    // The art is clipped to its hex's outline: however large its size tier
-    // draws it (game.css), no wing, arm or snow foot reaches a neighbour.
+    // The art, and the pencil skin's parchment disc, stand on their hex
+    // (cyvasse/art_clip): cut along its right, lower-right and lower-left
+    // outline, free to rise over the hexes behind it, up and to the left.
+    // The paint order does the rest: hexes draw in reading order, rows top to
+    // bottom and each row left to right, so a piece's art covers the hexes
+    // behind it and the hexes in front of it cover nothing of it (the clip
+    // keeps it off them). Every highlight border, the threat outline among
+    // them, draws after every hex (.hex-edges below), over all the art.
     const artClip = el("clipPath", { id: "hex-art-clip" })
-    artClip.append(el("polygon", { points: corners }))
+    artClip.append(el("polygon", { points: pointsAttribute(artClipCorners(W, H, { scale: 0.97 })) }))
     defs.append(artClip)
 
     for (const hex of HEXES) {
@@ -619,8 +639,8 @@ export default class extends Controller {
       const disc = el("circle", { class: "unit-disc", r: 27 })
       const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
       const art = el("g", { class: "unit-art", "clip-path": "url(#hex-art-clip)" })
-      art.append(image)
-      group.append(polygon, texture, shade, glow, danger, disc, art)
+      art.append(disc, image)
+      group.append(polygon, texture, shade, glow, danger, art)
       svg.append(group)
       this.hexNodes.set(hex.index, { group, polygon, shade, glow, disc, image })
       this.hexCentres.set(hex.index, { x: cx, y: cy, row: hex.y })
@@ -797,9 +817,10 @@ export default class extends Controller {
       // render() takes the class off and puts it back in one pass, so a fade
       // already running keeps its start time; the new delay would then count
       // the elapsed time twice and jump the glow ahead. Start it over, so the
-      // delay alone sets how far through it is.
-      for (const fade of node.glow.getAnimations?.() ?? []) {
-        if (fade.animationName === "cyvasse-last-move") { fade.cancel(); fade.play() }
+      // delay alone sets how far through it is. The pencil skin's disc rim
+      // (game.css cyvasse-last-move-rim) runs on the same clock.
+      for (const fade of [node.glow, node.disc].flatMap((layer) => layer.getAnimations?.() ?? [])) {
+        if (fade.animationName?.startsWith("cyvasse-last-move")) { fade.cancel(); fade.play() }
       }
     }
   }

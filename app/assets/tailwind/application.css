@@ -251,11 +251,40 @@ html:root:not(.dark) {
  * label over a larger value (Alex's wireframe, cyvasse-rules-unit-card-layout).
  * One column at every width, so the Units list's thirds, its halves on a
  * tablet, a phone's single column and the Special Rules cards all read the
- * same; a long value ("Moves in a straight line") and a three-piece trump
+ * same; a long value and a three-piece trump
  * row wrap inside the card rather than spill. The card fills its grid cell,
  * so the cards in a row stand the same height. */
 .unit-card {
   height: 100%;
+}
+
+/* The Units list: one card a row on a phone, halves from 640px, thirds from
+ * 1024px, as a wrapping flex row so a short last row (the two horses) sits
+ * centred rather than leaving an empty third column (Alex, 2026-09-29). Each
+ * card keeps a full row's width; the row's cards stretch to one height. */
+.unit-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.unit-grid > .unit-card {
+  flex: 0 0 100%;
+  min-width: 0;
+  height: auto;
+}
+
+@media (min-width: 40rem) {
+  .unit-grid > .unit-card {
+    flex-basis: calc((100% - 1rem) / 2);
+  }
+}
+
+@media (min-width: 64rem) {
+  .unit-grid > .unit-card {
+    flex-basis: calc((100% - 2rem) / 3);
+  }
 }
 
 .unit-card-body {
@@ -335,6 +364,67 @@ html.dark .unit-card [data-skin="pencil"] > img {
  * behind the label and its value (the old screenshots circled them by hand). */
 .unit-stat-marked {
   background: rgb(var(--color-primary-rgb) / 0.25);
+}
+
+/* A Units-list stat that a Special Rule explains links to that rule's card
+ * (pages/_unit_card). It still reads as a stat, not a blue underlined link:
+ * a dotted gold underline and a faint gold wash on hover or focus, and a
+ * visible ring for the keyboard. */
+.unit-stat-link {
+  color: inherit;
+  text-decoration: none;
+  border-radius: 0.25rem;
+  padding: 0 0.125rem;
+}
+
+.unit-stat-link:hover,
+.unit-stat-link:focus-visible {
+  background: rgb(var(--color-primary-rgb) / 0.15);
+  text-decoration: underline dotted;
+  text-decoration-color: var(--cyvasse-gold-ink);
+  text-underline-offset: 3px;
+}
+
+.unit-stat-link:focus-visible {
+  outline: 2px solid var(--cyvasse-gold-ink);
+  outline-offset: 2px;
+}
+
+.unit-trumps .unit-stat-link {
+  display: inline-flex;
+  padding: 0.125rem;
+}
+
+/* A Special Rules card a stat link lands on (#rule-range and so on) clears
+ * the sticky navbar, and flashes a gold ring for 1.5s (rule_links_controller)
+ * so the eye finds it; under reduced motion the jump is instant and nothing
+ * flashes. */
+.special-rule-card {
+  scroll-margin-top: 5rem;
+}
+
+.special-rule-card:focus {
+  outline: none;
+}
+
+.special-rule-card.rule-card-flash {
+  animation: rule-card-flash 1.5s ease-out;
+}
+
+@keyframes rule-card-flash {
+  0%,
+  40% {
+    box-shadow: 0 0 0 3px var(--cyvasse-gold-ink), 0 0 18px rgb(var(--color-primary-rgb) / 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .special-rule-card.rule-card-flash {
+    animation: none;
+  }
 }
 
 /* Trumps: each trumped piece's art, bare like the card's art, in the

@@ -138,7 +138,8 @@ clicks into `Game` calls; it holds no rules. Highlight borders are drawn once
 per edge, full width, by whichever highlight owns it (`cyvasse/edges.js`:
 selection > move rings > danger > threat perimeter; the last move draws no
 edge, only a soft orange glow that fades away ten seconds after the move,
-`cyvasse/last_move.js`);
+`cyvasse/last_move.js`; in the pencil skin that glow, and the selection's,
+also rings the piece's parchment disc, `game.css` `--rim-glow`);
 the threat outline draws only the rim of the opponent's reach (one solid red
 rim; `PERIMETER_STYLE = "dual"` in `cyvasse/edges.js` draws melee's solid and
 ranged's dashed instead), and its two switches, "Ranged threats" (crossbowman, trebuchet, catapult: `RANGED_UNITS` in
@@ -241,8 +242,11 @@ be run daily by one.
 the "You vs them" splash (`LiveSeek.splash_time`, 5 s), not when the match is
 made: `Match.start_live!(..., setup_grace:)` sets `clock_started_at` that far
 ahead, so the deadline is one server time and both players get the same 60 s
-once their boards open. On a phone (640px and under) the army card docks as
-a sheet under the board during setup (`game.css`, "phone setup dock").
+once their boards open. During setup the board and the whole army card stay
+on the screen together on every touch screen (`game.css`, "setup layouts"):
+under 1024px the card docks as a sheet, under the board held upright and
+beside a height-sized board on its side; a tablet on its side keeps the
+desktop's two columns with the board capped to the screen.
 
 **The computer's pace.** The computer plays in steps a player can follow:
 it selects a unit after 2-5 s, moves it 3-5 s later, and makes a cavalry
@@ -425,9 +429,14 @@ piece matters shows in the size of its art instead, in three tiers
 (`sizeTier` in `cyvasse/units.js`, scaled in `app/assets/stylesheets/game.css`):
 rabble, spearman and crossbowman are small; the king and both horses a bit
 bigger; the trebuchet, catapult, elephant, dragon and mountains biggest. In the
-pencil skin the parchment disc and its drawing scale together. The art is
-clipped to its hex's outline, so no piece reaches a neighbour, and it never
-takes a click: the hex under it is the whole hit target.
+pencil skin the parchment disc and its drawing scale together. A piece stands
+on its tile (`cyvasse/art_clip.js`): its art is cut along its hex's right,
+lower-right and lower-left sides, and may rise past the upper-right,
+upper-left and left ones over the hexes behind it. The hexes draw back to
+front, rows top to bottom and each row left to right, so rising art covers
+the hexes behind it; the highlight borders, the threat outline among them,
+draw over all the art. The art never takes a click: the hex under it is the
+whole hit target, even where a neighbour's art reaches over it.
 
 ## Leaderboard
 

@@ -147,61 +147,97 @@
   fill: #f7f4ec;
 }
 
+/* The pencil skin's glow (task cyvasse-pencil-glow-visibility). Its parchment
+ * disc covers most of the hex, so the hex glow above showed only as faint
+ * orange corners, grey-brown over a blue team's rim. On a pencil piece the
+ * glow also rings the disc: a warm orange rim with a soft halo, inside the
+ * piece's art clip (so it is cut where the disc is) and under the art's
+ * linework. --rim-glow is the ring's strength, 0 to 1: it fades with the last
+ * move over the same ten seconds and on the same --last-move-delay clock, and
+ * breathes with the selection's pulse, never below 0.65. The vector skin has
+ * no disc and keeps the hex glow alone. */
+@property --rim-glow {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+[data-skin="pencil"] .cyvasse-board .has-unit:is(.is-last-move, .is-selected) .unit-disc {
+  stroke: #ff9a1f;
+  stroke-width: 2.5;
+  stroke-opacity: var(--rim-glow);
+  filter: drop-shadow(0 0 2.5px rgb(255 140 26 / calc(0.95 * var(--rim-glow))));
+}
+
+[data-skin="pencil"] .cyvasse-board .has-unit.is-selected .unit-disc {
+  animation: cyvasse-selected-rim 1.8s ease-in-out infinite;
+}
+
+[data-skin="pencil"] .cyvasse-board .has-unit.is-last-move:not(.is-selected) .unit-disc {
+  animation: cyvasse-last-move-rim 10s ease-in forwards;
+  animation-delay: var(--last-move-delay, 0ms);
+}
+
+@keyframes cyvasse-selected-rim {
+  0%, 100% { --rim-glow: 1; }
+  50% { --rim-glow: 0.65; }
+}
+
+@keyframes cyvasse-last-move-rim {
+  0% { --rim-glow: 1; }
+  25% { --rim-glow: 0.9; }
+  100% { --rim-glow: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-skin="pencil"] .cyvasse-board .has-unit.is-last-move:not(.is-selected) .unit-disc {
+    animation: none;
+    --rim-glow: 0.6;
+  }
+
+  [data-skin="pencil"] .cyvasse-board .has-unit.is-selected .unit-disc {
+    animation: none;
+    --rim-glow: 1;
+  }
+}
+
 /* The art fills about four fifths of its hex (the box is 56 x 60 around the
- * centre; the vector art carries its own margin). An SVG element scales about
- * the user-space origin, the hex centre, so every size below grows the art
- * evenly about the middle of its hex. The art never takes a click: the hex
- * polygon under it is the whole hit target, whatever the art's size.
+ * centre; the vector art carries its own margin). The art never takes a
+ * click: the hex polygon under it is the whole hit target, whatever the art's
+ * size, and wherever a neighbour's art reaches over it.
+ *
+ * A piece stands on its tile (task cyvasse-piece-art-overlap): the controller
+ * clips its art along the hex's right, lower-right and lower-left sides and
+ * lets it rise over the hexes behind it, up and to the left (cyvasse/art_clip,
+ * #hex-art-clip). So the art grows about a point low in its hex, --art-anchor
+ * below the centre, where the figures stand: a larger piece rises, rather than
+ * pushing its feet into the cut along the bottom.
  *
  * Size tiers (units.js sizeTier, set on the hex as data-tier): small pieces
- * (rabble, spearman, crossbowman) keep the vector art's own size; medium ones
- * (king, light and heavy horse) draw 1.1 times it, large ones (trebuchet,
- * catapult, elephant, dragon, mountain) 1.25 times, but never past --art-fit,
- * the most that art can grow before its drawing leaves the box of its hex's
- * white outline (58 x 67 around the centre). */
-.cyvasse-board .unit-image {
+ * (rabble, spearman, crossbowman) draw 1.1 times the art's own size, medium
+ * ones (king, light and heavy horse) 1.2 times, large ones (trebuchet,
+ * catapult, elephant, dragon, mountain) 1.35 times. No art is capped: the
+ * clip that once trimmed a wide drawing at every side now frees the upper
+ * ones, and the cut along the bottom is the tile's own edge. */
+.cyvasse-board .unit-image,
+.cyvasse-board .unit-disc {
   pointer-events: none;
-  --tier-scale: 1;
-  --art-fit: 9;
-  transform: scale(min(var(--tier-scale), var(--art-fit)));
+  --tier-scale: 1.1;
+  --art-anchor: 14px;
+  --art-scale: var(--tier-scale);
+  transform: translateY(var(--art-anchor)) scale(var(--art-scale)) translateY(calc(-1 * var(--art-anchor)));
 }
 
-.cyvasse-board .hex[data-tier="medium"] .unit-image { --tier-scale: 1.1; }
-.cyvasse-board .hex[data-tier="large"] .unit-image { --tier-scale: 1.25; }
-
-/* Vector art that already fills its canvas, capped from its drawn pixels.
- * The dragon's wings and tail, the elephant's rider and the trebuchet's arm
- * reach their hex's slanted edges at or near full size, so they grow only a
- * little. The controller clips every piece's art to its hex outline
- * (#hex-art-clip), so nothing reaches a neighbour; these caps keep the clip
- * to a trim of wing tips rather than a visible crop. The
- * mountain stands on a flat, full-width snow foot that runs past the hex's
- * lower edges into the hexes below if it grows much, so it draws only a
- * little larger than it did (0.86). The dragon, elephant and mountain so grow less than a medium
- * piece does, but each still draws larger than any medium piece: they fill
- * most of their canvas, where the king and the horses leave a wide margin
- * (test/system/piece_size_tiers_test.rb holds both). */
-[data-skin="vector"] .cyvasse-board .hex[data-unit="dragon"] .unit-image { --art-fit: 1.06; }
-[data-skin="vector"] .cyvasse-board .hex[data-unit="elephant"] .unit-image { --art-fit: 1.08; }
-[data-skin="vector"] .cyvasse-board .hex[data-unit="mountain"] .unit-image { --art-fit: 0.9; }
-[data-skin="vector"] .cyvasse-board .hex[data-unit="trebuchet"] .unit-image { --art-fit: 1.18; }
+.cyvasse-board .hex[data-tier="medium"] :is(.unit-image, .unit-disc) { --tier-scale: 1.2; }
+.cyvasse-board .hex[data-tier="large"] :is(.unit-image, .unit-disc) { --tier-scale: 1.35; }
 
 /* The pencil skin draws its piece as a token: black linework on a parchment
- * disc, the art at 0.84 of the disc. The large token's disc already fills its
- * hex side to side (radius 28 of the hex's 29), so the pencil tiers step down
- * from it, by the same ratios: the disc and its art scale together, to 0.8,
- * 0.88 and 1 of the large token. */
-[data-skin="pencil"] .cyvasse-board .unit-disc {
-  --token-scale: 0.83;
-  transform: scale(var(--token-scale));
-}
-
-[data-skin="pencil"] .cyvasse-board .hex[data-tier="medium"] .unit-disc { --token-scale: 0.913; }
-[data-skin="pencil"] .cyvasse-board .hex[data-tier="large"] .unit-disc { --token-scale: 1.0375; }
-
-[data-skin="pencil"] .cyvasse-board .unit-image {
-  transform: scale(calc(0.84 * 0.83 * var(--tier-scale)));
-}
+ * disc (radius 27), the art at 0.84 of the disc, the disc at 0.83 of the art
+ * box. Disc and art grow together, by the same tiers, and take the same clip:
+ * a large token rises over the hexes behind it and is cut flat along its
+ * tile's right and lower sides. */
+[data-skin="pencil"] .cyvasse-board .unit-disc { --art-scale: calc(0.83 * var(--tier-scale)); }
+[data-skin="pencil"] .cyvasse-board .unit-image { --art-scale: calc(0.84 * 0.83 * var(--tier-scale)); }
 
 /* A hex the ripple has lit (.is-lit) carries a faint diagonal hatch over its
  * gradient, for texture. It sits under the unit shade and the art, and never
@@ -789,8 +825,8 @@ html.dark [data-skin="pencil"] .dock-unit img {
  * mode, so no state change moves Ready, the dock or anything under the
  * card. With nothing placed Smart Setup is filled; after that it is hollow
  * and reads Place All, then New Setup. Ready stays muted until the army is
- * placed. The status says the count, so the count shows only in the phone
- * dock. */
+ * placed. The status says the count, so the count shows only in a docked
+ * sheet. */
 .cyvasse-army {
   --army-slot: 2.75rem;
   display: grid;
@@ -1044,8 +1080,24 @@ html.dark [data-skin="pencil"] .dock-unit img {
 }
 .cyvasse-legend-swatch[data-swatch="last-move"] polygon { fill: url(#cyvasse-legend-glow-last-move); opacity: 0.7; }
 
+/* In the pencil skin the two swatches also show the parchment disc the glow
+ * rings on the board; the vector skin has no disc. */
+.cyvasse-legend-disc { display: none; }
+[data-skin="pencil"] .cyvasse-legend-disc {
+  display: inline;
+  fill: #f7f4ec;
+  stroke: #ff9a1f;
+  stroke-width: 1.25;
+  filter: drop-shadow(0 0 1px rgb(255 140 26 / 0.95));
+}
+[data-skin="pencil"] .cyvasse-legend-swatch[data-swatch="selected"] .cyvasse-legend-disc {
+  animation: cyvasse-selected-rim 1.8s ease-in-out infinite;
+  stroke-opacity: var(--rim-glow);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cyvasse-legend-swatch[data-swatch="selected"] polygon { animation: none; }
+  [data-skin="pencil"] .cyvasse-legend-swatch[data-swatch="selected"] .cyvasse-legend-disc { animation: none; }
 }
 .cyvasse-legend-swatch[data-swatch="yours"] polygon { fill: hsl(217 60% 30%); }
 .cyvasse-legend-swatch[data-swatch="enemy"] polygon { fill: hsl(0 55% 28%); }
@@ -1130,46 +1182,44 @@ html.dark [data-skin="pencil"] .dock-unit img {
   }
 }
 
-/* The setup clock's copy in the army card: shown only in the phone dock. */
+/* The setup clock's copy in the army card: shown only in a docked sheet. */
 .cyvasse-army-clock {
   display: none;
 }
 
-/* Phone setup dock (task cyvasse-phone-setup-dock). On a phone the army card
- * followed the board, so picking a unit and placing it meant scrolling
- * between them, 19 times, on a running clock. During setup it docks instead:
- * a sheet fixed to the bottom of the screen, clear of the home indicator,
- * holding the count (and a live match's clock), every unit in three rows of
- * seven, and Smart Setup beside Ready. The rest of the panel (openings, saved
- * lineups) stays in the page, padded clear of the sheet. The controller
- * measures the sheet into --dock-sheet; the fallback is its usual height.
- * The board is capped to the screen left above the sheet and the pinned
- * navbar, and picking a unit scrolls it into view there
- * (showBoardAboveDock), so a whole setup needs no scrolling. Nothing in the
- * sheet moves as the army is placed: every tile keeps its slot and Smart
- * Setup keeps one place, only its label and fill change. */
-@media (max-width: 640px) {
-  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) {
-    --dock-sheet-h: var(--dock-sheet, calc(15.5rem + env(safe-area-inset-bottom, 0px)));
-    padding-bottom: calc(var(--dock-sheet-h) + 0.5rem);
-  }
+/* Setup layouts (tasks cyvasse-phone-setup-dock, cyvasse-dock-landscape-tablet).
+ * Placing 19 units means picking one from the army card and placing it on
+ * the board, 19 times, on a running clock, so the board and the whole army
+ * card (Smart Setup and Ready with it) are on the screen together for the
+ * whole setup, with no page scroll. Each screen gets the layout that fits:
+ *
+ * - under 1024px, held upright (phones, tablets in portrait): the card docks
+ *   as a sheet fixed to the bottom of the screen, under the board;
+ * - under 1024px, on its side (phones in landscape): the card docks as a
+ *   sheet fixed to the right of the screen, beside a board sized to the
+ *   screen's height;
+ * - 1024px and up on a touch screen (tablets in landscape): the desktop two
+ *   columns, the board capped to the screen's height;
+ * - desktop (1024px and up with a mouse) is untouched.
+ *
+ * --setup-fit names the fit to the controller (showBoardForSetup), which
+ * scrolls the board into view once, as setup opens and at a pick: "bottom"
+ * keeps the board between the pinned navbar and the sheet, "side" between
+ * the navbar and the screen's foot, and "page" keeps the board and the army
+ * card, both in the page, on the screen together. Nothing in a sheet moves
+ * as the army is placed: every tile keeps its slot and Smart Setup keeps one
+ * place, only its label and fill change. The rest of the panel (openings,
+ * saved lineups) stays in the page, clear of the sheet. */
 
-  /* The pinned navbar (about 6.5rem once collapsed) and the board's bar
-   * (2.5rem) share the screen with the board and the sheet. */
-  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) .cyvasse-board {
-    max-height: calc(100svh - var(--dock-sheet-h) - 9.5rem);
-  }
-
+/* Both sheets: the heading over the count (and a live match's clock), every
+ * unit, then Smart Setup beside Ready at the sheet's foot, in thumb reach. */
+@media (max-width: 1023px) {
   .cyvasse-setup-controls .cyvasse-army {
     --army-slot: 2.75rem;
     position: fixed;
-    inset: auto 0 0 0;
     z-index: 40;
     margin: 0;
     gap: 0.5rem 0.75rem;
-    padding: 0.625rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
-    border-radius: 1rem 1rem 0 0;
-    border-bottom-width: 0;
     box-shadow: 0 -10px 24px -14px rgb(0 0 0 / 0.45);
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: 1.25rem auto var(--army-slot);
@@ -1218,9 +1268,100 @@ html.dark [data-skin="pencil"] .dock-unit img {
   html.dark .cyvasse-setup-controls .cyvasse-army .cyvasse-army-clock.is-warning {
     color: var(--color-danger-ink);
   }
+}
+
+/* The bottom sheet, clear of the home indicator: every unit in three rows of
+ * seven on a phone. The controller measures the sheet into --dock-sheet; the
+ * fallback is its usual height. The page is padded clear of it, and the
+ * board is capped to the screen left above the sheet and the pinned navbar
+ * (about 6.5rem once collapsed) with the board's bar (2.5rem). */
+@media (max-width: 1023px) and (orientation: portrait) {
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) {
+    --setup-fit: bottom;
+    --dock-sheet-h: var(--dock-sheet, calc(15.5rem + env(safe-area-inset-bottom, 0px)));
+    padding-bottom: calc(var(--dock-sheet-h) + 0.5rem);
+  }
+
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) .cyvasse-board {
+    max-height: calc(100svh - var(--dock-sheet-h) - 9.5rem);
+  }
+
+  .cyvasse-setup-controls .cyvasse-army {
+    inset: auto 0 0 0;
+    padding: 0.625rem max(1rem, env(safe-area-inset-right, 0px)) calc(0.75rem + env(safe-area-inset-bottom, 0px)) max(1rem, env(safe-area-inset-left, 0px));
+    border-radius: 1rem 1rem 0 0;
+    border-bottom-width: 0;
+  }
 
   .cyvasse-setup-controls .cyvasse-army .cyvasse-dock {
     grid-template-columns: repeat(7, minmax(0, 3.25rem));
     justify-content: center;
+  }
+}
+
+/* A tablet held upright: wider tiles, in two rows of ten, so the sheet stays
+ * short and the board keeps its full size above it. */
+@media (min-width: 641px) and (max-width: 1023px) and (orientation: portrait) {
+  .cyvasse-setup-controls .cyvasse-army {
+    padding-inline: max(1.5rem, env(safe-area-inset-left, 0px)) max(1.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-dock {
+    grid-template-columns: repeat(10, minmax(0, 4.5rem));
+  }
+}
+
+/* The side sheet: a phone on its side has too little height for a board over
+ * a sheet, so the sheet takes the screen's right side, from under the pinned
+ * navbar to the foot, clear of the notch and the home indicator. The page is
+ * padded clear of it (main's own gutter is 1rem), and the board, left of it,
+ * is capped to the screen's height under the navbar (about 3.5rem once
+ * collapsed), the board's bar tucked under the navbar. The tiles are compact,
+ * three rows of seven; a sheet taller than the screen scrolls on its own. */
+@media (max-width: 1023px) and (orientation: landscape) {
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) {
+    --setup-fit: side;
+    --dock-side-w: clamp(16rem, 46vw, 24rem);
+    padding-right: calc(var(--dock-side-w) + env(safe-area-inset-right, 0px) - 0.25rem);
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) .cyvasse-board {
+    max-height: calc(100svh - 4.25rem);
+    max-width: min(44rem, calc((100svh - 4.25rem) * 1.12));
+  }
+
+  .cyvasse-setup-controls .cyvasse-army {
+    top: var(--pin-stack-bottom, 0px);
+    right: 0;
+    bottom: 0;
+    width: calc(var(--dock-side-w) + env(safe-area-inset-right, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    align-content: start;
+    padding: 0.625rem max(1rem, env(safe-area-inset-right, 0px)) calc(0.75rem + env(safe-area-inset-bottom, 0px)) 1rem;
+    border-radius: 1rem 0 0 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    box-shadow: -10px 0 24px -14px rgb(0 0 0 / 0.45);
+  }
+
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-dock {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
+/* A tablet on its side keeps the desktop's two columns; its screen is short,
+ * so the board is capped to leave the army card beside it on the screen
+ * (the navbar, about 3.5rem collapsed, and the card's lead over the board,
+ * about 5.5rem). A mouse (hover) marks a desktop, which is left as it was. */
+@media (min-width: 1024px) and (hover: none) and (pointer: coarse) {
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) {
+    --setup-fit: page;
+  }
+
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) .cyvasse-board {
+    max-height: calc(100svh - 10rem);
+    max-width: min(44rem, calc((100svh - 10rem) * 1.12));
   }
 }
