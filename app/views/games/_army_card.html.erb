@@ -12,15 +12,15 @@
     status line, the one live region, which stays put lower in the sidebar
     and is read, not shown, while this card is up; so a placement is
     announced once. The count is for the eye only too, and shows only in the
-    phone dock. The sparkle is decoration, hidden from screen readers; one
+    docked sheet. The sparkle is decoration, hidden from screen readers; one
     wrapping span keeps the space before the words, which a flex button
     would drop between two.
-    On a phone the card docks as a sheet under the board during setup
-    (game.css, "phone setup dock"): the heading over the count, with a copy
-    of a live match's setup clock (armyClock) beside it, every unit, then
-    Smart Setup beside Ready at the sheet's foot, in thumb reach. The timer
-    card's clock is out of view under the sheet. The copy is for the eye
-    only, as the count is. %>
+    Under 1024px the card docks as a sheet during setup, under the board
+    held upright and beside it on its side (game.css, "setup layouts"): the
+    heading over the count, with a copy of a live match's setup clock
+    (armyClock) beside it, every unit, then Smart Setup beside Ready at the
+    sheet's foot, in thumb reach. The timer card's clock is out of view
+    behind the sheet. The copy is for the eye only, as the count is. %>
 <div class="card p-4 cyvasse-army" data-army-mode="smart" data-<%= board %>-target="army">
   <h2 class="text-sm font-semibold uppercase tracking-widest text-muted text-center">Your army</h2>
   <p class="sr-only" id="<%= board %>-army-hint">

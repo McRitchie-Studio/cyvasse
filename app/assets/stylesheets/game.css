@@ -825,8 +825,8 @@ html.dark [data-skin="pencil"] .dock-unit img {
  * mode, so no state change moves Ready, the dock or anything under the
  * card. With nothing placed Smart Setup is filled; after that it is hollow
  * and reads Place All, then New Setup. Ready stays muted until the army is
- * placed. The status says the count, so the count shows only in the phone
- * dock. */
+ * placed. The status says the count, so the count shows only in a docked
+ * sheet. */
 .cyvasse-army {
   --army-slot: 2.75rem;
   display: grid;
@@ -1182,46 +1182,44 @@ html.dark [data-skin="pencil"] .dock-unit img {
   }
 }
 
-/* The setup clock's copy in the army card: shown only in the phone dock. */
+/* The setup clock's copy in the army card: shown only in a docked sheet. */
 .cyvasse-army-clock {
   display: none;
 }
 
-/* Phone setup dock (task cyvasse-phone-setup-dock). On a phone the army card
- * followed the board, so picking a unit and placing it meant scrolling
- * between them, 19 times, on a running clock. During setup it docks instead:
- * a sheet fixed to the bottom of the screen, clear of the home indicator,
- * holding the count (and a live match's clock), every unit in three rows of
- * seven, and Smart Setup beside Ready. The rest of the panel (openings, saved
- * lineups) stays in the page, padded clear of the sheet. The controller
- * measures the sheet into --dock-sheet; the fallback is its usual height.
- * The board is capped to the screen left above the sheet and the pinned
- * navbar, and picking a unit scrolls it into view there
- * (showBoardAboveDock), so a whole setup needs no scrolling. Nothing in the
- * sheet moves as the army is placed: every tile keeps its slot and Smart
- * Setup keeps one place, only its label and fill change. */
-@media (max-width: 640px) {
-  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) {
-    --dock-sheet-h: var(--dock-sheet, calc(15.5rem + env(safe-area-inset-bottom, 0px)));
-    padding-bottom: calc(var(--dock-sheet-h) + 0.5rem);
-  }
+/* Setup layouts (tasks cyvasse-phone-setup-dock, cyvasse-dock-landscape-tablet).
+ * Placing 19 units means picking one from the army card and placing it on
+ * the board, 19 times, on a running clock, so the board and the whole army
+ * card (Smart Setup and Ready with it) are on the screen together for the
+ * whole setup, with no page scroll. Each screen gets the layout that fits:
+ *
+ * - under 1024px, held upright (phones, tablets in portrait): the card docks
+ *   as a sheet fixed to the bottom of the screen, under the board;
+ * - under 1024px, on its side (phones in landscape): the card docks as a
+ *   sheet fixed to the right of the screen, beside a board sized to the
+ *   screen's height;
+ * - 1024px and up on a touch screen (tablets in landscape): the desktop two
+ *   columns, the board capped to the screen's height;
+ * - desktop (1024px and up with a mouse) is untouched.
+ *
+ * --setup-fit names the fit to the controller (showBoardForSetup), which
+ * scrolls the board into view once, as setup opens and at a pick: "bottom"
+ * keeps the board between the pinned navbar and the sheet, "side" between
+ * the navbar and the screen's foot, and "page" keeps the board and the army
+ * card, both in the page, on the screen together. Nothing in a sheet moves
+ * as the army is placed: every tile keeps its slot and Smart Setup keeps one
+ * place, only its label and fill change. The rest of the panel (openings,
+ * saved lineups) stays in the page, clear of the sheet. */
 
-  /* The pinned navbar (about 6.5rem once collapsed) and the board's bar
-   * (2.5rem) share the screen with the board and the sheet. */
-  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) .cyvasse-board {
-    max-height: calc(100svh - var(--dock-sheet-h) - 9.5rem);
-  }
-
+/* Both sheets: the heading over the count (and a live match's clock), every
+ * unit, then Smart Setup beside Ready at the sheet's foot, in thumb reach. */
+@media (max-width: 1023px) {
   .cyvasse-setup-controls .cyvasse-army {
     --army-slot: 2.75rem;
     position: fixed;
-    inset: auto 0 0 0;
     z-index: 40;
     margin: 0;
     gap: 0.5rem 0.75rem;
-    padding: 0.625rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
-    border-radius: 1rem 1rem 0 0;
-    border-bottom-width: 0;
     box-shadow: 0 -10px 24px -14px rgb(0 0 0 / 0.45);
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: 1.25rem auto var(--army-slot);
@@ -1270,9 +1268,100 @@ html.dark [data-skin="pencil"] .dock-unit img {
   html.dark .cyvasse-setup-controls .cyvasse-army .cyvasse-army-clock.is-warning {
     color: var(--color-danger-ink);
   }
+}
+
+/* The bottom sheet, clear of the home indicator: every unit in three rows of
+ * seven on a phone. The controller measures the sheet into --dock-sheet; the
+ * fallback is its usual height. The page is padded clear of it, and the
+ * board is capped to the screen left above the sheet and the pinned navbar
+ * (about 6.5rem once collapsed) with the board's bar (2.5rem). */
+@media (max-width: 1023px) and (orientation: portrait) {
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) {
+    --setup-fit: bottom;
+    --dock-sheet-h: var(--dock-sheet, calc(15.5rem + env(safe-area-inset-bottom, 0px)));
+    padding-bottom: calc(var(--dock-sheet-h) + 0.5rem);
+  }
+
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) .cyvasse-board {
+    max-height: calc(100svh - var(--dock-sheet-h) - 9.5rem);
+  }
+
+  .cyvasse-setup-controls .cyvasse-army {
+    inset: auto 0 0 0;
+    padding: 0.625rem max(1rem, env(safe-area-inset-right, 0px)) calc(0.75rem + env(safe-area-inset-bottom, 0px)) max(1rem, env(safe-area-inset-left, 0px));
+    border-radius: 1rem 1rem 0 0;
+    border-bottom-width: 0;
+  }
 
   .cyvasse-setup-controls .cyvasse-army .cyvasse-dock {
     grid-template-columns: repeat(7, minmax(0, 3.25rem));
     justify-content: center;
+  }
+}
+
+/* A tablet held upright: wider tiles, in two rows of ten, so the sheet stays
+ * short and the board keeps its full size above it. */
+@media (min-width: 641px) and (max-width: 1023px) and (orientation: portrait) {
+  .cyvasse-setup-controls .cyvasse-army {
+    padding-inline: max(1.5rem, env(safe-area-inset-left, 0px)) max(1.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-dock {
+    grid-template-columns: repeat(10, minmax(0, 4.5rem));
+  }
+}
+
+/* The side sheet: a phone on its side has too little height for a board over
+ * a sheet, so the sheet takes the screen's right side, from under the pinned
+ * navbar to the foot, clear of the notch and the home indicator. The page is
+ * padded clear of it (main's own gutter is 1rem), and the board, left of it,
+ * is capped to the screen's height under the navbar (about 3.5rem once
+ * collapsed), the board's bar tucked under the navbar. The tiles are compact,
+ * three rows of seven; a sheet taller than the screen scrolls on its own. */
+@media (max-width: 1023px) and (orientation: landscape) {
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) {
+    --setup-fit: side;
+    --dock-side-w: clamp(16rem, 46vw, 24rem);
+    padding-right: calc(var(--dock-side-w) + env(safe-area-inset-right, 0px) - 0.25rem);
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) .cyvasse-board {
+    max-height: calc(100svh - 4.25rem);
+    max-width: min(44rem, calc((100svh - 4.25rem) * 1.12));
+  }
+
+  .cyvasse-setup-controls .cyvasse-army {
+    top: var(--pin-stack-bottom, 0px);
+    right: 0;
+    bottom: 0;
+    width: calc(var(--dock-side-w) + env(safe-area-inset-right, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    align-content: start;
+    padding: 0.625rem max(1rem, env(safe-area-inset-right, 0px)) calc(0.75rem + env(safe-area-inset-bottom, 0px)) 1rem;
+    border-radius: 1rem 0 0 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    box-shadow: -10px 0 24px -14px rgb(0 0 0 / 0.45);
+  }
+
+  .cyvasse-setup-controls .cyvasse-army .cyvasse-dock {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
+/* A tablet on its side keeps the desktop's two columns; its screen is short,
+ * so the board is capped to leave the army card beside it on the screen
+ * (the navbar, about 3.5rem collapsed, and the card's lead over the board,
+ * about 5.5rem). A mouse (hover) marks a desktop, which is left as it was. */
+@media (min-width: 1024px) and (hover: none) and (pointer: coarse) {
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) {
+    --setup-fit: page;
+  }
+
+  .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) .cyvasse-board {
+    max-height: calc(100svh - 10rem);
+    max-width: min(44rem, calc((100svh - 10rem) * 1.12));
   }
 }
