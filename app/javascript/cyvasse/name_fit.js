@@ -12,10 +12,11 @@ export const FIT_STEP_PX = 0.5
 // `overflowsAt(px)` lays the name out at px and says whether it overflows.
 export function fitSize(base, floor, overflowsAt, step = FIT_STEP_PX) {
   const low = Math.min(base, floor)
-  for (let size = base; size >= low; size = Math.round((size - step) * 100) / 100) {
+  // The last step lands on the floor itself, so the floor is always tried.
+  for (let size = base; ; size = Math.max(low, Math.round((size - step) * 100) / 100)) {
     if (!overflowsAt(size)) return { size, truncated: false }
+    if (size <= low) return { size: low, truncated: true }
   }
-  return { size: low, truncated: true }
 }
 
 // Fits `el` (a .player-name) to its box. A hidden element has no box: it is
