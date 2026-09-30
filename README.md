@@ -138,7 +138,8 @@ clicks into `Game` calls; it holds no rules. Highlight borders are drawn once
 per edge, full width, by whichever highlight owns it (`cyvasse/edges.js`:
 selection > move rings > danger > threat perimeter; the last move draws no
 edge, only a soft orange glow that fades away ten seconds after the move,
-`cyvasse/last_move.js`);
+`cyvasse/last_move.js`; in the pencil skin that glow, and the selection's,
+also rings the piece's parchment disc, `game.css` `--rim-glow`);
 the threat outline draws only the rim of the opponent's reach (one solid red
 rim; `PERIMETER_STYLE = "dual"` in `cyvasse/edges.js` draws melee's solid and
 ranged's dashed instead), and its two switches, "Ranged threats" (crossbowman, trebuchet, catapult: `RANGED_UNITS` in

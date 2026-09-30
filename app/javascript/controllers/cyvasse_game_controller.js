@@ -817,9 +817,10 @@ export default class extends Controller {
       // render() takes the class off and puts it back in one pass, so a fade
       // already running keeps its start time; the new delay would then count
       // the elapsed time twice and jump the glow ahead. Start it over, so the
-      // delay alone sets how far through it is.
-      for (const fade of node.glow.getAnimations?.() ?? []) {
-        if (fade.animationName === "cyvasse-last-move") { fade.cancel(); fade.play() }
+      // delay alone sets how far through it is. The pencil skin's disc rim
+      // (game.css cyvasse-last-move-rim) runs on the same clock.
+      for (const fade of [node.glow, node.disc].flatMap((layer) => layer.getAnimations?.() ?? [])) {
+        if (fade.animationName?.startsWith("cyvasse-last-move")) { fade.cancel(); fade.play() }
       }
     }
   }
