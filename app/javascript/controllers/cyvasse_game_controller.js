@@ -13,6 +13,7 @@ import { hexCorners, artClipCorners, pointsAttribute } from "cyvasse/art_clip"
 import { playIntent, setupIntent } from "cyvasse/selection"
 import { smartLineup, smartSetupMode, SMART_LABELS, recentPicks, rememberPick } from "cyvasse/smart_setup"
 import { hexLabel, hexStates, selectionNote } from "cyvasse/hex_label"
+import { setupScrollBy } from "cyvasse/setup_fit"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -204,6 +205,7 @@ export default class extends Controller {
   disconnect() {
     this.lastMoveMarker?.stop()
     this.dockObserver?.disconnect()
+    clearTimeout(this.setupFitTimer)
     this.cursorEvents?.abort()
     this.clearTimers()
     this.bannerBox.hide()
@@ -391,14 +393,14 @@ export default class extends Controller {
     if (this.game.phase !== "setup") return
     this.selectedUnitId = event.currentTarget.dataset.unitId
     this.render()
-    this.showBoardAboveDock()
+    this.showBoardForSetup()
   }
 
-  // ---- The phone setup dock (game.css, "phone setup dock") -------------------
-  // On a phone the army card is a sheet fixed to the bottom of the screen
-  // during setup. Its measured height (--dock-sheet) pads the page, so the
-  // panel under the board scrolls clear of it, and sets the board's scroll
-  // margin, so the board is never left under it.
+  // ---- The setup layouts (game.css, "setup layouts") ------------------------
+  // Under 1024px the army card is a sheet fixed to the screen during setup:
+  // at the bottom held upright, at the right on its side. The bottom sheet's
+  // measured height (--dock-sheet) pads the page, so the panel under the
+  // board scrolls clear of it, and caps the board, so it fits above it.
 
   watchDock() {
     this.dockObserver?.disconnect()
@@ -407,49 +409,60 @@ export default class extends Controller {
     this.dockObserver.observe(this.armyTarget)
   }
 
-  get docked() {
-    return this.hasArmyTarget && getComputedStyle(this.armyTarget).position === "fixed"
+  // Which fit the screen's setup layout keeps (game.css --setup-fit):
+  // "bottom", "side", "page", or "" (a desktop, which needs no help).
+  get setupFit() {
+    return getComputedStyle(this.element).getPropertyValue("--setup-fit").trim()
   }
 
   measureDock() {
-    const height = this.docked ? Math.ceil(this.armyTarget.getBoundingClientRect().height) : 0
+    const bottom = this.hasArmyTarget && this.setupFit === "bottom"
+    const height = bottom ? Math.ceil(this.armyTarget.getBoundingClientRect().height) : 0
     if (height > 0) this.element.style.setProperty("--dock-sheet", `${height}px`)
     else this.element.style.removeProperty("--dock-sheet")
   }
 
-  // Setup opening on a phone: the player's own five rows are the board's
-  // bottom, under the sheet until the page scrolls. Bring the board above
-  // the sheet once, as a pick does, after the sheet has laid out, so those
-  // rows are in view before the first pick.
+  // Setup opening: on a phone the player's own five rows are the board's
+  // bottom, off the screen or under the sheet until the page scrolls. Bring
+  // the board into view once, as a pick does, after the sheet has laid out,
+  // so those rows are in view before the first pick.
   showBoardWhenSetupOpens() {
     if (this.setupControlsTarget.hidden || this.setupBoardShown) return
     this.setupBoardShown = true
     requestAnimationFrame(() => {
       this.measureDock()
-      this.showBoardAboveDock()
+      this.showBoardForSetup()
     })
   }
 
-  // A unit picked from the sheet: bring the whole board into view between
-  // the pinned navbar and the sheet, once, so every placement after needs no
-  // scrolling. By hand, not scrollIntoView: the page's root clips sideways
-  // (overflow-x: clip), and Chrome then scrolls it into view not at all.
-  showBoardAboveDock() {
-    if (!this.docked) return
-    const board = this.boardTarget.getBoundingClientRect()
-    const pinned = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0
-    const top = pinned + 4
-    const bottom = this.armyTarget.getBoundingClientRect().top - 4
-    // The sheet's edge first: the navbar collapses as the page scrolls, which
-    // lifts the board further, so the room under it is only known afterwards.
-    // The board is capped to fit the collapsed room (game.css). The strip
-    // over the board may tuck under the navbar; the board itself may not.
-    let by = 0
-    if (board.bottom > bottom) by = board.bottom - bottom
-    else if (board.top < top) by = Math.max(board.top - top, board.bottom - bottom)
-    if (Math.abs(by) < 1) return
+  // A unit picked from the army card: scroll once so the whole board is on
+  // the screen under the pinned navbar: above a bottom sheet, beside a side
+  // sheet, or (a tablet on its side, "page") with the army card beside it,
+  // both in the page. Every placement after needs no scrolling. By hand, not
+  // scrollIntoView: the page's root clips sideways (overflow-x: clip), and
+  // Chrome then scrolls it into view not at all.
+  //
+  // The scroll collapses the pinned navbar, which then lifts the page under
+  // it by the height it lost; with a board capped close to the screen's
+  // height (a phone on its side), that can lift the board's top under the
+  // navbar. So once the scroll and the collapse have settled, one more pass
+  // puts it right; it moves nothing when the board already fits.
+  showBoardForSetup({ recheck = true } = {}) {
+    const fit = this.hasArmyTarget ? this.setupFit : ""
+    if (!fit) return
+    const by = setupScrollBy({
+      fit,
+      board: this.boardTarget.getBoundingClientRect(),
+      army: this.armyTarget.getBoundingClientRect(),
+      pinned: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0,
+      viewportHeight: window.innerHeight
+    })
+    if (!by) return
     const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
     window.scrollBy({ top: by, behavior: still ? "auto" : "smooth" })
+    if (!recheck) return
+    clearTimeout(this.setupFitTimer)
+    this.setupFitTimer = setTimeout(() => this.showBoardForSetup({ recheck: false }), still ? 300 : 700)
   }
 
   setupClick(hex) {
