@@ -1,13 +1,39 @@
+<%# Every Cyvasse email's HTML shell: the sign-in link (UserMailer) and the
+    match mail (MatchMailer). Text-led on purpose (task
+    trustworthy-sign-in-email): no banner, no images, one narrow column of
+    ordinary type, and a small footer naming the site. Mail that looks like a
+    letter from a person is what inbox filters trust; a hero image over a
+    button is what phishing looks like.
+
+    The footer links the site root on the email link host, like every other
+    URL here (ApplicationMailer#default_url_options). Styles are inline
+    because most mail clients drop a style block. %>
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <style>
-      /* Email styles need to be inline */
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
 
-  <body>
-    <%= yield %>
+  <body style="margin:0;padding:0;background:#ffffff;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;">
+      <tr>
+        <td align="left" style="padding:24px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.55;color:#24211c;">
+            <tr>
+              <td>
+                <%= yield %>
+              </td>
+            </tr>
+            <tr><td style="height:24px;line-height:24px;font-size:0;">&nbsp;</td></tr>
+            <tr>
+              <td style="padding-top:16px;border-top:1px solid #e6e1d6;font-size:13px;line-height:1.5;color:#6b665c;">
+                <%= Studio.app_name %> &middot; <a href="<%= root_url %>" style="color:#7a561b;"><%= URI.parse(root_url).host %></a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>

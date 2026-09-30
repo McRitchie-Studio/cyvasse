@@ -56,11 +56,13 @@ Rails.application.configure do
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false
 
-  # The public host every absolute URL is built on: Cyvasse.canonical_host
-  # (lib/cyvasse/canonical_host.rb). Until CANONICAL_REDIRECT=1 it is APP_HOST,
-  # else cyvasse.mcritchie.studio; after, CANONICAL_HOST, else cyvasse.xyz.
-  # Read only there, so the links can never drift from the redirect.
-  config.action_mailer.default_url_options = Cyvasse::CanonicalHost.url_options
+  # Two hosts, both read only in lib/cyvasse/canonical_host.rb so neither can
+  # drift from what the redirect enforces:
+  #   pages  Cyvasse.canonical_host. Until CANONICAL_REDIRECT=1 it is APP_HOST,
+  #          else cyvasse.mcritchie.studio; after, CANONICAL_HOST, else cyvasse.xyz.
+  #   mail   Cyvasse.email_link_host: EMAIL_LINK_HOST, else
+  #          cyvasse.mcritchie.studio, whatever CANONICAL_REDIRECT says.
+  config.action_mailer.default_url_options = Cyvasse::CanonicalHost.email_url_options
   Rails.application.routes.default_url_options = Cyvasse::CanonicalHost.url_options
 
   # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.

@@ -1,0 +1,17 @@
+<% if @greeting_name -%>
+Hi <%= @greeting_name %>, here's your <%= @app_name %> sign-in link.
+<% else -%>
+Here's your <%= @app_name %> sign-in link.
+<% end -%>
+
+Someone, hopefully you, asked to sign in to <%= @app_name %> at <%= @site_host %>.
+Open this link to finish signing in. If you're new, it creates your account;
+there's no password to remember.
+
+<%= @magic_url %>
+
+The link works once and only for a short while. If it has stopped working,
+ask for a new one on the sign-in page.
+
+Didn't ask to sign in? You can ignore this email. Nobody can sign in without
+the link.

@@ -1,0 +1,16 @@
+Hi veyjin, here's your Cyvasse sign-in link.
+
+Someone, hopefully you, asked to sign in to Cyvasse at cyvasse.mcritchie.studio.
+Open this link to finish signing in. If you're new, it creates your account;
+there's no password to remember.
+
+https://cyvasse.mcritchie.studio/l/TOKEN0123456789a
+
+The link works once and only for a short while. If it has stopped working,
+ask for a new one on the sign-in page.
+
+Didn't ask to sign in? You can ignore this email. Nobody can sign in without
+the link.
+
+--
+Cyvasse · cyvasse.mcritchie.studio
