@@ -96,13 +96,15 @@ export function threatRims(regions, style = PERIMETER_STYLE) {
 
 // Who owns a shared edge, highest first. "ring" (a plain move ring) draws
 // nothing: its hexes keep their own thin edges, and nothing beneath crosses.
+// The last move claims no edge: it is a fading glow inside its hexes
+// (cyvasse/last_move), so it never outlines a hex. It once drew orange round
+// an empty hex and a moved unit's team colour round the unit; the computer's
+// red read as a stray ring of the threat outline (task cyvasse-last-move-fade).
 export const EDGE_PRIORITY = Object.freeze([
   "selected",
   "target", "ghost-7", "ghost-6", "ghost-8", "field", "blocked", "ring",
-  "last-move",
   "danger",
-  "perimeter", "perimeter-ranged",
-  "team-1", "team-0"
+  "perimeter", "perimeter-ranged"
 ]);
 
 const RANK = new Map(EDGE_PRIORITY.map((kind, i) => [kind, i]));
@@ -115,10 +117,9 @@ function best(kinds) {
   return top;
 }
 
-// The border a hex claims for all six of its edges, from its classes (a Set)
-// and the team of the unit on it; null for none. A last-moved unit's hex
-// carries its team's edge; an empty one the last move's orange.
-export function hexClaim(classes, { team = null, ghost = null } = {}) {
+// The border a hex claims for all six of its edges, from its classes (a Set);
+// null for none. `.is-last-move` claims nothing (EDGE_PRIORITY).
+export function hexClaim(classes, { ghost = null } = {}) {
   const kinds = [];
   if (classes.has("is-selected")) kinds.push("selected");
   if (classes.has("is-target")) kinds.push("target");
@@ -126,7 +127,6 @@ export function hexClaim(classes, { team = null, ghost = null } = {}) {
   if (classes.has("is-field")) kinds.push("field");
   if (classes.has("is-blocked")) kinds.push("blocked");
   if (classes.has("is-lit") || classes.has("is-sunken") || classes.has("is-move") || classes.has("is-attack")) kinds.push("ring");
-  if (classes.has("is-last-move")) kinds.push(team === null ? "last-move" : `team-${team}`);
   if (classes.has("is-danger")) kinds.push("danger");
   return best(kinds);
 }
