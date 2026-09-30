@@ -56,12 +56,12 @@ Rails.application.configure do
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false
 
-  # Set host to be used by links generated in mailer templates.
-  # The public host every magic link and absolute URL is built on. APP_HOST
-  # overrides it for a QA app on its own domain.
-  app_host = ENV.fetch("APP_HOST", "cyvasse.mcritchie.studio")
-  config.action_mailer.default_url_options = { host: app_host, protocol: "https" }
-  Rails.application.routes.default_url_options = { host: app_host, protocol: "https" }
+  # The public host every absolute URL is built on: Cyvasse.canonical_host
+  # (lib/cyvasse/canonical_host.rb). Until CANONICAL_REDIRECT=1 it is APP_HOST,
+  # else cyvasse.mcritchie.studio; after, CANONICAL_HOST, else cyvasse.xyz.
+  # Read only there, so the links can never drift from the redirect.
+  config.action_mailer.default_url_options = Cyvasse::CanonicalHost.url_options
+  Rails.application.routes.default_url_options = Cyvasse::CanonicalHost.url_options
 
   # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
   # config.action_mailer.smtp_settings = {

@@ -1,4 +1,4 @@
-<% content_for(:title, "Rules · Cyvasse") %>
+<% seo_page :rules, json_ld: [ article_json_ld(SeoPage.find(:rules)) ] %>
 
 <%# The banner is the goal of the game on the current board: a Dragon with the
     enemy King at the end of its lane, captured by test/capture/home_gallery_capture.rb
@@ -13,6 +13,18 @@
 <article class="max-w-3xl mx-auto rules-page" data-controller="rule-links" data-action="click->rule-links#follow">
   <%= render "pages/banner", image: hero, mobile_image: hero_mobile, title: "Rules",
                              subtitle: "The goal of Cyvasse is to capture your opponent's king." %>
+
+  <%# How to play, in a paragraph, for a reader (or a crawler) arriving cold (task cyvasse-seo-profile). %>
+  <div class="rules-prose mb-8">
+    <p>
+      How to play Cyvasse, the board game from <i>A Song of Ice and Fire</i>:
+      two players, a board of <%= CyvasseRules::Board::HEX_COUNT %> hexes, and
+      an army of <%= Rulebook.army_size %> pieces each, set up in secret.
+      Start with the short version, then read on for how every piece moves and
+      fights. When you are ready, <%= link_to "play the computer", play_path %>
+      for free in your browser.
+    </p>
+  </div>
 
   <%# The quick version the original tutorial opened with (legacy features/tutorial.js). %>
   <section id="quick-start" class="card p-5 mb-10">

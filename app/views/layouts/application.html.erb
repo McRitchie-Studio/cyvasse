@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <title><%= content_for(:title) || "Cyvasse" %></title>
+    <%= render "layouts/seo" %>
     <%= render "layouts/studio/head" %>
     <%# After the head, so after the import map: see ApplicationHelper#preload_modules. %>
     <%= yield :module_preloads %>
