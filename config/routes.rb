@@ -4,6 +4,11 @@ Rails.application.routes.draw do
   # (test/integration/health_endpoint_test.rb).
   get "up" => "rails/health#show", as: :rails_health_check
 
+  # For search engines (task cyvasse-seo-profile): the public pages SeoPage
+  # names, and what a crawler may fetch. Both outside the auth gate.
+  get "sitemap.xml", to: "sitemaps#show", as: :sitemap, defaults: { format: :xml }
+  get "robots.txt", to: "robots#show", as: :robots, defaults: { format: :text }
+
   # Canonical passwordless sign-in page; legacy GETs land on it.
   get "signin", to: "sessions#new", as: :signin
   get "signup", to: redirect("/signin"), as: nil
