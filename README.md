@@ -384,10 +384,15 @@ hex), and `test/javascript/openings_test.js` holds each to the rules: a whole
 army on the player's rows, and, all but the King's Gambit, a king that no
 enemy dragon can reach on the first turn.
 
-On the board every unit's hex is shaded in its team's colour from the edge
-in (blue yours, red theirs), and the more the piece is worth the deeper and
-stronger the shade: mountains faintest, then rabble up to the king, in the
-order the computer values them (`KILL_PRIORITY` in `cyvasse/ai.js`).
+On the board every unit's hex carries a faint rim of its team's colour from
+the edge in (blue yours, red theirs), the same for every piece. How much a
+piece matters shows in the size of its art instead, in three tiers
+(`sizeTier` in `cyvasse/units.js`, scaled in `app/assets/stylesheets/game.css`):
+rabble, spearman and crossbowman are small; the king and both horses a bit
+bigger; the trebuchet, catapult, elephant, dragon and mountains biggest. In the
+pencil skin the parchment disc and its drawing scale together. The art is
+clipped to its hex's outline, so no piece reaches a neighbour, and it never
+takes a click: the hex under it is the whole hit target.
 
 ## Leaderboard
 
