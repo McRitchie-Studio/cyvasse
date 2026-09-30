@@ -130,9 +130,10 @@
  * little; past these caps they spill into the hexes around them. The
  * mountain stands on a flat, full-width snow foot that runs past the hex's
  * lower edges into the hexes below if it grows much, so it draws only a
- * little larger than it did (0.86). Each large drawing is still larger than
- * any medium one: the dragon, elephant and mountain fill most of their canvas,
- * where the king and the horses leave a wide margin. */
+ * little larger than it did (0.86). The dragon, elephant and mountain so grow less than a medium
+ * piece does, but each still draws larger than any medium piece: they fill
+ * most of their canvas, where the king and the horses leave a wide margin
+ * (test/system/piece_size_tiers_test.rb holds both). */
 [data-skin="vector"] .cyvasse-board .hex[data-unit="dragon"] .unit-image { --art-fit: 1.06; }
 [data-skin="vector"] .cyvasse-board .hex[data-unit="elephant"] .unit-image { --art-fit: 1.08; }
 [data-skin="vector"] .cyvasse-board .hex[data-unit="mountain"] .unit-image { --art-fit: 0.9; }
