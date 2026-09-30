@@ -12,10 +12,28 @@ class User < ApplicationRecord
   # challenge each other. 3-20 letters, digits or underscores, unique in any
   # case. Checked only when it changes, so a legacy name imported by piece 10
   # never blocks an unrelated save.
+  #
+  # These are THE username rules: onboarding, /username and the profile's
+  # Username card all save through this model, so a rule added here reaches
+  # every surface at once (task cyvasse-profile-username-edit).
   USERNAME_FORMAT = /\A[A-Za-z0-9_]{3,20}\z/
+  # Names that would pass for the site or its staff, in any case. A player who
+  # already holds one (an imported legacy name) keeps it: like every rule
+  # here, it is checked only when the username changes.
+  RESERVED_USERNAMES = %w[admin administrator cyvasse help mod moderator official root staff support system].freeze
+  # Play Now's temporary names (create_guest!) belong to guests being made;
+  # nobody may pick one, so "Guest_4821" is never a person passing as a guest.
+  GUEST_USERNAME = /\Aguest_\d+\z/i
   validates :username, format: { with: USERNAME_FORMAT, message: "is 3 to 20 letters, digits or underscores" },
                        if: :will_save_change_to_username?
   validate :username_free_in_any_case, if: :will_save_change_to_username?
+  validate :username_not_reserved, if: :will_save_change_to_username?
+
+  # Reserved for everyone choosing a name: a staff word, or a guest's name.
+  def self.username_reserved?(name)
+    name = name.to_s.strip
+    RESERVED_USERNAMES.include?(name.downcase) || name.match?(GUEST_USERNAME)
+  end
 
   has_many :home_matches, class_name: "Match", foreign_key: :home_user_id, inverse_of: :home_user, dependent: :restrict_with_error
   has_many :away_matches, class_name: "Match", foreign_key: :away_user_id, inverse_of: :away_user, dependent: :restrict_with_error
@@ -331,5 +349,13 @@ class User < ApplicationRecord
 
     taken = User.where("lower(username) = ?", username.downcase).where.not(id: id).exists?
     errors.add(:username, "is taken") if taken
+  end
+
+  # A guest being created (create_guest!) is the one account that takes a
+  # Guest_ name.
+  def username_not_reserved
+    return if username.blank? || (new_record? && guest?)
+
+    errors.add(:username, "is reserved") if User.username_reserved?(username)
   end
 end
