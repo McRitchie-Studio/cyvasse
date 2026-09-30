@@ -48,6 +48,18 @@ class Conversation
     Page.new(conversations: hydrate(rows), page: page, total: total, per_page: per_page)
   end
 
+  # `viewer`'s conversation with `other`, summarised as a hub row: nil when
+  # the two have no messages with words in them.
+  def self.for_pair(viewer, other)
+    page(Message.between(viewer, other).with_text, per_page: 1, reader: viewer).conversations.first
+  end
+
+  # A player's Chat hub (task cyvasse-live-chat): their conversations with
+  # people, never with a computer player, newest first.
+  def self.hub(viewer, page: 1)
+    self.page(Message.involving(viewer).with_text.between_humans, page:, reader: viewer)
+  end
+
   # Messages whose sender or receiver matches `query` by username, name or
   # email (case-insensitive, substring); every message when blank.
   def self.for_players(query, scope = Message.all)

@@ -32,6 +32,10 @@ class User < ApplicationRecord
   # The account that absorbed this guest (GuestClaim), when the guest was kept.
   belongs_to :merged_into, class_name: "User", optional: true
 
+  # The legacy computer players (COMPUTER_LEGACY_IDS), and everyone else.
+  scope :computers, -> { where(legacy_id: COMPUTER_LEGACY_IDS) }
+  scope :humans, -> { where(legacy_id: nil).or(where.not(legacy_id: COMPUTER_LEGACY_IDS)) }
+
   # Guests GuestClaim may still absorb: not yet merged into an account.
   scope :claimable_guests, -> { where(guest: true, merged_into_id: nil) }
 
@@ -206,8 +210,48 @@ class User < ApplicationRecord
     (computer? && LiveMatch::COMPUTER_NAMES[username]) || username.presence || display_name
   end
 
+  # Messages from people still unread by this player: the navbar's Chat badge
+  # (NavbarLinks) and the My games link. A computer player's table talk is
+  # left out, as it is from the Chat hub. One count through
+  # index_messages_on_receiver_id_and_read.
   def unread_messages_count
-    Message.with_text.unread_by(self).count
+    Message.with_text.unread_by(self).from_humans.count
+  end
+
+  # ---- Who may message whom (task cyvasse-live-chat) ------------------------
+  #
+  # The one rule, enforced on the server by every way a message is sent (the
+  # match chat, a Chat hub reply, a new conversation, the bot API):
+  #
+  # - never yourself, and never nobody;
+  # - between two people, only once they have shared a match: any match, in
+  #   any status (a challenge still pending counts, and so does a legacy
+  #   imported one);
+  # - a computer player only inside a match the two of them are playing,
+  #   where its runner reads the chat (the bot API); never from the Chat hub.
+  #
+  # A conversation that predates the rule (legacy messages between people who
+  # never played) stays readable; this only decides whether a new message may
+  # be sent in it.
+  def can_message?(other, match: nil)
+    return false if other.nil? || other.id == id
+    return match.present? && match.player?(self) && match.player?(other) if computer? || other.computer?
+
+    shared_match_with?(other)
+  end
+
+  def shared_match_with?(other)
+    Match.where(home_user_id: id, away_user_id: other.id)
+         .or(Match.where(home_user_id: other.id, away_user_id: id)).exists?
+  end
+
+  # The people this player has shared a match with, newest match first (never
+  # a computer player): who they may start a conversation with.
+  def played_humans
+    other = Arel.sql(self.class.sanitize_sql_array([ "CASE WHEN home_user_id = ? THEN away_user_id ELSE home_user_id END", id ]))
+    latest = Match.involving(self).group(other).order(Arel.sql("MAX(matches.id) DESC")).pluck(other)
+    people = User.humans.where(id: latest - [ id ]).index_by(&:id)
+    latest.filter_map { |user_id| people[user_id] }
   end
 
   # Idempotent: creates any missing identity, never overwrites an existing row.

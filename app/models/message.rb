@@ -8,9 +8,14 @@
 # between them, in any match or none (Conversation).
 #
 # Who may read one: its sender, its receiver, and an admin. The About page
-# says so.
+# says so. Who may SEND one: User#can_message? (task cyvasse-live-chat),
+# checked here on every new message, so no way in skips it.
+#
+# Every new message is broadcast live once committed (ChatBroadcasts): to the
+# pair's thread, and to each person's Chat hub and unread badge.
 class Message < ApplicationRecord
   MAX_LENGTH = 1000
+  NOT_ALLOWED = "You can message only players you have played.".freeze
 
   belongs_to :sender, class_name: "User"
   belongs_to :receiver, class_name: "User"
@@ -21,6 +26,9 @@ class Message < ApplicationRecord
   validates :message, presence: true, length: { maximum: MAX_LENGTH }, on: :create
   validate :two_different_people, on: :create
   validate :sent_between_the_match_players, on: :create
+  validate :sender_may_message_receiver, on: :create, unless: :legacy_id?
+
+  after_create_commit { ChatBroadcasts.message_created(self) }
 
   # Hide the blank ones (empty or whitespace-only text; 10,778 legacy rows)
   # everywhere a message is shown or counted: the match chat, the inbox, the
@@ -38,6 +46,10 @@ class Message < ApplicationRecord
     where("#{Conversation::PAIR_LOW} = ? AND #{Conversation::PAIR_HIGH} = ?", *[ low_id, high_id ].minmax)
   }
   scope :unread_by, ->(user) { where(receiver_id: user.id, read: false) }
+  # Leaving out a computer player's messages: the unread badge counts people.
+  scope :from_humans, -> { where.not(sender_id: User.computers.select(:id)) }
+  # Only conversations between two people: the Chat hub lists no computer.
+  scope :between_humans, -> { from_humans.where.not(receiver_id: User.computers.select(:id)) }
 
   # SQL true when `table`.message holds a character that is not whitespace;
   # NULL (and so false in a WHERE) for a null message.
@@ -60,10 +72,20 @@ class Message < ApplicationRecord
     create!(match: match, sender: sender, receiver: match.opponent_of(sender), message: text.to_s.strip)
   end
 
+  # Send `text` from `sender` to `receiver` outside any match: a reply or a
+  # first message from the Chat hub. Raises ActiveRecord::RecordInvalid when
+  # refused (blank, too long, or someone the sender may not message).
+  def self.send_direct!(sender, receiver, text)
+    create!(sender: sender, receiver: receiver, message: text.to_s.strip)
+  end
+
   # Mark every message in `scope` addressed to `reader` as read. Returns the
-  # number marked.
-  def self.mark_read!(scope, reader)
-    scope.unread_by(reader).update_all(read: true, updated_at: Time.current)
+  # number marked; when any were, the reader's badge (and, given `other`,
+  # their hub row for that conversation) updates live.
+  def self.mark_read!(scope, reader, other: nil)
+    marked = scope.unread_by(reader).update_all(read: true, updated_at: Time.current)
+    ChatBroadcasts.read(reader, other) if marked.positive?
+    marked
   end
 
   def readable_by?(user)
@@ -78,6 +100,12 @@ class Message < ApplicationRecord
 
   def two_different_people
     errors.add(:receiver, "must be someone else") if sender_id.present? && sender_id == receiver_id
+  end
+
+  def sender_may_message_receiver
+    return if sender.nil? || receiver.nil? || sender.can_message?(receiver, match:)
+
+    errors.add(:base, NOT_ALLOWED)
   end
 
   def sent_between_the_match_players

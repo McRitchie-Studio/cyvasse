@@ -1,37 +1,21 @@
-# The chat on a match (epic cyvasse-revival piece 12). Its two players read
-# and write it; anyone else gets a 404, as for the match itself.
+# Sending in a match's chat (epic cyvasse-revival piece 12; task
+# cyvasse-live-chat). Its two players write it; anyone else gets a 404, as
+# for the match itself.
 #
-# The match page shows the messages in a Turbo frame (match_chat_messages)
-# that loads from #index and reloads itself while the page is open; the form
-# beside it posts to #create, which answers with the same frame.
+# The match page shows the pair's whole conversation (matches/_chat, a
+# ChatThread), not only this match's messages, so it carries on from match
+# to match; a message sent here still records the match. New messages arrive
+# over the pair's stream (ChatBroadcasts); this answers the composer.
 class MatchMessagesController < ApplicationController
   include RequiresUsername
-
-  SHOWN = 100
+  include ChatSending
 
   before_action :require_username
   before_action :set_match
-
-  def index
-    rescue_and_log(target: current_user, parent: @match) { Message.mark_read!(@match.messages, current_user) }
-    load_messages
-  end
+  rate_limit_sending only: :create
 
   def create
-    error = nil
-    rescue_and_log(target: current_user, parent: @match) do
-      Message.post_in_match!(@match, current_user, params[:message])
-    rescue ActiveRecord::RecordInvalid => e
-      error = e.record.errors.full_messages.to_sentence
-    end
-
-    if error
-      @error = error
-      load_messages
-      render :index, status: :unprocessable_entity
-    else
-      redirect_to match_messages_path(@match), status: :see_other
-    end
+    send_message(chat_thread_id) { Message.post_in_match!(@match, current_user, params[:message]) }
   end
 
   private
@@ -40,7 +24,7 @@ class MatchMessagesController < ApplicationController
     @match = Match.involving(current_user).includes(:home_user, :away_user).find(params[:match_id])
   end
 
-  def load_messages
-    @messages = @match.messages.with_text.order(created_at: :desc, id: :desc).limit(SHOWN).includes(:sender).to_a.reverse
-  end
+  def chat_thread_id = ChatStreams.thread_id(current_user, @match.opponent_of(current_user))
+
+  def after_send_path = match_path(@match)
 end
