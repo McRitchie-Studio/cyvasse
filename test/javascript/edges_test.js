@@ -4,6 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { HEXES, hexAt, neighbors, distance } from "cyvasse/board";
+import { UNIT_TYPES } from "cyvasse/units";
+import { threats } from "cyvasse/threats";
 import { sideNeighbors, edgeKey, EDGES, perimeter, EDGE_PRIORITY, hexClaim, resolveEdges, threatRims, outerRim, PERIMETER_STYLE } from "cyvasse/edges";
 
 const disc = (origin, r) => new Set(HEXES.filter((h) => distance(hexAt(origin), h) <= r).map((h) => h.index));
@@ -176,4 +178,35 @@ test("the threat outline traces only the outer rim, never a hole inside it", () 
   // A gap that reaches the board's rim is outside, not a hole.
   const corner = new Set([...disc(1, 2)].filter((h) => h !== 1));
   assert.deepEqual([...outerRim(corner)].sort(), [...perimeter(corner)].sort());
+});
+
+// Alex's screenshot (2026-09-29): the computer's elephant has just moved
+// 48 -> 58, into its own threat area; your elephant on 59 is in danger. The
+// moved unit's hex drew a red ring of its own (its team edge, the same red as
+// the threat outline) inside the area, so the outline looked to box it.
+test("a last-moved enemy unit inside the threat area draws no ring of its own", () => {
+  const units = [
+    [0, "catapult", 36], [0, "king", 1], [0, "elephant", 58], [0, "rabble", 25],
+    [1, "king", 91], [1, "elephant", 59], [1, "rabble", 70]
+  ].map(([team, codename, hex]) => ({ team, hex, type: UNIT_TYPES[codename], status: "alive" }));
+  const position = { pieceAt: (hex) => units.find((u) => u.hex === hex), teamUnits: (team) => units.filter((u) => u.team === team) };
+  const found = threats(position, 0);
+  const region = new Set([...found.reach, ...found.units]);
+  assert.ok(region.has(58) && region.has(48), "the elephant and the hex it left are inside the area");
+  const { solid, dashed } = threatRims({ melee: region, ranged: new Set() });
+
+  const claims = new Map();
+  for (const [hex, classes] of [[48, ["is-last-move"]], [58, ["is-last-move", "has-unit"]], [59, ["has-unit", "is-danger"]]]) {
+    const unit = position.pieceAt(hex);
+    const kind = hexClaim(new Set(classes), { team: unit ? unit.team : null });
+    if (kind) claims.set(hex, kind);
+  }
+  const owners = resolveEdges(claims, solid, dashed);
+  const across = (a, b) => edgeKey(a, sideNeighbors(a).indexOf(b));
+  const stray = sidesOf(58).filter((key) => owners.has(key) && !solid.has(key) && key !== across(58, 59));
+  assert.deepEqual(stray.map((key) => `${key}=${owners.get(key)}`), [], "no edge round 58 but the outline and your unit's danger");
+  // Every drawn edge is the outline, or your endangered unit's own pulse.
+  for (const [key, kind] of owners) {
+    assert.ok(kind === "perimeter" || (kind === "danger" && sidesOf(59).includes(key)), `edge ${key} is ${kind}`);
+  }
 });
