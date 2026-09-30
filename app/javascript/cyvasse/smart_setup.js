@@ -1,25 +1,43 @@
 // The setup panel's "✨ Smart Setup" button: it places one of the strategic
 // openings (cyvasse/openings), never one of the player's last ten picks.
 //
-// The pool is every opening that keeps its king out of a first-turn dragon
-// strike (all but the King's Gambit) and opens with both elephants on the
-// front row, where their short move still reaches the enemy.
+// The pool is every opening whose king survives the enemy's first turn,
+// whatever the enemy placed and played (cyvasse/king_safety: a light horse
+// raid, a dragon flight, a shot), and that opens with both elephants on the
+// front row, where their short move still reaches the enemy. The King's
+// Gambit and Crown Forward, whose kings stand forward on purpose, stay out.
 //
 // With part of the army already placed ("✨ Place All") the placed units stay
-// where they are: the opening that fits them best places the rest, and a unit
-// whose hex is taken goes to the free hex nearest the one it wanted.
+// where they are: of the fills the openings offer, one whose king is safe
+// wins; among those, the one that fits the placed units best.
 
 import { OPENINGS, openingLineup } from "cyvasse/openings";
 import { parseLineup, formatLineup } from "cyvasse/setups";
-import { hexAt, PLAYER_ZONE } from "cyvasse/board";
+import { distance, hexAt, neighbors, PLAYER_ZONE } from "cyvasse/board";
 import { KILL_PRIORITY } from "cyvasse/ai";
+import { kingThreats, kingSafe } from "cyvasse/king_safety";
+import { typeAt } from "cyvasse/units";
 
 export const RECENT_WINDOW = 10;
 export const RECENT_KEY = "cyvasse.smartSetups";
 
-export const SMART_SETUPS = Object.freeze(
-  OPENINGS.filter((o) => o.slug !== "kings-gambit" && [...o.rows[0]].filter((c) => c === "E").length === 2)
-);
+// The pool, worked out on first use: the check walks every enemy unit on
+// every enemy hex, a few milliseconds an opening, so a page that never opens
+// the setup panel never pays for it.
+let pool = null;
+export function smartSetups() {
+  pool ??= Object.freeze(OPENINGS.filter((o) => elephantsInFront(o) && kingSafe(armyOf(openingLineup(o)))));
+  return pool;
+}
+
+function elephantsInFront({ rows }) {
+  return [...rows[0]].filter((c) => c === "E").length === 2;
+}
+
+// A lineup string as the [{ hex, type }] army cyvasse/king_safety reads.
+export function armyOf(lineup) {
+  return parseLineup(lineup).map(([index, hex]) => ({ hex, type: typeAt(index) }));
+}
 
 // The three faces of the button, by how much of the army is on the board.
 export function smartSetupMode(placed, total) {
@@ -40,26 +58,152 @@ export function smartLineup(units, { recent = [], rng = Math.random } = {}) {
     const opening = candidates[Math.floor(rng() * candidates.length)];
     return { opening, lineup: openingLineup(opening) };
   }
-  // Fewest units pushed off their hex, then most placed units already on one.
+  // The fewest ways to lose the king on the enemy's first turn (none, when
+  // any fill allows it), then the fewest units pushed off their hex, then the
+  // most placed units already on one. The recent picks are skipped only
+  // while that costs no safety: every opening is tried.
   const score = ({ displaced, kept }) => displaced * units.length - kept;
-  let best = [];
-  let lowest = Infinity;
-  for (const opening of candidates) {
+  const plans = new Map();
+  for (const opening of smartSetups()) {
     const plan = completeAround(units, opening);
-    if (score(plan) < lowest) {
-      lowest = score(plan);
-      best = [];
-    }
-    if (score(plan) === lowest) best.push({ opening, lineup: plan.lineup });
+    plans.set(opening, plan);
   }
-  return best[Math.floor(rng() * best.length)];
+  const ranked = [...plans].map(([opening, plan]) => ({ opening, plan, fresh: candidates.includes(opening) }));
+  const safe = ranked.filter(({ plan }) => kingSafe(armyOf(plan.lineup)));
+  let pickFrom;
+  if (safe.length > 0) {
+    pickFrom = safe.some((r) => r.fresh) ? safe.filter((r) => r.fresh) : safe;
+  } else {
+    // Counted only as far as the fewest so far: a worse fill stops early.
+    let fewest = Infinity;
+    const threats = new Map();
+    for (const r of ranked) {
+      const n = kingThreats(armyOf(r.plan.lineup), { limit: fewest + 1 }).length;
+      threats.set(r, n);
+      fewest = Math.min(fewest, n);
+    }
+    pickFrom = ranked.filter((r) => threats.get(r) === fewest);
+  }
+  const lowest = Math.min(...pickFrom.map(({ plan }) => score(plan)));
+  const best = pickFrom.filter(({ plan }) => score(plan) === lowest);
+  const { opening, plan } = best[Math.floor(rng() * best.length)];
+  return { opening, lineup: safe.length > 0 ? plan.lineup : secure(units, plan.lineup) };
+}
+
+// When no opening's fill keeps the king safe, rearrange the units Place All
+// placed (never the player's own) until it is, or until nothing more helps.
+// A change stands the king (if Place All placed it) on another hex, or puts
+// a placed unit next to the king, on the hex a raider lands on first, or in
+// the path of a flight or a shot. Each step keeps the change that leaves the
+// fewest ways in; when no single change helps, a king move followed by one
+// more change is tried, since the king's new hex may need its own guard.
+export function secure(units, lineup, { budget } = {}) {
+  const fixed = new Set(units.filter((u) => u.status === "alive").map((u) => u.index));
+  const at = new Map(parseLineup(lineup));
+  const kingIndex = [...at.keys()].find((index) => typeAt(index).codename === "king");
+  // A king the player stood forward is usually past saving, and every look
+  // at it is dear: it gets a fifth of the looks a king still in the dock gets.
+  budget ??= fixed.has(kingIndex) ? 300 : 1500;
+  // Each look is a few milliseconds; the budget keeps one click to about a
+  // second however hopeless the player's own placements are.
+  let looks = 0;
+  const threats = (limit = Infinity) => {
+    looks += 1;
+    return kingThreats([...at].map(([index, hex]) => ({ hex, type: typeAt(index) })), { limit });
+  };
+
+  // Move unit `index` to `hex`, swapping with a Place All unit standing
+  // there; answers the undo.
+  const move = (index, hex) => {
+    const other = [...at].find(([, h]) => h === hex)?.[0];
+    const from = at.get(index);
+    at.set(index, hex);
+    if (other !== undefined) at.set(other, from);
+    return () => {
+      at.set(index, from);
+      if (other !== undefined) at.set(other, hex);
+    };
+  };
+  const guardMoves = (current) => {
+    const kingHex = at.get(kingIndex);
+    const hot = new Set(neighbours(kingHex));
+    for (const { from, via } of current) {
+      if (via != null) hot.add(via);
+      else for (const hex of between(from, kingHex)) hot.add(hex);
+    }
+    const holder = new Map([...at].map(([index, hex]) => [hex, index]));
+    const out = [];
+    for (const hex of hot) {
+      if (!PLAYER_ZONE.includes(hex) || fixed.has(holder.get(hex))) continue;
+      for (const index of at.keys()) if (!fixed.has(index) && index !== kingIndex && at.get(index) !== hex) out.push([index, hex]);
+    }
+    return out;
+  };
+  const kingMoves = () => {
+    if (fixed.has(kingIndex)) return [];
+    const taken = new Set(units.filter((u) => u.status === "alive").map((u) => u.hex));
+    return PLAYER_ZONE.filter((hex) => hex !== at.get(kingIndex) && !taken.has(hex)).map((hex) => [kingIndex, hex]);
+  };
+  // The one change among `tries` that leaves fewer than `bound` ways in.
+  const bestOf = (tries, bound) => {
+    let best = null;
+    let fewest = bound;
+    for (const [index, hex] of tries) {
+      if (looks > budget) break;
+      const undo = move(index, hex);
+      const n = threats(fewest).length;
+      undo();
+      if (n < fewest) [best, fewest] = [[index, hex], n];
+      if (fewest === 0) break;
+    }
+    return best && { change: best, left: fewest };
+  };
+
+  let current = threats();
+  while (current.length > 0 && looks <= budget) {
+    const single = bestOf([...kingMoves(), ...guardMoves(current)], current.length);
+    if (single) {
+      move(...single.change);
+      current = threats();
+      continue;
+    }
+    let pair = null;
+    for (const [index, hex] of kingMoves()) {
+      if (looks > budget) break;
+      const undo = move(index, hex);
+      const after = threats();
+      const next = after.length > 0 && bestOf(guardMoves(after), current.length);
+      undo();
+      if (next) {
+        pair = [[index, hex], next.change];
+        break;
+      }
+    }
+    if (!pair) break;
+    for (const change of pair) move(...change);
+    current = threats();
+  }
+  return formatLineup([...at].sort((a, b) => a[0] - b[0]));
+}
+
+// The hexes on a shortest path from one hex to another (a flight or a
+// shot runs along one).
+function between(from, to) {
+  const [a, b] = [hexAt(from), hexAt(to)];
+  const span = distance(a, b);
+  return PLAYER_ZONE.filter((hex) => hex !== to && distance(a, hexAt(hex)) + distance(hexAt(hex), b) === span);
+}
+
+function neighbours(hex) {
+  return neighbors(hexAt(hex)).map((n) => n.index);
 }
 
 // The openings not among the last RECENT_WINDOW picks (oldest first).
 export function eligible(recent) {
+  const setups = smartSetups();
   const skip = new Set(recent.slice(-RECENT_WINDOW));
-  const left = SMART_SETUPS.filter((o) => !skip.has(o.slug));
-  return left.length > 0 ? left : SMART_SETUPS.filter((o) => o.slug !== recent[recent.length - 1]);
+  const left = setups.filter((o) => !skip.has(o.slug));
+  return left.length > 0 ? left : setups.filter((o) => o.slug !== recent[recent.length - 1]);
 }
 
 // Keep the placed units, place the rest by the opening. `displaced` counts

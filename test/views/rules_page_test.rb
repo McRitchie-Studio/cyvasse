@@ -181,4 +181,33 @@ class RulesPageTest < ActionView::TestCase
     built = Rails.root.join("app/assets/builds/tailwind.css")
     assert_includes built.read, "lg\\:grid-cols-3", "Tailwind emits the thirds utility" if built.exist?
   end
+  # [component] UX audit #2 (#10): a trump was its piece's art alone, 36px,
+  # the King hard to make out. Each shows the piece's name under the art, in
+  # small caps, inside the link to the Trumps rule; the alt still names it
+  # for a screen reader, so the visible name is hidden from one.
+  test "every trump icon shows its piece's name, inside the link to the Trumps rule" do
+    Rulebook.classes.flat_map(&:units).select { _1.trumped_pieces.any? }.each do |unit|
+      card = Nokogiri::HTML5.fragment(render(partial: "pages/unit_card", locals: { unit:, rule_links: true }))
+      trumps = card.css("dd[data-stat=trump] a.unit-trump[href='#rule-trumps']")
+      assert_equal unit.trumped_pieces.map(&:name), trumps.map { _1.at_css(".unit-trump-name").text }, unit.slug
+      trumps.each do |a|
+        assert_equal %w[img span], a.element_children.map(&:name), "#{unit.slug}: art over name"
+        assert_equal "true", a.at_css(".unit-trump-name")["aria-hidden"]
+      end
+    end
+
+    card = Nokogiri::HTML5.fragment(render(partial: "pages/unit_card", locals: { unit: Rulebook.fetch("rabble") }))
+    assert_equal "King", card.at_css("dd[data-stat=trump] span.unit-trump > .unit-trump-name").text, "named without a link too"
+    css = Rails.root.join("app/assets/tailwind/application.css").read
+    assert_match(/font-variant-caps: all-small-caps;/, css[/^\.unit-trump-name \{.*?\}/m].to_s)
+  end
+
+  # [component] UX audit #2 (#11): a rule link landed its card under the
+  # 102px phone navbar, past a fixed 5rem margin. Every anchor on the page
+  # clears the navbar's measured height instead.
+  test "every anchor on the page clears the navbar's measured height" do
+    css = Rails.root.join("app/assets/tailwind/application.css").read
+    assert_match(/^\.rules-page \[id\] \{\s*scroll-margin-top: calc\(var\(--nav-h, 7rem\) \+ 0\.75rem\);/, css)
+    assert_no_match(/scroll-margin-top: 5rem/, css)
+  end
 end

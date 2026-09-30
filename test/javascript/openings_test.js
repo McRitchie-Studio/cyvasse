@@ -4,12 +4,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { OPENINGS, openingLineup } from "cyvasse/openings";
+import { OPENINGS, openingLineup, openingFor } from "cyvasse/openings";
 import { Game, PLAYER, COMPUTER } from "cyvasse/game";
 import { COMPUTER_OPPONENTS, parseLineup } from "cyvasse/setups";
 import { COMPUTER_ZONE, hexAt } from "cyvasse/board";
 import { legalActions } from "cyvasse/rules";
 import { UNIT_TYPES, typeAt } from "cyvasse/units";
+import { kingThreats } from "cyvasse/king_safety";
 import { seeded } from "./support/fixtures.js";
 
 const ROW_WIDTHS = [10, 9, 8, 7, 6];
@@ -75,6 +76,25 @@ test("every opening but the King's Gambit keeps its king out of a first-turn dra
   }
 });
 
+// The whole first turn, not only the dragon (task
+// cyvasse-smart-setup-king-safety): a light horse that takes a shooter next
+// to the king (shooters defend at 1) takes the king on its second jump. Only
+// the two openings that stand their king forward on purpose are open to it,
+// and both say so.
+test("every opening but the King's Gambit and Crown Forward survives every enemy first turn", () => {
+  for (const opening of OPENINGS) {
+    const army = loaded(opening).teamUnits(PLAYER).map((u) => ({ hex: u.hex, type: u.type }));
+    const threats = kingThreats(army);
+    if (["kings-gambit", "crown-forward"].includes(opening.slug)) {
+      assert.ok(threats.length > 0, `${opening.slug}: its open king is real`);
+    } else {
+      assert.deepEqual(threats, [], `${opening.slug}: the king falls on the enemy's first turn`);
+    }
+  }
+  assert.match(OPENINGS.find((o) => o.slug === "crown-forward").idea, /a horse that takes either one reaches the king next/);
+  assert.match(OPENINGS.find((o) => o.slug === "kings-gambit").idea, /its forward diagonals are open/);
+});
+
 // "The side whose king stands nearer the middle row moves first."
 test("Crown Forward and the King's Gambit move first against every computer army", () => {
   for (const slug of ["crown-forward", "kings-gambit"]) {
@@ -137,4 +157,17 @@ test("what the openings say about who takes whom is what the rules do", () => {
     assert.equal(takes("dragon", shooter), true, `the dragon still takes the ${shooter}`);
   }
   assert.match(idea("dragon-hunt"), /must stop at the first of them it takes/);
+});
+
+// The setup panel's picker names the army on the board by this (task
+// cyvasse-smart-setup-king-safety: after Smart Setup it still said "Iron
+// Corner"): an opening's own lineup names it, anything else is none.
+test("openingFor names the opening a whole lineup is, and nothing else", () => {
+  for (const opening of OPENINGS) assert.equal(openingFor(openingLineup(opening)), opening);
+  const iron = parseLineup(openingLineup(OPENINGS[0]));
+  const nudged = iron.map(([index, hex]) => [index, index === 1 ? 91 : hex]);
+  assert.ok(!iron.some(([, hex]) => hex === 91), "hex 91 is free in the Iron Corner");
+  assert.equal(openingFor(nudged.map(([i, h]) => `${i}:${h}|`).join("")), null, "one unit moved is Custom");
+  assert.equal(openingFor(null), null);
+  assert.equal(openingFor(""), null);
 });

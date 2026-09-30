@@ -176,7 +176,9 @@ const RANK_LABEL = { vanguard: "Vanguard", cavalry: "Cavalry", range: "Range", u
 
 // Every unit's hex carries a faint rim of its team's colour from the edge in
 // (blue yours, red theirs), the same for every piece: it says whose piece it
-// is, nothing more. How much a piece matters now shows in the size of its art
+// is, nothing more. The pencil skin's parchment disc draws the same colours as
+// its own thin rim (game.css --cyvasse-team-1 and --cyvasse-team-0; keep the
+// two in step). How much a piece matters now shows in the size of its art
 // (units.js sizeTier, scaled in game.css); the rim no longer deepens with the
 // piece's worth (Alex, September 29, 2026).
 const TEAM_SHADE = { 1: "#3b82f6", 0: "#dc2626" }
@@ -206,6 +208,8 @@ export default class extends Controller {
     this.lastMoveMarker?.stop()
     this.dockObserver?.disconnect()
     clearTimeout(this.setupFitTimer)
+    clearTimeout(this.playFitTimer)
+    this.playFitQuery?.removeEventListener("change", this.onPlayFitTurn)
     this.cursorEvents?.abort()
     this.clearTimers()
     this.bannerBox.hide()
@@ -216,6 +220,7 @@ export default class extends Controller {
   newGame() {
     this.clearTimers()
     this.game = new Game()
+    this.announcedLineup = undefined
     this.pendingJump = null
     this.holding = false
     this.selectedUnitId = null
@@ -225,8 +230,9 @@ export default class extends Controller {
     this.opponentTarget.textContent = this.game.computer.name
     this.setupControlsTarget.hidden = false
     this.hideBanner()
-    this.render()
     this.setupBoardShown = false
+    this.playBoardShown = false
+    this.render()
     this.showBoardWhenSetupOpens()
   }
 
@@ -465,6 +471,47 @@ export default class extends Controller {
     this.setupFitTimer = setTimeout(() => this.showBoardForSetup({ recheck: false }), still ? 300 : 700)
   }
 
+  // ---- The play layouts (game.css, "play layouts") --------------------------
+  // A phone on its side plays with the board beside the sidebar, sized to the
+  // screen's height ("side" in --play-fit). The page above it (the title on
+  // /play) would leave the board's foot off the screen, so as the game opens
+  // (or opens already under way) the page scrolls once to put the board, its
+  // banner row and all, under the pinned navbar; the board's column then
+  // sticks there. Turning the phone on its side mid-game does the same.
+
+  get playFit() {
+    return getComputedStyle(this.element).getPropertyValue("--play-fit").trim()
+  }
+
+  showBoardWhenPlayOpens() {
+    if (this.game.phase === "setup" || this.playBoardShown) return
+    this.playBoardShown = true
+    if (!this.playFitQuery && window.matchMedia) {
+      this.playFitQuery = window.matchMedia("(orientation: landscape)")
+      this.onPlayFitTurn = () => requestAnimationFrame(() => this.showBoardForPlay())
+      this.playFitQuery.addEventListener("change", this.onPlayFitTurn)
+    }
+    requestAnimationFrame(() => this.showBoardForPlay())
+  }
+
+  showBoardForPlay({ recheck = true } = {}) {
+    if (this.game.phase === "setup" || this.playFit !== "side") return
+    const wrap = this.boardTarget.closest(".cyvasse-board-wrap") || this.boardTarget
+    const board = this.boardTarget.getBoundingClientRect()
+    const by = setupScrollBy({
+      fit: "side",
+      board: { top: wrap.getBoundingClientRect().top, bottom: board.bottom },
+      pinned: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0,
+      viewportHeight: window.innerHeight
+    })
+    if (!by) return
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    window.scrollBy({ top: by, behavior: still ? "auto" : "smooth" })
+    if (!recheck) return
+    clearTimeout(this.playFitTimer)
+    this.playFitTimer = setTimeout(() => this.showBoardForPlay({ recheck: false }), still ? 300 : 700)
+  }
+
   setupClick(hex) {
     const unit = hex == null ? null : this.game.pieceAt(hex)
     const intent = setupIntent({ hex, unit, selectedUnitId: this.selectedUnitId })
@@ -636,13 +683,16 @@ export default class extends Controller {
       const shade = el("polygon", { class: "unit-shade", points: corners })
       const glow = el("polygon", { class: "hex-glow", points: corners, fill: "url(#hex-glow)" })
       const danger = el("polygon", { class: "danger-edge", points: dangerCorners, fill: "url(#danger-edge)" })
+      // The pencil skin's glow ring (game.css .unit-ring): under the disc,
+      // showing only outside the disc's own team rim.
+      const ring = el("circle", { class: "unit-ring", r: 27 })
       const disc = el("circle", { class: "unit-disc", r: 27 })
       const image = el("image", { class: "unit-image", x: -28, y: -30, width: 56, height: 60 })
       const art = el("g", { class: "unit-art", "clip-path": "url(#hex-art-clip)" })
-      art.append(disc, image)
+      art.append(ring, disc, image)
       group.append(polygon, texture, shade, glow, danger, art)
       svg.append(group)
-      this.hexNodes.set(hex.index, { group, polygon, shade, glow, disc, image })
+      this.hexNodes.set(hex.index, { group, polygon, shade, glow, disc, ring, image })
       this.hexCentres.set(hex.index, { x: cx, y: cy, row: hex.y })
     }
 
@@ -798,6 +848,19 @@ export default class extends Controller {
     this.renderStatus()
     this.renderGraveyards()
     this.renderInfo(this.selectedUnitId ? game.unit(this.selectedUnitId) : null)
+    this.showBoardWhenPlayOpens()
+    this.announceLineup()
+  }
+
+  // The setup panel's opening picker (cyvasse-openings#reflect) names the
+  // army on the board: the whole lineup string, or null while any unit is
+  // still in the dock. Sent only when it changes, not on every redraw.
+  announceLineup() {
+    if (this.game.phase !== "setup") return
+    const lineup = this.game.readyToStart ? this.game.playerLineup() : null
+    if (lineup === this.announcedLineup) return
+    this.announcedLineup = lineup
+    this.dispatch("lineup", { detail: { lineup } })
   }
 
   // The last move glows until ten seconds after it landed. A redraw partway
@@ -817,9 +880,9 @@ export default class extends Controller {
       // render() takes the class off and puts it back in one pass, so a fade
       // already running keeps its start time; the new delay would then count
       // the elapsed time twice and jump the glow ahead. Start it over, so the
-      // delay alone sets how far through it is. The pencil skin's disc rim
-      // (game.css cyvasse-last-move-rim) runs on the same clock.
-      for (const fade of [node.glow, node.disc].flatMap((layer) => layer.getAnimations?.() ?? [])) {
+      // delay alone sets how far through it is. The pencil skin's glow ring
+      // (game.css .unit-ring, cyvasse-last-move-rim) runs on the same clock.
+      for (const fade of [node.glow, node.ring].flatMap((layer) => layer.getAnimations?.() ?? [])) {
         if (fade.animationName?.startsWith("cyvasse-last-move")) { fade.cancel(); fade.play() }
       }
     }

@@ -27,7 +27,12 @@
       <dt class="font-semibold text-heading">Game</dt>
       <dd class="text-secondary">Players trade moves until a king is captured. If neither side can move, it is a draw.</dd>
       <dt class="font-semibold text-heading">Combat</dt>
-      <dd class="text-secondary">A unit may capture an enemy if the Attacker has more or equal Strength to the Defender.</dd>
+      <%# Production audit #6: the line said the higher Strength always wins. Trumps
+          win on attack only, and Range units defend at RANGE_DEFENCE (#combat). %>
+      <dd class="text-secondary" data-short="combat">
+        An Attacker takes a Defender of equal or lower Strength. A Trump wins on attack only,
+        and Range units defend at Strength <%= Rulebook::RANGE_DEFENCE %>.
+      </dd>
     </dl>
   </section>
 

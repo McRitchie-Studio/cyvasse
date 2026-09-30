@@ -32,7 +32,7 @@
       <div class="live-seek-card" data-side="me">
         <%= render "players/avatar", user: current_user, name: current_user.player_name, size: LiveSeeksController::SPLASH_AVATAR_SIZE %>
         <div class="live-seek-name player-name text-heading" data-controller="name-fit" data-live-seek-target="you"></div>
-        <div class="player-caption text-muted">You</div>
+        <div class="player-caption text-secondary">You</div>
       </div>
       <div class="live-seek-vs">VS</div>
       <div class="live-seek-card" data-side="them">
@@ -40,7 +40,7 @@
           <span class="live-seek-avatar-pending w-14 h-14 rounded-full" data-avatar="pending"></span>
         </div>
         <div class="live-seek-name player-name text-heading" data-controller="name-fit" data-live-seek-target="opponent"></div>
-        <div class="player-caption text-muted" hidden data-live-seek-target="computerTag">Computer</div>
+        <div class="player-caption text-secondary" hidden data-live-seek-target="computerTag">Computer</div>
       </div>
     </div>
     <div class="live-seek-progress" aria-hidden="true"><span data-live-seek-target="progress"></span></div>

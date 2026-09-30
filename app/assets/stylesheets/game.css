@@ -142,38 +142,62 @@
 }
 
 /* The pencil skin is black linework on a transparent ground; a parchment disc
- * keeps it readable on the black board. */
+ * keeps it readable on the black board.
+ *
+ * The disc covers most of its hex, and with it the hex's team shade (blue
+ * yours, red theirs, .unit-shade): so the disc draws its own thin rim in its
+ * team's colour (task cyvasse-pencil-team-rim). The colours are the shade's
+ * own (cyvasse_game_controller TEAM_SHADE; keep the two in step). The rim is
+ * the disc's own edge, so nothing drawn over the hex (the last move's and the
+ * selection's orange ring outside it, the danger pulse from the hex's edges
+ * in) ever covers it. */
+:root {
+  --cyvasse-team-1: #3b82f6;
+  --cyvasse-team-0: #dc2626;
+}
+
 [data-skin="pencil"] .cyvasse-board .has-unit .unit-disc {
   fill: #f7f4ec;
+  stroke-width: 3;
 }
+
+[data-skin="pencil"] .cyvasse-board .has-unit[data-team="1"] .unit-disc { stroke: var(--cyvasse-team-1); }
+[data-skin="pencil"] .cyvasse-board .has-unit[data-team="0"] .unit-disc { stroke: var(--cyvasse-team-0); }
 
 /* The pencil skin's glow (task cyvasse-pencil-glow-visibility). Its parchment
  * disc covers most of the hex, so the hex glow above showed only as faint
  * orange corners, grey-brown over a blue team's rim. On a pencil piece the
- * glow also rings the disc: a warm orange rim with a soft halo, inside the
- * piece's art clip (so it is cut where the disc is) and under the art's
- * linework. --rim-glow is the ring's strength, 0 to 1: it fades with the last
- * move over the same ten seconds and on the same --last-move-delay clock, and
- * breathes with the selection's pulse, never below 0.65. The vector skin has
- * no disc and keeps the hex glow alone. */
+ * glow also rings the disc: a warm orange ring with a soft halo, just outside
+ * the disc's team rim (.unit-ring, a wide stroke under the disc, so only its
+ * outer part shows), inside the piece's art clip (so it is cut where the disc
+ * is) and under the art's linework. --rim-glow is the ring's strength, 0 to
+ * 1: it fades with the last move over the same ten seconds and on the same
+ * --last-move-delay clock, and breathes with the selection's pulse, never
+ * below 0.65. The vector skin has no disc and keeps the hex glow alone. */
 @property --rim-glow {
   syntax: "<number>";
   inherits: false;
   initial-value: 1;
 }
 
-[data-skin="pencil"] .cyvasse-board .has-unit:is(.is-last-move, .is-selected) .unit-disc {
+.cyvasse-board .unit-ring {
+  display: none;
+  fill: none;
+}
+
+[data-skin="pencil"] .cyvasse-board .has-unit:is(.is-last-move, .is-selected) .unit-ring {
+  display: inline;
   stroke: #ff9a1f;
-  stroke-width: 2.5;
+  stroke-width: 10;
   stroke-opacity: var(--rim-glow);
   filter: drop-shadow(0 0 2.5px rgb(255 140 26 / calc(0.95 * var(--rim-glow))));
 }
 
-[data-skin="pencil"] .cyvasse-board .has-unit.is-selected .unit-disc {
+[data-skin="pencil"] .cyvasse-board .has-unit.is-selected .unit-ring {
   animation: cyvasse-selected-rim 1.8s ease-in-out infinite;
 }
 
-[data-skin="pencil"] .cyvasse-board .has-unit.is-last-move:not(.is-selected) .unit-disc {
+[data-skin="pencil"] .cyvasse-board .has-unit.is-last-move:not(.is-selected) .unit-ring {
   animation: cyvasse-last-move-rim 10s ease-in forwards;
   animation-delay: var(--last-move-delay, 0ms);
 }
@@ -190,12 +214,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-skin="pencil"] .cyvasse-board .has-unit.is-last-move:not(.is-selected) .unit-disc {
+  [data-skin="pencil"] .cyvasse-board .has-unit.is-last-move:not(.is-selected) .unit-ring {
     animation: none;
     --rim-glow: 0.6;
   }
 
-  [data-skin="pencil"] .cyvasse-board .has-unit.is-selected .unit-disc {
+  [data-skin="pencil"] .cyvasse-board .has-unit.is-selected .unit-ring {
     animation: none;
     --rim-glow: 1;
   }
@@ -220,7 +244,8 @@
  * clip that once trimmed a wide drawing at every side now frees the upper
  * ones, and the cut along the bottom is the tile's own edge. */
 .cyvasse-board .unit-image,
-.cyvasse-board .unit-disc {
+.cyvasse-board .unit-disc,
+.cyvasse-board .unit-ring {
   pointer-events: none;
   --tier-scale: 1.1;
   --art-anchor: 14px;
@@ -228,15 +253,15 @@
   transform: translateY(var(--art-anchor)) scale(var(--art-scale)) translateY(calc(-1 * var(--art-anchor)));
 }
 
-.cyvasse-board .hex[data-tier="medium"] :is(.unit-image, .unit-disc) { --tier-scale: 1.2; }
-.cyvasse-board .hex[data-tier="large"] :is(.unit-image, .unit-disc) { --tier-scale: 1.35; }
+.cyvasse-board .hex[data-tier="medium"] :is(.unit-image, .unit-disc, .unit-ring) { --tier-scale: 1.2; }
+.cyvasse-board .hex[data-tier="large"] :is(.unit-image, .unit-disc, .unit-ring) { --tier-scale: 1.35; }
 
 /* The pencil skin draws its piece as a token: black linework on a parchment
  * disc (radius 27), the art at 0.84 of the disc, the disc at 0.83 of the art
  * box. Disc and art grow together, by the same tiers, and take the same clip:
  * a large token rises over the hexes behind it and is cut flat along its
  * tile's right and lower sides. */
-[data-skin="pencil"] .cyvasse-board .unit-disc { --art-scale: calc(0.83 * var(--tier-scale)); }
+[data-skin="pencil"] .cyvasse-board :is(.unit-disc, .unit-ring) { --art-scale: calc(0.83 * var(--tier-scale)); }
 [data-skin="pencil"] .cyvasse-board .unit-image { --art-scale: calc(0.84 * 0.83 * var(--tier-scale)); }
 
 /* A hex the ripple has lit (.is-lit) carries a faint diagonal hatch over its
@@ -1044,6 +1069,19 @@ html.dark [data-skin="pencil"] .dock-unit img {
   line-height: 1.25;
 }
 
+/* With no room below its "?", the key opens above it (board_key controller),
+ * which sets a max-height when neither side has room for all of it; the
+ * panel then scrolls inside itself, never off the screen. */
+.cyvasse-legend[data-placement="above"] .cyvasse-legend-panel {
+  top: auto;
+  bottom: calc(100% + 0.375rem);
+}
+
+.cyvasse-legend-panel {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* In the match's timer card the key sits at the left of a wrapped row. */
 .match-panel-status .cyvasse-legend-panel {
   right: auto;
@@ -1094,6 +1132,14 @@ html.dark [data-skin="pencil"] .dock-unit img {
   animation: cyvasse-selected-rim 1.8s ease-in-out infinite;
   stroke-opacity: var(--rim-glow);
 }
+
+/* Your piece and the enemy's show the disc's team rim, as on the board. */
+[data-skin="pencil"] .cyvasse-legend-swatch:is([data-swatch="yours"], [data-swatch="enemy"]) .cyvasse-legend-disc {
+  stroke-width: 1;
+  filter: none;
+}
+[data-skin="pencil"] .cyvasse-legend-swatch[data-swatch="yours"] .cyvasse-legend-disc { stroke: var(--cyvasse-team-1); }
+[data-skin="pencil"] .cyvasse-legend-swatch[data-swatch="enemy"] .cyvasse-legend-disc { stroke: var(--cyvasse-team-0); }
 
 @media (prefers-reduced-motion: reduce) {
   .cyvasse-legend-swatch[data-swatch="selected"] polygon { animation: none; }
@@ -1363,5 +1409,146 @@ html.dark [data-skin="pencil"] .dock-unit img {
   .cyvasse-game:has(.cyvasse-setup-controls:not([hidden])) .cyvasse-board {
     max-height: calc(100svh - 10rem);
     max-width: min(44rem, calc((100svh - 10rem) * 1.12));
+  }
+}
+
+/* Play layouts (task cyvasse-play-layout-fit). The setup layouts above keep
+ * the board on the screen while an army is placed; these keep the whole board
+ * on the screen for the game itself, all 91 hexes, on the screens where it
+ * once ran off: phones on their side, short laptops, and the empty band a
+ * phone showed above the board on a match. */
+
+/* Short desktop screens (a 13" laptop, 1280x800 or 1133x744): the board is
+ * capped to the screen's height left under what sits above it at the top of
+ * the page, so it is whole on the screen without a scroll. On /play that lead
+ * is the expanded navbar (about 5.75rem), the page's padding, the title and
+ * the board's banner and hint rows, about 17.5rem; on a match, whose board is
+ * lifted beside the versus card, about 8.75rem; each with a 1rem margin. The
+ * environment bar dev, test and QA show above the navbar (.studio-bar-stack,
+ * 2.5rem) scrolls away with the page but is on the screen at the top, so it
+ * counts. A screen tall enough for the lead and the board both keeps the
+ * full 44rem: about 925px on /play (965px under the bar), 785px on a match. */
+@media (min-width: 1024px) {
+  .cyvasse-game {
+    --board-lead: 18.5rem;
+    --board-room: max(18rem, calc(100svh - var(--board-lead)));
+  }
+
+  .cyvasse-game:has(.match-layout) {
+    --board-lead: 9.75rem;
+  }
+
+  :root:has(.studio-bar-stack) .cyvasse-game {
+    --board-lead: 21rem;
+  }
+
+  :root:has(.studio-bar-stack) .cyvasse-game:has(.match-layout) {
+    --board-lead: 12.25rem;
+  }
+
+  .cyvasse-game .cyvasse-board {
+    max-height: var(--board-room);
+    max-width: min(44rem, calc(var(--board-room) * 1.12));
+  }
+}
+
+/* A phone on its side, once setup is over (the side sheet has gone): the
+ * board beside the sidebar, as in setup, and sized to the screen's height
+ * under the pinned navbar (about 3.5rem once collapsed) with the banner's row
+ * over it (3rem): the start-over strip shares that row, as on a desktop
+ * match, the banner drawn over it. The board's column sticks under the
+ * navbar, so the sidebar (the unit card, the fallen, the chat) scrolls past
+ * it and the board never leaves the screen. --play-fit names the fit to the
+ * controller (showBoardForPlay), which scrolls the board into view once, as
+ * the game opens. */
+@media (max-width: 1023px) and (orientation: landscape) {
+  .cyvasse-game:not(:has(.cyvasse-setup-controls:not([hidden]))) {
+    --play-fit: side;
+    padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+  }
+
+  .cyvasse-game:not(:has(.cyvasse-setup-controls:not([hidden]))) .cyvasse-layout {
+    grid-template-columns: minmax(0, 1fr) clamp(14rem, 34vw, 20rem);
+    column-gap: 1rem;
+    align-items: start;
+  }
+
+  .cyvasse-game:not(:has(.cyvasse-setup-controls:not([hidden]))) .match-layout {
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "board versus" "board panel";
+    row-gap: 1rem;
+  }
+
+  .cyvasse-game:not(:has(.cyvasse-setup-controls:not([hidden]))) .cyvasse-board-wrap {
+    position: sticky;
+    top: var(--pin-stack-bottom, 0px);
+  }
+
+  .cyvasse-game:not(:has(.cyvasse-setup-controls:not([hidden]))) .cyvasse-board-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2.75rem; /* the banner slot's height */
+    margin: 0;
+  }
+
+  /* Drawn over the hint's row, so it must let clicks through to the hint. */
+  .cyvasse-game:not(:has(.cyvasse-setup-controls:not([hidden]))) .cyvasse-banner-slot {
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .cyvasse-game:not(:has(.cyvasse-setup-controls:not([hidden]))) .cyvasse-board {
+    max-height: calc(100svh - 7rem);
+    max-width: min(44rem, calc((100svh - 7rem) * 1.12));
+  }
+}
+
+/* A phone held upright, on a match: the board is as wide as the screen
+ * allows, so the height above it is all that can be given back. The banner's
+ * row, held open for a banner that shows two seconds a turn, left a band of
+ * about 100px between the versus card and the board. Now the row is a 1rem
+ * strip under a tighter gap; the banner and the start-over hint, which shares
+ * the strip, rise from its foot over the gap and the versus card's foot while
+ * they show (the hint within the card's bottom padding; the taller banner, for
+ * its two seconds, a little into the card). Nothing is laid out anew when
+ * either comes or goes, so the board never jumps, and neither is ever drawn
+ * over the board. */
+@media (max-width: 1023px) and (orientation: portrait) {
+  .match-layout > .cyvasse-board-wrap {
+    margin-top: -1.125rem; /* the grid's 1.5rem gap, less 0.375rem */
+  }
+
+  .match-layout .cyvasse-banner-slot {
+    min-height: 1rem;
+    margin-bottom: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .match-layout .cyvasse-board-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0.875rem;
+    min-height: 0;
+    margin: 0;
+    align-items: flex-end;
+  }
+}
+
+/* A docked sheet on a live match carries the setup clock (.cyvasse-army-clock),
+ * so the timer card's own clock would be a second one, peeking above a bottom
+ * sheet. It goes while the sheet is up, and the card with it when the clock
+ * was all it held; a notice or an error keeps the card. */
+@media (max-width: 1023px) {
+  .match-panel:has(> .cyvasse-setup-controls:not([hidden]) .cyvasse-army-clock:not([hidden])) > .match-panel-status > .live-clock {
+    display: none;
+  }
+
+  .match-panel:has(> .cyvasse-setup-controls:not([hidden]) .cyvasse-army-clock:not([hidden])) > .match-panel-status:not(:has(> :not([hidden]):not(.live-clock))) {
+    display: none;
   }
 }
