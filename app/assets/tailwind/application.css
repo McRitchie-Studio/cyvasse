@@ -251,11 +251,40 @@ html:root:not(.dark) {
  * label over a larger value (Alex's wireframe, cyvasse-rules-unit-card-layout).
  * One column at every width, so the Units list's thirds, its halves on a
  * tablet, a phone's single column and the Special Rules cards all read the
- * same; a long value ("Moves in a straight line") and a three-piece trump
+ * same; a long value and a three-piece trump
  * row wrap inside the card rather than spill. The card fills its grid cell,
  * so the cards in a row stand the same height. */
 .unit-card {
   height: 100%;
+}
+
+/* The Units list: one card a row on a phone, halves from 640px, thirds from
+ * 1024px, as a wrapping flex row so a short last row (the two horses) sits
+ * centred rather than leaving an empty third column (Alex, 2026-09-29). Each
+ * card keeps a full row's width; the row's cards stretch to one height. */
+.unit-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.unit-grid > .unit-card {
+  flex: 0 0 100%;
+  min-width: 0;
+  height: auto;
+}
+
+@media (min-width: 40rem) {
+  .unit-grid > .unit-card {
+    flex-basis: calc((100% - 1rem) / 2);
+  }
+}
+
+@media (min-width: 64rem) {
+  .unit-grid > .unit-card {
+    flex-basis: calc((100% - 2rem) / 3);
+  }
 }
 
 .unit-card-body {
