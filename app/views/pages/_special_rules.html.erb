@@ -11,18 +11,19 @@
    rules = [
      [ "range", "Range Units", [ [ trebuchet, %i[movement range] ] ],
        "Range units shoot from a distance, moving or shooting in a turn but never both, and they block the Dragon's flight. " \
-       "Any unit can take one, whatever the Strengths, unless the Range unit trumps it. " \
+       "They defend at Strength #{Rulebook::RANGE_DEFENCE}, so any unit can take one. " \
        "The Trebuchet #{trebuchet.movement == "0" ? "cannot move" : "moves #{trebuchet.movement}"}, but it shoots #{trebuchet.range} hexes." ],
      [ "cavalry", "Cavalry Units", [ [ light_horse, %i[movement] ], [ heavy_horse, %i[movement] ] ],
        "Cavalry units move or attack twice a turn. The #{light_horse.name}'s first jump reaches #{light_horse.jumps.first} " \
-       "and the #{heavy_horse.name}'s reaches #{heavy_horse.jumps.first}; the second jump reaches " \
-       "#{Rulebook::CAVALRY_SECOND_JUMP} for both." ],
+       "and its second reaches #{light_horse.jumps.last}; the #{heavy_horse.name}'s first reaches " \
+       "#{heavy_horse.jumps.first} and its second #{heavy_horse.jumps.last}." ],
      [ "dragon", "Your Dragon", [ [ Rulebook.fetch("dragon"), %i[movement strength] ] ],
        "A Dragon flies any distance in a straight line, and it can only be taken by a Trebuchet, a Catapult, another Dragon, " \
-       "or a King it strays too close to. Opposing Range units will block it, but not kill it." ],
-     [ "trump", "Trumps", [ [ Rulebook.fetch("spearman"), %i[trump] ] ],
-       "Some units trump others. For example, a Spearman will always defeat a Light Horse, " \
-       "even though the Light Horse has equal Strength to the Spearman." ]
+       "or a King it strays too close to. It can take an opposing Range unit, but its flight ends there." ],
+     [ "trump", "Trumps", [ [ Rulebook.fetch("spearman"), %i[strength trump] ] ],
+       "Some units trump others, and a trump works on offense: when a Spearman attacks an Elephant, " \
+       "the Spearman wins, even though the Elephant has more Strength. A trump never protects the unit " \
+       "that holds it: the Trebuchet trumps the Dragon, but a Dragon that attacks a Trebuchet still takes it." ]
    ] %>
 <div class="grid gap-4 sm:grid-cols-2">
   <% rules.each do |key, title, featured, body| %>
