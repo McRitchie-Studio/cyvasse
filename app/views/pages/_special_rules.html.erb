@@ -26,8 +26,8 @@
     <article class="card p-4 special-rule-card flex flex-col gap-3" data-rule="<%= key %>">
       <h3 class="text-lg font-bold text-heading"><%= title %></h3>
       <p class="text-secondary leading-relaxed text-sm"><%= body %></p>
-      <%# Two featured units (the horses) sit side by side, since each unit
-          card is a tall portrait column. %>
+      <%# Should a card feature two units, they sit side by side, since each
+          unit card is a tall portrait column. %>
       <div class="grid gap-3 mt-auto<%= " grid-cols-2" if featured.size > 1 %>">
         <% featured.each do |unit, highlight| %>
           <%= render "pages/unit_card", unit:, highlight: %>
