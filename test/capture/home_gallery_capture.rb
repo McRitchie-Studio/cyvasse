@@ -12,7 +12,11 @@ require "application_system_test_case"
 #   PIECES=dragon,king bin/rails cyvasse:capture_home_gallery
 #
 # and it rewrites app/assets/images/backgrounds/home/<slug>.webp (a wide crop,
-# 1800 px) and <slug>-mobile.webp (a portrait crop, 720 px). It needs cwebp
+# 1800 px), <slug>-2x.webp (the same crop at 3600 px, for a 2x screen),
+# <slug>-mobile.webp (a portrait crop, 720 px) and <slug>-mobile-2x.webp
+# (1440 px): HomeGallery::WIDE and PORTRAIT name the sizes and the byte cap
+# of each. The 2x file is drawn afresh at its size (the board is vector), not
+# upscaled from the 1x. It needs cwebp
 # (`brew install webp`). PREVIEW=1 also saves the whole board of each scene
 # to tmp/home_gallery/<slug>-board.png.
 #
@@ -47,10 +51,13 @@ class HomeGalleryCapture < ApplicationSystemTestCase
   # portrait crop centres the hero. The board is a hexagon, so a crop centred
   # far from the middle catches its empty corners: `reach` keeps each crop's
   # centre that close to the board's centre.
-  DESKTOP = { width: 460, height: 230, pixels: 1800, side: 0.25, reach: { x: 160, y: 190 } }.freeze
-  MOBILE = { width: 300, height: 480, pixels: 720, side: 0.5, reach: { x: 134, y: 120 } }.freeze
+  DESKTOP = { width: 460, height: 230, side: 0.25, reach: { x: 160, y: 190 } }.freeze
+  MOBILE = { width: 300, height: 480, side: 0.5, reach: { x: 134, y: 120 } }.freeze
   QUALITY = 80
   MAX_BYTES = 150 * 1024
+  # Each crop at each of its sizes, keyed by file-name suffix.
+  GALLERY_CROPS = HomeGallery::WIDE.to_h { [ _1.suffix, DESKTOP.merge(pixels: _1.width, max_bytes: _1.max_bytes) ] }
+    .merge(HomeGallery::PORTRAIT.to_h { [ _1.suffix, MOBILE.merge(pixels: _1.width, max_bytes: _1.max_bytes) ] }).freeze
 
   # The /rules banner (pages/_banner) is a short strip: about 3:1 in the
   # page's 768 px column and nearer 2:1 on a phone, so its crops are wider
@@ -282,7 +289,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
     hero
   end
 
-  def capture(slug, scene, crops: { "" => DESKTOP, "-mobile" => MOBILE }, out: OUT)
+  def capture(slug, scene, crops: GALLERY_CROPS, out: OUT)
     scene = mirrored(scene) if scene[:mirror]
     focus = scene[:focus] || page.evaluate_script("#{CONTROLLER}.selectedHex")
     board = page.evaluate_script(<<~JS)
@@ -306,7 +313,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
       FileUtils.mkdir_p(PREVIEWS)
       shot(board, rect, crop[:pixels], png)
       webp = out.join("#{slug}#{suffix}.webp")
-      encode(png, webp)
+      encode(png, webp, crop.fetch(:max_bytes, MAX_BYTES))
     end
   end
 
@@ -342,23 +349,25 @@ class HomeGalleryCapture < ApplicationSystemTestCase
     { x:, y:, width: crop[:width], height: crop[:height] }
   end
 
-  # A PNG of a board-unit rectangle, `pixels` wide.
+  # A PNG of a board-unit rectangle, `pixels` wide. Chrome snaps the clip to
+  # whole CSS pixels before it scales, so the clip is rounded here first and
+  # the file comes out exactly `pixels` wide (the srcset's width descriptor).
   def shot(board, rect, pixels, path)
     css = board["scale"]
     clip = { x: board["left"] + rect[:x] * css, y: board["top"] + rect[:y] * css,
-             width: rect[:width] * css, height: rect[:height] * css }
-    clip[:scale] = pixels / clip[:width]
+             width: rect[:width] * css, height: rect[:height] * css }.transform_values(&:round)
+    clip[:scale] = pixels.fdiv(clip[:width])
     data = page.driver.browser.execute_cdp("Page.captureScreenshot", format: "png", captureBeyondViewport: true, clip:)
     File.binwrite(path, Base64.decode64(data.fetch("data")))
   end
 
   # The smallest file under the cap, stepping the quality down from QUALITY.
-  def encode(png, webp)
+  def encode(png, webp, max_bytes)
     QUALITY.step(48, -4) do |quality|
       system(@cwebp, "-quiet", "-q", quality.to_s, "-m", "6", "-metadata", "none", png.to_s, "-o", webp.to_s, exception: true)
-      break if File.size(webp) <= MAX_BYTES
+      break if File.size(webp) <= max_bytes
     end
     puts "  #{webp.relative_path_from(Rails.root)}: #{File.size(webp)} bytes"
-    assert_operator File.size(webp), :<=, MAX_BYTES, "#{webp} is under the cap"
+    assert_operator File.size(webp), :<=, max_bytes, "#{webp} is under the cap"
   end
 end

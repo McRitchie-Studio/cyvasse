@@ -4,8 +4,9 @@
 <%# The art is one action shot per piece (HomeGallery), crossfading in turn; the black scrim keeps the white type legible in both themes. %>
 <% content_for(:head) do %>
   <% first = @gallery.first %>
-  <link rel="preload" as="image" href="<%= image_path(first.desktop_image) %>" media="(min-width: 641px)" fetchpriority="high">
-  <link rel="preload" as="image" href="<%= image_path(first.mobile_image) %>" media="(max-width: 640px)" fetchpriority="high">
+  <%# The same srcset and sizes as the first slide's <picture>, and no href, so the browser preloads the very file the slide will pick. %>
+  <link rel="preload" as="image" imagesrcset="<%= home_gallery_srcset(first.wide_images) %>" imagesizes="<%= HomeGallery::SIZES %>" media="(min-width: 641px)" fetchpriority="high">
+  <link rel="preload" as="image" imagesrcset="<%= home_gallery_srcset(first.portrait_images) %>" imagesizes="<%= HomeGallery::SIZES %>" media="(max-width: 640px)" fetchpriority="high">
 <% end %>
 <%# Full bleed: the layout's :hero slot puts it edge to edge under the navbar. %>
 <% content_for(:hero) do %>
