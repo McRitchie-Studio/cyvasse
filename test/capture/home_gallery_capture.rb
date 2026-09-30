@@ -2,6 +2,8 @@ require "application_system_test_case"
 
 # Captures the front door's background gallery (HomeGallery): one action shot
 # per piece, each a real board state on /play staged so that piece is the hero.
+# It also captures the /rules page's banner, the goal of the game: a Heavy
+# Horse with the enemy King in reach (RULES below).
 #
 # Not a test: the file name does not end in _test.rb, so no suite picks it up.
 # Run it with
@@ -13,6 +15,12 @@ require "application_system_test_case"
 # 1800 px) and <slug>-mobile.webp (a portrait crop, 720 px). It needs cwebp
 # (`brew install webp`). PREVIEW=1 also saves the whole board of each scene
 # to tmp/home_gallery/<slug>-board.png.
+#
+#   bin/rails cyvasse:capture_rules_hero            # the /rules banner
+#
+# rewrites app/assets/images/backgrounds/rules/capture-the-king.webp (a 3:1
+# crop, 1800 px) and capture-the-king-mobile.webp (16:9, 720 px), the shapes
+# of the banner on a wide screen and on a phone.
 #
 # Deterministic: every scene below names every unit on the board and its hex,
 # whose move it is and the last move; nothing is random. The board is drawn
@@ -43,6 +51,14 @@ class HomeGalleryCapture < ApplicationSystemTestCase
   MOBILE = { width: 300, height: 480, pixels: 720, side: 0.5, reach: { x: 134, y: 120 } }.freeze
   QUALITY = 80
   MAX_BYTES = 150 * 1024
+
+  # The /rules banner (pages/_banner) is a short strip: about 3:1 in the
+  # page's 768 px column and nearer 2:1 on a phone, so its crops are wider
+  # than the gallery's and centre the attack between hero and King.
+  RULES_OUT = Rails.root.join("app/assets/images/backgrounds/rules")
+  RULES_NAME = "capture-the-king".freeze
+  RULES_DESKTOP = { width: 540, height: 180, pixels: 1800, side: 0.5, reach: { x: 64, y: 190 } }.freeze
+  RULES_MOBILE = { width: 320, height: 180, pixels: 720, side: 0.5, reach: { x: 174, y: 190 } }.freeze
 
   # [team, codename, hex]: team 1 is the player (blue, bottom rows 52-91),
   # team 0 the opponent (red, top rows 1-40); row 6 (41-51) is no man's land.
@@ -154,6 +170,21 @@ class HomeGalleryCapture < ApplicationSystemTestCase
     }
   }.freeze
 
+  # The goal of the game: the player's Heavy Horse two hexes from the enemy
+  # King, the hex between them just emptied by the opponent's Rabble, so the
+  # King is ringed as a capture. `hero` names the selected unit and `prey`
+  # the hex its attack must reach; `focus` (the emptied hex) centres the crops.
+  RULES = {
+    hero: "heavyhorse", prey: 26, select: 45, focus: 35, last: [ 35, 43 ], turn: 15,
+    units: [
+      [ 1, "heavyhorse", 45 ], [ 1, "spearman", 56 ], [ 1, "elephant", 55 ], [ 1, "dragon", 60 ], [ 1, "lighthorse", 58 ],
+      [ 1, "rabble", 54 ], [ 1, "crossbowman", 65 ], [ 1, "catapult", 67 ], [ 1, "mountain", 62 ], [ 1, "king", 85 ],
+      [ 1, "trebuchet", 76 ],
+      [ 0, "king", 26 ], [ 0, "rabble", 43 ], [ 0, "spearman", 24 ], [ 0, "elephant", 37 ], [ 0, "crossbowman", 16 ],
+      [ 0, "heavyhorse", 29 ], [ 0, "catapult", 18 ], [ 0, "mountain", 33 ], [ 0, "dragon", 10 ], [ 0, "lighthorse", 39 ]
+    ]
+  }.freeze
+
   setup do
     @cwebp = `which cwebp`.strip
     raise "cwebp not found: brew install webp" if @cwebp.empty?
@@ -180,6 +211,7 @@ class HomeGalleryCapture < ApplicationSystemTestCase
   end
 
   test "capture one action shot per piece" do
+    skip "RULES=1: the rules banner only" if ENV["RULES"]
     wanted = ENV["PIECES"]&.split(",")&.map(&:strip)
     slides = HomeGallery::SLIDES.select { |slide| wanted.nil? || wanted.include?(slide.slug) }
     assert_equal HomeGallery::SLIDES.map(&:slug).sort, SCENES.keys.sort, "one scene per slide"
@@ -189,6 +221,15 @@ class HomeGalleryCapture < ApplicationSystemTestCase
       stage(slide.slug, scene)
       capture(slide.slug, scene)
     end
+  end
+
+  test "capture the rules banner" do
+    skip "set RULES=1 (bin/rails cyvasse:capture_rules_hero)" unless ENV["RULES"]
+    FileUtils.mkdir_p(RULES_OUT)
+    hero = stage(RULES.fetch(:hero), RULES)
+    assert_includes hero["attacks"], RULES.fetch(:prey), "the hero can take the enemy King"
+    assert_equal "king", page.evaluate_script("#{CONTROLLER}.game.pieceAt(#{RULES.fetch(:prey)}).type.codename")
+    capture(RULES_NAME, RULES, crops: { "" => RULES_DESKTOP, "-mobile" => RULES_MOBILE }, out: RULES_OUT)
   end
 
   private
@@ -229,16 +270,17 @@ class HomeGalleryCapture < ApplicationSystemTestCase
         ctrl.moveCursor(ctrl.focusCursor, null)
         const unit = game.pieceAt(ctrl.selectedHex)
         return { hex: ctrl.selectedHex, codename: unit.type.codename, team: unit.team,
-                 moves: ctrl.actions.moves.length, attacks: ctrl.actions.attacks.length, jump: game.jump }
+                 moves: ctrl.actions.moves.length, attacks: ctrl.actions.attacks, jump: game.jump }
       })()
     JS
     assert_equal slug, hero["codename"], "#{slug}: the selected unit is the hero"
     assert_equal 1, hero["team"], "#{slug}: the hero is the player's"
-    puts "#{slug}: hex #{hero['hex']}, #{hero['moves']} moves, #{hero['attacks']} attacks, jump #{hero['jump']}"
+    puts "#{slug}: hex #{hero['hex']}, #{hero['moves']} moves, #{hero['attacks'].size} attacks, jump #{hero['jump']}"
     assert_selector ".cyvasse-banner", visible: :hidden
+    hero
   end
 
-  def capture(slug, scene)
+  def capture(slug, scene, crops: { "" => DESKTOP, "-mobile" => MOBILE }, out: OUT)
     scene = mirrored(scene) if scene[:mirror]
     focus = scene[:focus] || page.evaluate_script("#{CONTROLLER}.selectedHex")
     board = page.evaluate_script(<<~JS)
@@ -256,12 +298,12 @@ class HomeGalleryCapture < ApplicationSystemTestCase
     JS
 
     shot(board, { x: 0, y: 0, width: board["width"], height: board["height"] }, 1600, PREVIEWS.join("#{slug}-board.png")) if ENV["PREVIEW"]
-    { "" => DESKTOP, "-mobile" => MOBILE }.each do |suffix, crop|
+    crops.each do |suffix, crop|
       rect = crop_around(board, crop, scene.fetch(:side, :left))
       png = PREVIEWS.join("#{slug}#{suffix}.png")
       FileUtils.mkdir_p(PREVIEWS)
       shot(board, rect, crop[:pixels], png)
-      webp = OUT.join("#{slug}#{suffix}.webp")
+      webp = out.join("#{slug}#{suffix}.webp")
       encode(png, webp)
     end
   end
