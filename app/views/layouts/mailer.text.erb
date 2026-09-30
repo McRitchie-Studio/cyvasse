@@ -1,1 +1,4 @@
-<%= yield %>
+<%= yield.to_s.rstrip %>
+
+--
+<%= Studio.app_name %> · <%= URI.parse(root_url).host %>

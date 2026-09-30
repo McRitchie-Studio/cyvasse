@@ -65,11 +65,47 @@ class CanonicalHostTest < ActiveSupport::TestCase
     end
   end
 
-  test "the production config builds routes and mail on the canonical host" do
+  test "the email link host stays on the established host in production, flag on or off" do
+    assert_equal "cyvasse.mcritchie.studio", Cyvasse::CanonicalHost.email_host(env: {}, production: true)
+    assert_equal "cyvasse.mcritchie.studio", Cyvasse::CanonicalHost.email_host(env: ON, production: true)
+    assert_equal "cyvasse.mcritchie.studio",
+                 Cyvasse::CanonicalHost.email_host(env: ON.merge("CANONICAL_HOST" => "cyvasse.xyz", "APP_HOST" => "x.example.com"), production: true),
+                 "neither CANONICAL_HOST nor APP_HOST moves mail"
+  end
+
+  test "EMAIL_LINK_HOST overrides the email link host, trimmed and lowercased; blank falls back" do
+    assert_equal "mail.example.com", Cyvasse::CanonicalHost.email_host(env: { "EMAIL_LINK_HOST" => " Mail.Example.com " }, production: true)
+    assert_equal "cyvasse.mcritchie.studio", Cyvasse::CanonicalHost.email_host(env: { "EMAIL_LINK_HOST" => " " }, production: true)
+  end
+
+  test "outside production there is no email link host unless one is set, even with a canonical host" do
+    assert_nil Cyvasse::CanonicalHost.email_host(env: {}, production: false)
+    assert_nil Cyvasse::CanonicalHost.email_host(env: { "CANONICAL_HOST" => "cyvasse.xyz" }, production: false)
+    assert_equal "localhost", Cyvasse::CanonicalHost.email_host(env: { "EMAIL_LINK_HOST" => "localhost" }, production: false)
+  end
+
+  test "email url options are https on the email link host" do
+    assert_equal({ host: "cyvasse.mcritchie.studio", protocol: "https" },
+                 Cyvasse::CanonicalHost.email_url_options(host: "cyvasse.mcritchie.studio"))
+    assert_nil Cyvasse::CanonicalHost.email_url_options(host: nil)
+  end
+
+  test "Cyvasse.email_link_host reads this process's EMAIL_LINK_HOST" do
+    previous = ENV["EMAIL_LINK_HOST"]
+    ENV["EMAIL_LINK_HOST"] = nil
+    assert_nil Cyvasse.email_link_host
+    ENV["EMAIL_LINK_HOST"] = "cyvasse.mcritchie.studio"
+    assert_equal "cyvasse.mcritchie.studio", Cyvasse.email_link_host
+  ensure
+    ENV["EMAIL_LINK_HOST"] = previous
+  end
+
+  test "the production config builds routes on the canonical host and mail on the email link host" do
     production = Rails.root.join("config/environments/production.rb").read
 
-    assert_includes production, "config.action_mailer.default_url_options = Cyvasse::CanonicalHost.url_options"
+    assert_includes production, "config.action_mailer.default_url_options = Cyvasse::CanonicalHost.email_url_options"
     assert_includes production, "Rails.application.routes.default_url_options = Cyvasse::CanonicalHost.url_options"
+    refute_match(/ENV\S*EMAIL_LINK_HOST/, production, "the email link host is read only in lib/cyvasse/canonical_host.rb")
     refute_match(/ENV\S*APP_HOST/, production, "hosts are read only in lib/cyvasse/canonical_host.rb; a second read would drift from the redirect")
   end
 
