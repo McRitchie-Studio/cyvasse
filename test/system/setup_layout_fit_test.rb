@@ -180,7 +180,7 @@ class SetupLayoutFitTest < ApplicationSystemTestCase
 
   def touch_screen!(width, height)
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
-                                    width:, height:, deviceScaleFactor: 2, mobile: true)
+                                    width:, height:, deviceScaleFactor: 1, mobile: true)
     page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: true, maxTouchPoints: 5)
     page.driver.browser.execute_cdp("Emulation.setEmulatedMedia",
                                     features: [ { name: "prefers-reduced-motion", value: "reduce" } ])
