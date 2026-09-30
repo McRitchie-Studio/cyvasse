@@ -14,10 +14,12 @@
 //
 // Two rules shape most of them (cyvasse/rules.js, cyvasse/game.js):
 //   - The enemy dragon flies any distance in a straight line, over mountains
-//     and most units, and can take the king from across the board. Only a
-//     trebuchet or catapult stops it outright; a crossbow or a dragon makes
-//     it stop to capture. A king whose two forward diagonals each meet one of
-//     those four first is safe from a first-turn dragon strike.
+//     and most units, and can take the king from across the board. An enemy
+//     trebuchet, catapult, crossbow or dragon makes it stop: it can take any
+//     of them, but its flight ends there (since the offense-only trumps of
+//     September 29, 2026 the trebuchet and catapult no longer repel it). A
+//     king whose two forward diagonals each meet one of those four first is
+//     safe from a first-turn dragon strike.
 //   - The side whose king stands nearer the middle row moves first.
 //
 // openingLineup(opening) turns a drawing into the legacy setup string that
@@ -55,7 +57,7 @@ export const OPENINGS = Object.freeze([
     "All four horses start on the front row, ready to jump twice into their lines on the first turn, with the elephants holding the centre between them.",
     ["LH..EE..HL", "..S.T.S..", "M..CX..M", "R.XKD.R", "..R..."]),
   opening("grey-wall", "Grey Wall",
-    "Elephants and spearmen make the front line with mountains on the wings. Only a dragon, a crossbow or another elephant can take an elephant, and your crossbows wait behind to punish the enemy's.",
+    "Elephants and spearmen make the front line with mountains on the wings. Only a dragon, a spearman or another elephant can take an elephant, and your spearmen stand right beside yours to punish the enemy's.",
     ["M.SE..ES.M", ".X.T.C.X.", "L.HD.H.L", "..RKR..", "..R..."]),
   opening("siege-line", "Siege Line",
     "The trebuchet, the catapult and both crossbows open on the front row around a pair of elephants. Shooters fire without moving, and from there they reach the enemy's front rows.",
@@ -70,16 +72,16 @@ export const OPENINGS = Object.freeze([
     "Three rabble lead the way as bait. The computer takes whatever it can; whatever steps up to take them lands next to the elephants, the trebuchet and the crossbows.",
     [".R..R...R.", ".X.ETE.X.", "L.SCD.SL", "H.MK.MH", "......"]),
   opening("spear-hedge", "Spear Hedge",
-    "Spearmen hold both wings, where light horse like to raid, and a spearman beats a light horse whatever the numbers say. The king waits in the centre behind the catapult.",
+    "Spearmen hold both wings, where light horse like to raid: a spearman takes a light horse, and a light horse cannot take a spearman. The king waits in the centre behind the catapult.",
     ["S.E...TE.S", ".R.RC.R..", "L..XKX.L", "H.M.M.H", "..D..."]),
   opening("crossbow-ambush", "Crossbow Ambush",
-    "Spearmen and mountains lead, and the crossbows hide in the second row. An enemy elephant that breaks through meets a crossbow, which it cannot take and which can take it.",
+    "Spearmen and mountains lead, and the crossbows hide in the second row to shoot whatever comes through. An enemy elephant that breaks through meets a spearman, which trumps it and takes it whatever the strengths.",
     ["L.S.MM.S.L", "..X.T.X..", ".HECDEH.", "R..K..R", "..R..."]),
   opening("the-keep", "The Keep",
     "The king stands in the middle of the fourth row, flanked by elephants, with the catapult and your dragon above it. The trebuchet fires from between the two front mountains.",
     ["L.HMTM.H.L", ".R.S.S.R.", "..XCDX..", "..EKE..", "..R..."]),
   opening("dragon-hunt", "Dragon Hunt",
-    "Trebuchet, crossbows and catapult sit together in the centre of the front row. Their dragon cannot touch the trebuchet or the catapult, and both of them can take it.",
+    "Trebuchet, crossbows and catapult sit together in the centre of the front row. Their dragon must stop at the first of them it takes, and the trebuchet and catapult both trump it, so either one can take it back.",
     ["E..TXXC..E", "L.S...S.L", ".H.MM.H.", "R.RKD.R", "......"]),
   opening("shadow-keep", "Shadow Keep",
     "Two mountains stand directly in front of the king: nothing on foot walks through them and no shot passes through them. The trebuchet and catapult beyond them, on the same diagonals, stop the dragon.",

@@ -106,20 +106,34 @@ test("the computer lineups the first-move test reads keep their kings on the top
   }
 });
 
-// Grey Wall and Crossbow Ambush make claims about who takes an elephant; the
-// capture rules answer them, so a change to either shows up here.
-test("what the openings say about elephants is what the rules do", () => {
+// Grey Wall, Crossbow Ambush, Spear Hedge and Dragon Hunt make claims about
+// who takes whom; the capture rules answer them, so a change to either shows
+// up here. The new stats and offense-only trumps of September 29, 2026
+// (cyvasse-stats-and-trumps-v3) flipped the elephant's takers from crossbow,
+// dragon and elephant to dragon, elephant and spearman.
+test("what the openings say about who takes whom is what the rules do", () => {
   const takes = (attacker, defender) => {
     const position = { pieceAt: (i) => ({ 60: { team: PLAYER, type: UNIT_TYPES[attacker] }, 50: { team: COMPUTER, type: UNIT_TYPES[defender] } })[i] };
     const { attacks } = legalActions(position, 60);
     // A shooter takes from range; everyone else by stepping onto the hex.
     return attacks.includes(50);
   };
-  const elephantTakers = Object.keys(UNIT_TYPES).filter((codename) => takes(codename, "elephant")).sort();
-  assert.deepEqual(elephantTakers, ["crossbowman", "dragon", "elephant"]);
-  assert.match(OPENINGS.find((o) => o.slug === "grey-wall").idea, /a dragon, a crossbow or another elephant/);
+  const idea = (slug) => OPENINGS.find((o) => o.slug === slug).idea;
 
-  assert.equal(takes("elephant", "crossbowman"), false, "an elephant cannot take a crossbow");
-  assert.equal(takes("crossbowman", "elephant"), true, "a crossbow can take an elephant");
-  assert.match(OPENINGS.find((o) => o.slug === "crossbow-ambush").idea, /a crossbow, which it cannot take and which can take it/);
+  const elephantTakers = Object.keys(UNIT_TYPES).filter((codename) => takes(codename, "elephant")).sort();
+  assert.deepEqual(elephantTakers, ["dragon", "elephant", "spearman"]);
+  assert.match(idea("grey-wall"), /a dragon, a spearman or another elephant/);
+
+  assert.equal(takes("spearman", "elephant"), true, "a spearman trumps an elephant");
+  assert.match(idea("crossbow-ambush"), /meets a spearman, which trumps it/);
+
+  assert.equal(takes("spearman", "lighthorse"), true, "a spearman takes a light horse");
+  assert.equal(takes("lighthorse", "spearman"), false, "a light horse cannot take a spearman");
+  assert.match(idea("spear-hedge"), /a light horse cannot take a spearman/);
+
+  for (const shooter of ["trebuchet", "catapult"]) {
+    assert.equal(takes(shooter, "dragon"), true, `the ${shooter} trumps the dragon`);
+    assert.equal(takes("dragon", shooter), true, `the dragon still takes the ${shooter}`);
+  }
+  assert.match(idea("dragon-hunt"), /must stop at the first of them it takes/);
 });
