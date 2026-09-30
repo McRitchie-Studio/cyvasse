@@ -27,7 +27,23 @@ class RulesPageLayoutTest < ApplicationSystemTestCase
     assert_centred_stack
     assert_bare_large_art
     assert_equal_heights_in_rows
+    assert_short_rows_centred
+    assert_word_values_on_one_line
     assert_banner_crop "capture-the-king-"
+  end
+
+  # Alex, 2026-09-29: "Also center-justify these". Two a row on a tablet, so
+  # each three-unit class ends on one centred card, as wide as the rest.
+  test "two unit cards a row at 800px, a lone last card centred" do
+    screen!(800, 1100, mobile: false)
+    visit rules_path
+
+    rows = card_rows
+    %w[vanguard range unique].each { assert_equal [ 2, 1 ], rows.fetch(_1).map(&:size), _1 }
+    assert_equal [ 2 ], rows.fetch("cavalry").map(&:size)
+    assert_no_sideways_scroll 800
+    assert_short_rows_centred
+    assert_equal_heights_in_rows
   end
 
   test "one unit card a row at 390px, with the phone banner crop" do
@@ -41,10 +57,43 @@ class RulesPageLayoutTest < ApplicationSystemTestCase
     assert_card_text_fits
     assert_centred_stack
     assert_bare_large_art
+    assert_word_values_on_one_line
     assert_banner_crop "capture-the-king-mobile-"
   end
 
+  # Alex, 2026-09-29: clicking a stat a Special Rule explains scrolls to that
+  # rule, clear of the sticky navbar, and flashes the card.
+  test "a range value and a trump icon each land on their special rule, below the navbar" do
+    screen!(1440, 900, mobile: false)
+    visit rules_path
+
+    find("#unit-trebuchet dd[data-stat=range] a").click
+    assert_landed_on "rule-range"
+    find("#unit-rabble dd[data-stat=trump] a").click
+    assert_landed_on "rule-trumps"
+  end
+
   private
+
+  def assert_landed_on(id)
+    assert_selector "##{id}.rule-card-flash"
+    assert_equal "##{id}", page.evaluate_script("location.hash")
+    box = nil
+    assert(Capybara.using_wait_time(5) do
+      page.document.synchronize do
+        box = page.evaluate_script(<<~JS)
+          (() => {
+            const nav = [...document.querySelectorAll("body *")].find((el) => ["sticky", "fixed"].includes(getComputedStyle(el).position) && el.getBoundingClientRect().top <= 0 && el.getBoundingClientRect().height > 0)
+            const r = document.getElementById("#{id}").getBoundingClientRect()
+            return { top: r.top, navBottom: nav ? nav.getBoundingClientRect().bottom : 0, height: innerHeight }
+          })()
+        JS
+        raise Capybara::ExpectationNotMet, "#{id} still scrolling: #{box}" unless (box["top"] - box["navBottom"]).between?(0, 60)
+        true
+      end
+    end, "#{id} sits just under the navbar: #{box}")
+    assert_operator box["top"], :<, box["height"], "#{id} is on screen"
+  end
 
   def screen!(width, height, mobile:)
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
@@ -156,6 +205,42 @@ class RulesPageLayoutTest < ApplicationSystemTestCase
     assert_match(/radial-gradient/, glow, "dark theme: a glow behind the art")
     assert_match(/drop-shadow/, art_rim, "dark theme: a rim on the art")
     assert_match(/drop-shadow/, icon_rim, "dark theme: a rim on the trump icons")
+  end
+
+  # Every row of cards, full or short, sits centred in its class's grid (left
+  # gap equals right gap), and every card is the width of a full row's cards.
+  def assert_short_rows_centred
+    report = page.evaluate_script(<<~JS)
+      (() => {
+        const widths = [], bad = []
+        for (const grid of document.querySelectorAll("#units .unit-grid")) {
+          const box = grid.getBoundingClientRect(), rows = new Map()
+          for (const card of grid.querySelectorAll(".unit-card")) {
+            const r = card.getBoundingClientRect()
+            widths.push(r.width)
+            rows.set(Math.round(r.top), [...(rows.get(Math.round(r.top)) || []), r])
+          }
+          for (const row of rows.values()) {
+            const left = row[0].left - box.left, right = box.right - row[row.length - 1].right
+            if (Math.abs(left - right) > 1) bad.push(`${grid.parentElement.id}: row of ${row.length} off centre (${left} vs ${right})`)
+          }
+        }
+        return { bad, spread: Math.max(...widths) - Math.min(...widths) }
+      })()
+    JS
+    assert_empty report["bad"]
+    assert_operator report["spread"], :<, 1, "every card is a full row's width"
+  end
+
+  # The worded values ("Straight lines", "Immovable", "Impassable") read on
+  # one line, like a number.
+  def assert_word_values_on_one_line
+    tall = page.evaluate_script(<<~JS)
+      ["dragon", "mountain"].flatMap((slug) => [...document.querySelectorAll(`#unit-${slug} dd[data-stat=movement], #unit-${slug} dd[data-stat=strength]`)])
+        .filter((dd) => dd.getBoundingClientRect().height > parseFloat(getComputedStyle(dd).lineHeight) * 1.5)
+        .map((dd) => dd.textContent.trim())
+    JS
+    assert_empty tall
   end
 
   def assert_equal_heights_in_rows
