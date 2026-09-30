@@ -86,6 +86,7 @@ class RulesPageTest < ActionView::TestCase
     assert_equal %w[figure h4 dl], body.element_children.map(&:name), "art, then name, then stats"
     assert_equal "Trebuchet", body.at_css("h4.unit-card-name").text.strip
     assert_equal "Trebuchet", body.at_css("figure.unit-card-art img")["alt"]
+    refute_includes body.at_css("figure.unit-card-art")["class"].split, "piece-tile", "the art sits bare, off the parchment tile"
 
     stats = body.css("dl.unit-stats > div.unit-stat")
     assert_equal %w[movement strength range trump], stats.map { _1["data-stat"] }
@@ -111,7 +112,8 @@ class RulesPageTest < ActionView::TestCase
     assert_select "dd[data-stat=trump] img", 0
 
     render partial: "pages/unit_card", locals: { unit: Rulebook.fetch("king") }
-    assert_select "dd[data-stat=trump] img[alt='Trumps Dragon'][src*='/pieces/pencil/dragon-']", 1
+    assert_select "dd[data-stat=trump][data-skin=pencil] img[alt='Trumps Dragon'][src*='/pieces/pencil/dragon-']", 1
+    assert_select "figure.unit-card-art[data-skin=pencil] > img[src*='/pieces/pencil/king-']", 1
   end
 
   test "a special rules card marks the stat its rule is about, label and value together" do
@@ -130,6 +132,22 @@ class RulesPageTest < ActionView::TestCase
     assert_match(/text-align: center;/, body)
     assert_no_match(/@container/, css, "the art-beside-name layout is gone")
     assert_match(/^\.unit-card \{\s*height: 100%;/, css, "cards fill their row")
+  end
+
+  # [component] Alex's follow-up: no white tile behind the art or the trump
+  # icons, the art 1.5x the old 5.5rem tile, and a dark-theme glow and rim
+  # (the army dock's) so dark ink still reads on a dark card.
+  test "the unit card art and trump icons sit bare, the art at 8.25rem, with a dark-theme glow" do
+    css = Rails.root.join("app/assets/tailwind/application.css").read
+    art = css[/^\.unit-card-art \{.*?\}/m]
+    icon = css[/^\.unit-trump-icon \{.*?\}/m]
+    assert_match(/width: min\(8\.25rem, 100%\);/, art, "1.5x the old 5.5rem, capped at the card")
+    [ art, icon ].each do |rule|
+      assert_no_match(/background|border:/, rule, "no tile behind #{rule[/\A\S+/]}")
+    end
+    assert_match(/^html\.dark \.unit-card-art \{\s*background-image: radial-gradient/, css)
+    assert_match(/^html\.dark \.unit-card-art img,\s*html\.dark \.unit-trump-icon \{\s*filter: drop-shadow/, css)
+    assert_match(/^html\.dark \.unit-card \[data-skin="pencil"\] > img \{\s*filter: drop-shadow/, css)
     built = Rails.root.join("app/assets/builds/tailwind.css")
     assert_includes built.read, "lg\\:grid-cols-3", "Tailwind emits the thirds utility" if built.exist?
   end

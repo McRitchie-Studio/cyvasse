@@ -2,7 +2,9 @@
     wireframe, task cyvasse-rules-unit-card-layout): the piece art centred at
     the top, the name under it, then one centred column of stats, each a small
     label over its value. A trump is drawn as the trumped piece's own art, in
-    the reader's skin, the way the match sidebar's unit card shows it.
+    the reader's skin, the way the match sidebar's unit card shows it. The
+    art sits bare on the card, with no parchment tile (the dark theme's glow
+    is in application.css).
     The Units list gives each card an id; the Special Rules cards reuse it
     without one and pass `highlight`, the stats their rule is about
     (:movement, :strength, :range, :trump), which take the gold marker the old
@@ -14,7 +16,7 @@
    stats << [ :trump, "Trump", unit.trumped_pieces ] %>
 <article <%= tag.attributes(id: local_assigns[:id]) %> class="unit-card card p-4" data-unit="<%= unit.slug %>">
   <div class="unit-card-body">
-    <figure class="piece-tile unit-card-art" data-skin="<%= current_skin %>">
+    <figure class="unit-card-art" data-skin="<%= current_skin %>">
       <%= image_tag unit.piece.image(current_skin), alt: unit.name, loading: "lazy", decoding: "async" %>
     </figure>
     <h4 class="unit-card-name text-lg font-bold text-heading leading-tight"><%= unit.name %></h4>
@@ -24,7 +26,7 @@
         <div class="unit-stat<%= " unit-stat-marked" if marked %>" data-stat="<%= key %>">
           <dt class="unit-stat-label text-xs font-semibold uppercase tracking-wider <%= marked ? "text-heading" : "text-muted" %>" data-stat="<%= key %>"><%= label %></dt>
           <% if key == :trump %>
-            <dd class="unit-stat-value unit-trumps text-heading" data-stat="trump">
+            <dd class="unit-stat-value unit-trumps text-heading" data-stat="trump" data-skin="<%= current_skin %>">
               <% if value.empty? %>
                 <span aria-label="None">—</span>
               <% else %>

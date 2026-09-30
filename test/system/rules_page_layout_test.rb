@@ -3,8 +3,9 @@ require "application_system_test_case"
 # [e2e] /rules in a real browser (tasks cyvasse-rules-page-refresh and
 # cyvasse-rules-unit-card-layout): the unit cards run three a row on a wide
 # screen and one a row on a phone, each a centred portrait column whose row
-# mates stand the same height, neither width scrolls sideways, and the banner
-# paints the crop meant for that screen.
+# mates stand the same height, its art large and bare (no parchment tile),
+# neither width scrolls sideways, and the banner paints the crop meant for
+# that screen.
 # Chrome's device emulation sets the width, since a desktop window will not
 # shrink to a phone (phone_width_test.rb).
 class RulesPageLayoutTest < ApplicationSystemTestCase
@@ -24,6 +25,7 @@ class RulesPageLayoutTest < ApplicationSystemTestCase
     assert_no_sideways_scroll 1440
     assert_card_text_fits
     assert_centred_stack
+    assert_bare_large_art
     assert_equal_heights_in_rows
     assert_banner_crop "capture-the-king-"
   end
@@ -38,6 +40,7 @@ class RulesPageLayoutTest < ApplicationSystemTestCase
     assert_no_sideways_scroll 390
     assert_card_text_fits
     assert_centred_stack
+    assert_bare_large_art
     assert_banner_crop "capture-the-king-mobile-"
   end
 
@@ -118,6 +121,40 @@ class RulesPageLayoutTest < ApplicationSystemTestCase
         true
       end
     end, "every trump icon painted")
+  end
+
+  # Alex's follow-up: every card's art stands at least 1.5x the old 88px tile
+  # (8.25rem = 132px) and stays square inside its card, with no fill or
+  # border behind it or the trump icons in the light theme; the dark theme
+  # lights a glow and a rim instead. Both themes are read on one page load.
+  def assert_bare_large_art
+    report = page.evaluate_script(<<~JS)
+      (() => {
+        const root = document.documentElement, wasDark = root.classList.contains("dark")
+        root.classList.remove("dark")
+        const bare = (el) => { const s = getComputedStyle(el); return s.backgroundColor === "rgba(0, 0, 0, 0)" && s.backgroundImage === "none" && parseFloat(s.borderTopWidth) === 0 }
+        const bad = []
+        for (const card of document.querySelectorAll(".unit-card")) {
+          const art = card.querySelector(".unit-card-art"), box = card.getBoundingClientRect(), r = art.getBoundingClientRect()
+          if (Math.abs(r.width - r.height) > 0.5) bad.push(`${card.dataset.unit}: art ${r.width}x${r.height} not square`)
+          if (card.closest("#units") && r.width < 131.5) bad.push(`${card.dataset.unit}: art ${r.width}px, under 1.5x`)
+          if (r.left < box.left - 0.5 || r.right > box.right + 0.5) bad.push(`${card.dataset.unit}: art spills its card`)
+          if (!bare(art)) bad.push(`${card.dataset.unit}: art has a tile`)
+          for (const icon of card.querySelectorAll(".unit-trump-icon")) if (!bare(icon)) bad.push(`${card.dataset.unit}: trump icon has a tile`)
+        }
+        root.classList.add("dark")
+        const art = document.querySelector("#unit-trebuchet .unit-card-art")
+        const dark = [getComputedStyle(art).backgroundImage, getComputedStyle(art.querySelector("img")).filter,
+                      getComputedStyle(document.querySelector("#unit-trebuchet .unit-trump-icon")).filter]
+        root.classList.toggle("dark", wasDark)
+        return { bad, dark }
+      })()
+    JS
+    assert_empty report["bad"]
+    glow, art_rim, icon_rim = report["dark"]
+    assert_match(/radial-gradient/, glow, "dark theme: a glow behind the art")
+    assert_match(/drop-shadow/, art_rim, "dark theme: a rim on the art")
+    assert_match(/drop-shadow/, icon_rim, "dark theme: a rim on the trump icons")
   end
 
   def assert_equal_heights_in_rows
