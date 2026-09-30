@@ -42,6 +42,9 @@ Rails.application.routes.draw do
   resources :live_seeks, path: "live", only: %i[create show] do
     post :computer, on: :member
   end
+  # Cyvasse Night (CyvasseNight): the event page, and /night.ics, its
+  # calendar file. Public: the invitation emails link here.
+  get "night", to: "nights#show", as: :night
   # The live leaderboard and the all-time one (task live-leaderboard-and-guest-
   # claim), and a guest's sign-in to put a live win on it. Public.
   get "leaderboard", to: "leaderboards#show", as: :leaderboard

@@ -34,9 +34,11 @@ class Leaderboard
 
   def self.points(games:, wins:) = (games * GAME_POINTS) + (wins * (WIN_POINTS - GAME_POINTS))
 
-  # The live board, best first. `limit: nil` is every row.
-  def self.live(limit: LIVE_SIZE)
-    rows(User.from(ranked.arel.as("users")).select("users.*").order("users.board_rank").limit(limit))
+  # The live board, best first. `limit: nil` is every row. `within:` (a time
+  # range) counts only the games that ended inside it: Cyvasse Night's
+  # "tonight's leaderboard" (CyvasseNight#leaderboard), same rule, one evening.
+  def self.live(limit: LIVE_SIZE, within: nil)
+    rows(User.from(ranked(within).arel.as("users")).select("users.*").order("users.board_rank").limit(limit))
   end
 
   # A player's live row (rank, points, wins, games), or nil when they are not
@@ -66,8 +68,8 @@ class Leaderboard
   private_class_method :rows
 
   # Every player on the live board with their numbers and board_rank.
-  def self.ranked
-    records = live_records.arel.as("records")
+  def self.ranked(within = nil)
+    records = live_records(within).arel.as("records")
     join = Arel::Nodes::InnerJoin.new(records, Arel::Nodes::On.new(records[:user_id].eq(User.arel_table[:id])))
     order = "records.points DESC, records.wins DESC, records.reached_at ASC, users.id ASC"
     live_players.joins(join).select(
@@ -88,10 +90,16 @@ class Leaderboard
 
   # One row per player: games, wins, losses, points, and when they reached
   # that score. Each counted live match is split into its two seats; a bot
-  # seat is dropped, so its result reaches nobody.
-  def self.live_records
+  # seat is dropped, so its result reaches nobody. `within` keeps the games
+  # that ended inside that time range.
+  def self.live_records(within = nil)
     finished = Match.live.finished.where(finish_reason: COUNTED_ENDINGS)
-    ended_at = "COALESCE(matches.finished_at, matches.updated_at) AS ended_at"
+    ended = "COALESCE(matches.finished_at, matches.updated_at)"
+    if within
+      finished = finished.where("#{ended} >= ?", within.begin) if within.begin
+      finished = finished.where("#{ended} #{within.exclude_end? ? '<' : '<='} ?", within.end) if within.end
+    end
+    ended_at = "#{ended} AS ended_at"
     home = finished.select("matches.home_user_id AS user_id", "matches.home_bot AS bot", "matches.winner_id", ended_at)
     away = finished.select("matches.away_user_id AS user_id", "matches.away_bot AS bot", "matches.winner_id", ended_at)
     seats = Arel::Nodes::UnionAll.new(home.arel, away.arel)
