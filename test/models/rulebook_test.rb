@@ -62,16 +62,17 @@ class RulebookTest < ActiveSupport::TestCase
     assert(Rulebook::CHANGES_2026.any? { |change| change.start_with?("Trumps now work on offense only") })
   end
 
-  test "trump_list joins with and, and shows a dash for none" do
+  # The unit cards draw each trump as that piece's art, so every trump name
+  # must resolve to a Piece, in the rulebook's order.
+  test "trumped_pieces resolves each trump to its piece, and is empty for none" do
     units = Rulebook.classes.flat_map(&:units).index_by(&:slug)
 
-    assert_equal "King", Rulebook.trump_list(units["rabble"])
-    assert_equal "Dragon", Rulebook.trump_list(units["trebuchet"])
-    assert_equal "—", Rulebook.trump_list(units["spearman"])
-    three = Rulebook::Unit.new(piece: Piece.all.first, movement: "1", strength: "1", range: nil, trumps: %w[Dragon Spearman Elephant])
-    assert_equal "Dragon, Spearman and Elephant", Rulebook.trump_list(three)
-    two = Rulebook::Unit.new(piece: Piece.all.first, movement: "1", strength: "1", range: nil, trumps: %w[Elephant Dragon])
-    assert_equal "Elephant and Dragon", Rulebook.trump_list(two)
+    assert_equal %w[king], units["rabble"].trumped_pieces.map(&:slug)
+    assert_equal %w[dragon], units["trebuchet"].trumped_pieces.map(&:slug)
+    assert_equal [], units["spearman"].trumped_pieces
+    units.each_value { |unit| assert_equal unit.trumps, unit.trumped_pieces.map(&:name), unit.slug }
+    stray = Rulebook::Unit.new(piece: Piece.all.first, movement: "1", strength: "1", range: nil, trumps: [ "Wyvern" ])
+    assert_raises(KeyError) { stray.trumped_pieces }
   end
 
   test "each cavalry unit carries its own two jumps: light horse 4 + 1, heavy horse 3 + 1" do

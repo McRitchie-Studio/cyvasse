@@ -22,7 +22,7 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     assert_select "#rule-changes #changes-2026 li", text: /Trebuchet range rose from 3 to 4/
     assert_select "#rule-changes #changes-2026 li", text: /so neither can take a Trebuchet/, count: 0
     assert_select "#unit-trebuchet dd", text: "4"
-    assert_select "#unit-trebuchet dd", text: "Dragon"
+    assert_equal [ "Trumps Dragon" ], css_select("#unit-trebuchet dd[data-stat=trump] img").map { _1["alt"] }
     assert_select "#combat p", text: /Every\s+Mountain blocks a shot, whichever army placed it/
     assert_select "#combat p", text: /Besides the Trebuchet and the Catapult, the King is the one unit that\s+trumps the Dragon/
     assert_select "#special-rules .special-rule-card[data-rule=dragon] p", text: /or a King it strays too close to/
@@ -47,11 +47,13 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
         assert_select "img[alt=?][src*='/assets/pieces/vector/#{piece.slug}-']", piece.name
       end
     end
-    assert_select "#unit-catapult dd", text: "Dragon"
-    assert_select "#unit-king dd", text: "Dragon"
-    assert_select "#unit-rabble dd", text: "King"
-    assert_select "#unit-spearman dd", text: "—"
-    assert_select "#unit-crossbowman dd", text: "—"
+    assert_select "#unit-catapult dd[data-stat=trump] img[alt='Trumps Dragon']", 1
+    assert_select "#unit-king dd[data-stat=trump] img[alt='Trumps Dragon']", 1
+    assert_select "#unit-rabble dd[data-stat=trump] img[alt='Trumps King']", 1
+    %w[spearman crossbowman].each do |slug|
+      assert_select "#unit-#{slug} dd[data-stat=trump]", text: "—"
+      assert_select "#unit-#{slug} dd[data-stat=trump] img", 0
+    end
     assert_select "#class-range .unit-card", count: 3
   end
 
@@ -80,7 +82,9 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
       assert_select "dd[data-stat=range]", text: trebuchet.range.to_s
       assert_select "dd[data-stat=movement]", text: "1", count: 0
       assert_select "dd[data-stat=range]", text: "3", count: 0
-      assert_select "dd.unit-stat-marked[data-stat=range]"
+      assert_select ".unit-stat-marked[data-stat=range] > dd[data-stat=range]"
+      assert_select ".unit-stat-marked[data-stat=movement]"
+      assert_select ".unit-stat-marked[data-stat=strength]", 0
     end
     assert_select "#special-rules .special-rule-card[data-rule=cavalry] .unit-card[data-unit=heavyhorse]" do
       assert_select "dd[data-stat=movement]", text: heavy_horse.movement
@@ -88,8 +92,8 @@ class RulesAndAboutPagesTest < ActionDispatch::IntegrationTest
     end
     assert_select "#special-rules .special-rule-card[data-rule=cavalry] .unit-card[data-unit=lighthorse] dd[data-stat=movement]",
                   text: Rulebook.fetch("lighthorse").movement
-    assert_select "#special-rules .special-rule-card[data-rule=trump] .unit-card[data-unit=rabble] dd[data-stat=trump]",
-                  text: "King"
+    assert_select "#special-rules .special-rule-card[data-rule=trump] .unit-card[data-unit=rabble] " \
+                  ".unit-stat-marked[data-stat=trump] dd img[alt='Trumps King']", 1
     assert_select "#special-rules img[src*='/assets/tutorial/']", 0
     assert_select "#special-rules .unit-card[id]", 0, "the units list owns the unit-<slug> ids"
   end
