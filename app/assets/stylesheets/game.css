@@ -1374,18 +1374,29 @@ html.dark [data-skin="pencil"] .dock-unit img {
 
 /* Short desktop screens (a 13" laptop, 1280x800 or 1133x744): the board is
  * capped to the screen's height left under what sits above it at the top of
- * the page, so it is whole on the screen without a scroll: on /play the
- * expanded navbar (about 8.25rem), the page's padding, the title and the
- * board's banner and hint rows, about 20rem; on a match, whose board is lifted
- * beside the versus card, about 11.25rem; each with a 1rem margin. A screen
- * of normal height (900px and more) leaves the board at its full 44rem. */
+ * the page, so it is whole on the screen without a scroll. On /play that lead
+ * is the expanded navbar (about 5.75rem), the page's padding, the title and
+ * the board's banner and hint rows, about 17.5rem; on a match, whose board is
+ * lifted beside the versus card, about 8.75rem; each with a 1rem margin. The
+ * environment bar dev, test and QA show above the navbar (.studio-bar-stack,
+ * 2.5rem) scrolls away with the page but is on the screen at the top, so it
+ * counts. A screen of normal height (900px and more) keeps the full 44rem. */
 @media (min-width: 1024px) {
   .cyvasse-game {
-    --board-room: max(18rem, calc(100svh - 21rem));
+    --board-lead: 18.5rem;
+    --board-room: max(18rem, calc(100svh - var(--board-lead)));
   }
 
   .cyvasse-game:has(.match-layout) {
-    --board-room: max(18rem, calc(100svh - 12.25rem));
+    --board-lead: 9.75rem;
+  }
+
+  :root:has(.studio-bar-stack) .cyvasse-game {
+    --board-lead: 21rem;
+  }
+
+  :root:has(.studio-bar-stack) .cyvasse-game:has(.match-layout) {
+    --board-lead: 12.25rem;
   }
 
   .cyvasse-game .cyvasse-board {
