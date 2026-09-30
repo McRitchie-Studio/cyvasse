@@ -24,7 +24,7 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
 
   %w[vector pencil].each do |skin|
     test "#{skin}: art is cut at its hex's right and lower sides, rises past its upper ones, and never hides a click or the threat outline" do
-      with_seeded_random(Integer(ENV.fetch("AOV_SEED", SEED))) { visit play_path(skin: skin) }
+      with_seeded_random(SEED) { visit play_path(skin: skin) }
       assert_selector "[data-controller=cyvasse-game][data-skin=#{skin}][data-phase=setup]"
       assert_controllers_connected "cyvasse-game", "cyvasse-openings"
       select "Crown Forward", from: "Opening"
@@ -40,7 +40,6 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
       pieces = measure(skin)
       assert_equal 38, pieces.size
 
-      puts pieces.map { |pc| [pc["hex"], pc["pixels"], pc["forbidden"], pc["upper_reach"]] }.inspect if ENV["AOV_DEBUG"]
       pieces.each do |piece|
         assert_operator piece["pixels"], :>, 50, "#{skin}: the #{piece["unit"]} on hex #{piece["hex"]} draws something"
         assert_equal 0, piece["forbidden"],
@@ -149,8 +148,6 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
     show_art(nil)
     keep_shot("__artBase", board_shot)
     show_art(hexes.first)
-    puts page.evaluate_script("(() => { const g = document.querySelector('g.hex[data-hex=\\'' + arguments[0] + '\\']'); const i = g.querySelector('.unit-image'); return [g.querySelector('.unit-art').getAttribute('class'), getComputedStyle(i).visibility, getComputedStyle(g.querySelector('.hex-poly')).visibility, i.getAttribute('href'), document.querySelector('.cyvasse-board').tagName]; })()", hexes.first).inspect if ENV["AOV_DEBUG"]
-    File.binwrite("/private/tmp/claude-501/-Users-alex-projects/34ccb176-615e-4ad0-a040-adfb5790104d/scratchpad/aov-alone.png", board_shot.unpack1("m")) if ENV["AOV_DEBUG"]
     pieces = hexes.map { |hex| show_art(hex); analyse(hex, board_shot) }
     show_board
     pieces
@@ -196,7 +193,7 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
           pixels++;
           points.push([Math.round(b.x * 10) / 10, Math.round(b.y * 10) / 10]);
           const bad = inHex(x, y, W, 0) || inHex(x, y, W / 2, 0.75 * H) || inHex(x, y, -W / 2, 0.75 * H) || y > hh + TOL;
-          if (bad) { forbidden++; worst ??= []; if (worst.length < 12) worst.push([Math.round(x * 10) / 10, Math.round(y * 10) / 10]); }
+          if (bad) { forbidden++; worst ??= []; if (worst.length < 6) worst.push([Math.round(x * 10) / 10, Math.round(y * 10) / 10]); }
           upper = Math.max(upper, pastUpper(x, y));
         }
         done({ hex, unit: group.dataset.unit, tier: group.dataset.tier, team: group.dataset.team,
