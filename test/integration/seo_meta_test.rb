@@ -11,7 +11,8 @@ class SeoMetaTest < ActionDispatch::IntegrationTest
   CANONICAL = "cyvasse.xyz".freeze
   PUBLIC = {
     "/" => :home, "/play" => :play, "/rules" => :rules, "/pieces" => :pieces,
-    "/about" => :about, "/leaderboard" => :leaderboard, "/leaderboard?board=all-time" => :all_time_leaderboard
+    "/about" => :about, "/leaderboard" => :leaderboard, "/leaderboard?board=all-time" => :all_time_leaderboard,
+    "/night" => :night
   }.freeze
   GOOGLEBOT = "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) " \
               "Chrome/129.0.6668.70 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)".freeze
@@ -109,7 +110,7 @@ class SeoMetaTest < ActionDispatch::IntegrationTest
     assert_equal "https://#{CANONICAL}/rules", blocks["Article"]["mainEntityOfPage"]
     assert_equal SeoPage.find(:rules).title, blocks["Article"]["headline"]
 
-    %w[/play /pieces /about /leaderboard].each do |path|
+    %w[/play /pieces /about /leaderboard /night].each do |path|
       get path
       trail = json_ld_blocks.find { |block| block["@type"] == "BreadcrumbList" }
       assert trail, "#{path} has a breadcrumb"
@@ -121,7 +122,7 @@ class SeoMetaTest < ActionDispatch::IntegrationTest
     { "/" => "What is Cyvasse?", "/rules" => "Capture your opponent's king", "/pieces" => "The Pieces",
       "/about" => "George R. R. Martin", "/leaderboard" => "Live games since the relaunch",
       # The board itself is drawn by script; its heading and panels are not.
-      "/play" => "Play Cyvasse" }.each do |path, text|
+      "/play" => "Play Cyvasse", "/night" => "Cyvasse Night" }.each do |path, text|
       get path
       body = page_doc.at_css("main")
       body.css("script, template, style").each(&:remove)
