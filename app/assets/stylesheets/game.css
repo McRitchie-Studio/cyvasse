@@ -621,15 +621,6 @@ html.dark [data-skin="pencil"] .dock-unit img {
   overflow-wrap: anywhere;
 }
 
-.match-versus-bot {
-  font-size: 0.75rem;
-  font-weight: 500;
-  font-variant-caps: all-small-caps;
-  letter-spacing: 0.08em;
-  line-height: 1.1;
-  opacity: 0.8;
-}
-
 .match-versus-vs {
   display: flex;
   align-items: center;

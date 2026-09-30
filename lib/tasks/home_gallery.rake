@@ -7,4 +7,11 @@ namespace :cyvasse do
   task :capture_home_gallery do
     sh({ "RAILS_ENV" => "test" }, "bin/rails", "test", "test/capture/home_gallery_capture.rb")
   end
+
+  # Re-captures the /rules banner (a Dragon with the enemy King in reach)
+  # from the same script's RULES scene. PREVIEW=1 saves its whole board too.
+  desc "Capture the rules page's banner"
+  task :capture_rules_hero do
+    sh({ "RAILS_ENV" => "test", "RULES" => "1" }, "bin/rails", "test", "test/capture/home_gallery_capture.rb")
+  end
 end

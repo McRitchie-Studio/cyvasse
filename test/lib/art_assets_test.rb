@@ -7,7 +7,7 @@ class ArtAssetsTest < ActiveSupport::TestCase
 
   EXPECTED = {
     "backgrounds" => %w[cyvasse_404_background.png cyvasse_about_background.png cyvasse_background.png
-                        cyvasse_message_background.png cyvasse_rules_background.png home],
+                        cyvasse_message_background.png home rules],
     "title" => %w[cyvasse_title.png cyvasse_title2.png],
     "thanks" => %w[aarongray.jpg alexmcritchie.jpg bobbyblackstock.jpeg bobbywilson.jpg gschool.jpg
                    jefftaggart.jpeg seansmith.jpeg zachklabunde.jpeg]
