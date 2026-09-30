@@ -789,8 +789,8 @@ html.dark [data-skin="pencil"] .dock-unit img {
  * mode, so no state change moves Ready, the dock or anything under the
  * card. With nothing placed Smart Setup is filled; after that it is hollow
  * and reads Place All, then New Setup. Ready stays muted until the army is
- * placed. The status says the count, so the count shows only in the phone
- * dock. */
+ * placed. The status says the count, so the count shows only in a docked
+ * sheet. */
 .cyvasse-army {
   --army-slot: 2.75rem;
   display: grid;

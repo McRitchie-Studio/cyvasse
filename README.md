@@ -208,8 +208,11 @@ be run daily by one.
 the "You vs them" splash (`LiveSeek.splash_time`, 5 s), not when the match is
 made: `Match.start_live!(..., setup_grace:)` sets `clock_started_at` that far
 ahead, so the deadline is one server time and both players get the same 60 s
-once their boards open. On a phone (640px and under) the army card docks as
-a sheet under the board during setup (`game.css`, "phone setup dock").
+once their boards open. During setup the board and the whole army card stay
+on the screen together on every touch screen (`game.css`, "setup layouts"):
+under 1024px the card docks as a sheet, under the board held upright and
+beside a height-sized board on its side; a tablet on its side keeps the
+desktop's two columns with the board capped to the screen.
 
 **The computer's pace.** The computer plays in steps a player can follow:
 it selects a unit after 2-5 s, moves it 3-5 s later, and makes a cavalry
