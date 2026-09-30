@@ -6,9 +6,9 @@ require "application_system_test_case"
 # button and Play Now, the green buttons on /play, and the gold text of the
 # navbar's app name and current-page link, and the gold text on a card.
 # Normal-size text owes 4.5:1, and every one of these is held to it, the 30px
-# app name included. Also, at 390px
-# the signed-in navbar shows one theme toggle and no truncated name (finding
-# 10). test/lib/light_mode_contrast_test.rb holds the same shades as numbers.
+# app name included. Also, at 390px the signed-in navbar shows one theme
+# toggle and no truncated name (finding 10). test/lib/light_mode_contrast_test.rb
+# holds the same shades as numbers.
 # SCREENSHOTS=1 saves each view to tmp/screenshots/contrast-*.png.
 class ContrastSystemTest < ApplicationSystemTestCase
   AA = 4.5
