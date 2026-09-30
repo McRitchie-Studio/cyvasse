@@ -105,7 +105,8 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     visit match_path(match)
     within("[data-test=game-over-modal]") do
       assert_selector "h3", text: "You captured the king. You win."
-      assert_text "this win goes on the live leaderboard under your name"
+      assert_selector "[data-test=game-over-points]", text: "+3 points on the leaderboard."
+      assert_text "Sign in to keep your points and your record under your name"
     end
     screenshot("guest-win-cta")
     phone!
@@ -136,7 +137,7 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     screenshot("guest-win-claimed")
   end
 
-  test "a guest who loses gets the gentler line" do
+  test "a guest who loses is told the point for finishing" do
     visit root_path
     click_on "Play Now"
     assert_text "Finding an opponent"
@@ -145,8 +146,8 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
 
     visit match_path(match)
     within("[data-test=game-over-modal]") do
-      assert_text "Sign in to keep this game and your record"
-      assert_no_text "live leaderboard"
+      assert_selector "[data-test=game-over-points]", text: "+1 point on the leaderboard for finishing."
+      assert_text "Sign in to keep your points and your record under your name"
     end
     screenshot("guest-loss-line")
   end

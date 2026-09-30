@@ -59,6 +59,20 @@ Rails.application.routes.draw do
     # The match's chat (piece 12): its two players only.
     resources :messages, only: %i[index create], controller: "match_messages"
   end
+  # A computer player's remote runner (task tyrion-bot-api): bearer-token JSON,
+  # its own matches only (Api::Bot::BaseController).
+  namespace :api do
+    namespace :bot do
+      resource :inbox, only: :show, controller: "inbox"
+      resources :matches, only: :show do
+        member do
+          post :setup, action: :set_up
+          post :moves, action: :move
+        end
+        resources :messages, only: :create
+      end
+    end
+  end
   # A player's conversations, newest first, and each one's whole thread with
   # a reply box. A conversation is addressed by the other player's user id.
   get "inbox", to: "conversations#index", as: :inbox

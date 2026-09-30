@@ -43,7 +43,8 @@ class GameOverSignInSystemTest < ApplicationSystemTestCase
 
     within(MODAL) do
       assert_selector "h3", text: "You resigned."
-      assert_text "Sign in to keep this game and your record"
+      assert_selector "[data-test=game-over-points]", text: "+1 point on the leaderboard for finishing."
+      assert_text "Sign in to keep your points and your record under your name"
       assert_button "Play another game"
     end
     screenshot("guest-modal")
@@ -73,6 +74,8 @@ class GameOverSignInSystemTest < ApplicationSystemTestCase
     assert_not User.exists?(guest.id)
     within(MODAL) do
       assert_selector "h3", text: "You resigned."
+      assert_selector "[data-test=game-over-points]",
+                      text: "+1 point on the leaderboard for finishing. You\u2019re now ##{Leaderboard.rank_for(newcomer).rank}."
       assert_no_text "Sign in"
       click_on "Close"
     end
@@ -90,7 +93,7 @@ class GameOverSignInSystemTest < ApplicationSystemTestCase
 
     within(MODAL, wait: 5) do
       assert_selector "h3", text: "You captured the king. You win."
-      assert_text "this win goes on the live leaderboard"
+      assert_selector "[data-test=game-over-points]", text: "+3 points on the leaderboard."
     end
     send_keys :escape
     assert_no_selector MODAL
