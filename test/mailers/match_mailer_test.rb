@@ -56,22 +56,30 @@ class MatchMailerTest < ActionMailer::TestCase
     assert_equal "arya challenges you to Cyvasse", MatchMailer.public_send(delivery.action, *args).subject
   end
 
-  test "match links go to the canonical host where one is set" do
-    previous = ENV["CANONICAL_HOST"]
-    ENV["CANONICAL_HOST"] = "cyvasse.xyz"
-    match = started_match(@home, @away)
-    match.play!(@home, steps_for(GAME.fetch("turns").first))
-    your_turn = MatchMailer.your_turn(match.reload, @away)
-    challenged = MatchMailer.challenged(Match.challenge!(@away, "arya"), @home)
+  include MailHosts
 
-    [ your_turn, challenged ].each do |mail|
-      [ mail.text_part, mail.html_part ].each do |part|
-        assert_includes part.body.to_s, "https://cyvasse.xyz/matches/"
-        refute_includes part.body.to_s, "cyvasse.mcritchie.studio"
-        refute_includes part.body.to_s, "example.com/matches"
+  test "match links go to the email link host, never the canonical host" do
+    with_hosts(canonical: "cyvasse.xyz", email: "cyvasse.mcritchie.studio") do
+      match = started_match(@home, @away)
+      match.play!(@home, steps_for(GAME.fetch("turns").first))
+      your_turn = MatchMailer.your_turn(match.reload, @away)
+      challenged = MatchMailer.challenged(Match.challenge!(@away, "arya"), @home)
+
+      [ your_turn, challenged ].each do |mail|
+        [ mail.text_part, mail.html_part ].each do |part|
+          assert_includes part.body.to_s, "https://cyvasse.mcritchie.studio/matches/"
+          refute_includes part.body.to_s, "cyvasse.xyz"
+          assert_equal [ "cyvasse.mcritchie.studio" ], hosts_in(part.body)
+        end
       end
     end
-  ensure
-    ENV["CANONICAL_HOST"] = previous
+  end
+
+  test "match mail wears the text-led shell: no images, and the site in the footer" do
+    match = Match.challenge!(@home, "brienne")
+    mail = MatchMailer.challenged(match, @away)
+
+    assert_empty Nokogiri::HTML(mail.html_part.body.to_s).css("img")
+    assert_match(/^Cyvasse · example\.com$/, mail.text_part.body.to_s)
   end
 end
