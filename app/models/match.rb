@@ -216,6 +216,14 @@ class Match < ApplicationRecord
     in_progress? && whos_turn == team(user) && !(live? && bot_seat?(seat(user)))
   end
 
+  # The turn a player reads: `turn` counts half-moves (each side's move is
+  # one), a player counts full moves (both sides' moves are one turn). The
+  # JavaScript mirror is cyvasse/turns.js#fullMove.
+  def full_move
+    half_moves = turn.to_i
+    half_moves.positive? ? (half_moves + 1) / 2 : 0
+  end
+
   def ready?(user)
     seat(user) == :home ? home_ready? : away_ready?
   end

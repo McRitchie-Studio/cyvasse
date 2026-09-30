@@ -142,6 +142,7 @@ class LiveMatchUiTest < ApplicationSystemTestCase
 
   test "the live poll mid-setup keeps the army the player has placed" do
     visit match_path(@match)
+    assert_controllers_connected "cyvasse-match"
     find("button.cyvasse-smart").click
     assert_no_selector ".cyvasse-dock .dock-unit"
     # The opponent readying writes the match: a new version reaches the poll.
@@ -153,6 +154,7 @@ class LiveMatchUiTest < ApplicationSystemTestCase
 
   test "a poll answered after the army is submitted never puts the old state back" do
     visit match_path(@match)
+    assert_controllers_connected "cyvasse-match"
     find("button.cyvasse-smart").click
     # Hold each poll's answer so one is still in flight when the army goes in.
     page.execute_script(<<~JS)

@@ -27,10 +27,10 @@
     <%= render "matches/versus", me: current_user, opponent: @opponent, opponent_name: them %>
 
     <div class="cyvasse-board-wrap">
+      <%= render "games/banner", board: "cyvasse-match" %>
       <%= render "games/board_bar", board: "cyvasse-match", threats: false %>
       <svg class="cyvasse-board" role="group" aria-label="The Cyvasse board. Arrow keys move between hexes; Enter selects."
            data-cyvasse-match-target="board" data-action="click->cyvasse-match#clickHex keydown->cyvasse-match#keyHex"></svg>
-      <div class="cyvasse-banner" hidden data-cyvasse-match-target="banner"></div>
     </div>
 
     <aside class="cyvasse-panel match-panel space-y-4">
@@ -59,24 +59,7 @@
         </div>
       </div>
 
-      <div class="match-actions">
-        <%= link_to "← My games", matches_path, class: "text-sm text-secondary underline underline-offset-2" %>
-        <%= link_to "How to play", rules_path, class: "text-sm text-secondary underline underline-offset-2" %>
-        <%= render "games/threat_toggle", board: "cyvasse-match" %>
-        <%# Both forfeits render; CSS shows the one for data-match-status, which the board keeps current. %>
-        <% if @match.pregame? && !@state[:can_accept] %>
-          <span class="match-forfeit" data-forfeit="pregame">
-            <%= button_to "Forfeit match", match_path(@match), method: :delete, class: "btn btn-secondary btn-sm",
-                  form: { data: { turbo_confirm: "Forfeit this match? It is called off before it starts." } } %>
-          </span>
-        <% end %>
-        <% if @match.pregame? || @match.in_progress? %>
-          <span class="match-forfeit" data-forfeit="play">
-            <%= button_to "Forfeit match", resign_match_path(@match), class: "btn btn-secondary btn-sm",
-                  form: { data: { turbo_confirm: "Forfeit this match? #{them} wins." } } %>
-          </span>
-        <% end %>
-      </div>
+      <%= render "matches/actions", match: @match, opponent_name: them, can_accept: @state[:can_accept] %>
 
       <% if @state[:can_accept] %>
         <div class="card p-4 space-y-3">

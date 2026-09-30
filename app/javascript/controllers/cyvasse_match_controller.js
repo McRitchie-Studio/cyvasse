@@ -1,5 +1,7 @@
 import GameController from "controllers/cyvasse_game_controller"
 import { Game, PLAYER } from "cyvasse/game"
+import { fullMove } from "cyvasse/turns"
+import { liveNotice } from "cyvasse/live_notice"
 
 // The board for an online match (matches/show): the /play board, driven by
 // the server instead of the computer.
@@ -94,7 +96,8 @@ export default class extends GameController {
     } else if (state.phase === "over") {
       this.banner(this.outcomeText(), null, { stay: true })
     } else if (announce && state.phase === "play") {
-      this.banner(state.your_turn ? `Turn ${state.turn} · Your move` : `Turn ${state.turn} · ${state.opponent.username} to move`)
+      const turn = fullMove(state.turn)
+      this.banner(state.your_turn ? `Turn ${turn} · Your move` : `Turn ${turn} · ${state.opponent.username} to move`)
     }
     this.poll()
   }
@@ -263,8 +266,9 @@ export default class extends GameController {
     if (state.phase === "over") {
       text = this.outcomeText()
     } else if (state.phase === "play") {
-      if (!state.your_turn) text = `Turn ${state.turn}: waiting for ${them} to move.`
-      else text = this.game.jump === 2 ? `Turn ${state.turn}: your cavalry jumps again.` : `Turn ${state.turn}: your move.`
+      const turn = fullMove(state.turn)
+      if (!state.your_turn) text = `Turn ${turn}: waiting for ${them} to move.`
+      else text = this.game.jump === 2 ? `Turn ${turn}: your cavalry jumps again.` : `Turn ${turn}: your move.`
     } else if (state.can_accept) {
       text = `${them} challenged you. Accept to set up your army.`
     } else if (state.can_set_up) {
@@ -347,25 +351,12 @@ export default class extends GameController {
     }
   }
 
-  // The strike and seat notices. Each one but the computer's hold on this
-  // player's seat can be dismissed; that one ends with "Take back my seat".
+  // The strike and seat notices (cyvasse/live_notice). Each one but the
+  // computer's hold on this player's seat can be dismissed; that one ends
+  // with "Take back my seat". A finished match shows none.
   renderLiveNotice() {
     if (!this.hasNoticeTarget) return
-    const live = this.state.live
-    const them = this.state.opponent.username
-    let text = ""
-    let held = false
-    if (live) {
-      if (live.taken_over.you) {
-        text = "You missed two clocks, so a computer player has taken your seat. Take it back to play on."
-        held = true
-      } else if (live.taken_over.opponent) text = `${them} missed two clocks, so a computer player has taken their seat.`
-      else if (live.took_back?.you) text = "You took back your seat. Miss one more clock and a computer player takes it again."
-      else if (live.took_back?.opponent) text = `${them} took back their seat from the computer player.`
-      else if (live.auto_set_up.you && live.strikes.you === 1) text = "Time ran out, so your army was placed for you. Miss one more clock and a computer player takes your seat."
-      else if (live.strikes.you === 1) text = "You missed a clock and a move was made for you. Miss one more and a computer player takes your seat."
-      else if (live.strikes.opponent === 1) text = `${them} missed a clock.`
-    }
+    const { text, held } = liveNotice(this.state.live, this.state.phase, this.state.opponent.username)
     const shown = text && (held || !this.dismissedNotices().includes(text))
     if (this.hasNoticeTextTarget) this.noticeTextTarget.textContent = text
     else this.noticeTarget.textContent = text

@@ -76,7 +76,8 @@
       <p>
         Units may not move through other units. The exception to this rule is
         the Dragon, which may fly over all units and mountains, unless they are
-        enemy Range units (Crossbowman, Catapult and Trebuchet).
+        enemy Range units (Crossbowman, Catapult and Trebuchet) or the enemy
+        Dragon.
       </p>
     </section>
 
@@ -121,17 +122,18 @@
 
   <section id="special-rules" class="mb-12">
     <h2 class="text-2xl font-bold text-heading mb-2">Special Rules</h2>
-    <p class="text-secondary leading-relaxed mb-5">The four rules the in-game tutorial calls out.</p>
+    <p class="text-secondary leading-relaxed mb-5">Four rules worth knowing before your first game.</p>
     <%= render "pages/special_rules" %>
   </section>
 
   <section id="units" class="mb-12">
     <h2 class="text-2xl font-bold text-heading mb-2">Units</h2>
     <p class="text-secondary leading-relaxed mb-6">
-      There are 10 military pieces in each player's army. Each piece has a
-      unique set of attributes, which it uses to interact with the map and
-      enemy units. Below is a description of all the units and their
-      attributes, grouped by class.
+      Each player's army has <%= Rulebook.army_size %> pieces:
+      <%= Rulebook.army_unit_count %> units of <%= Rulebook.unit_kind_count %> kinds,
+      and <%= Rulebook.mountain_count %> Mountains. Each kind of unit has its own
+      attributes, which it uses to interact with the map and enemy units. Below
+      is a description of every unit and its attributes, grouped by class.
     </p>
     <div class="mb-6"><%= render "skins/toggle" %></div>
 
@@ -141,22 +143,7 @@
           <h3 class="unit-class-title text-xs font-semibold uppercase tracking-widest text-muted mb-4"><%= unit_class.name %></h3>
           <div class="grid gap-4 sm:grid-cols-2">
             <% unit_class.units.each do |unit| %>
-              <article id="unit-<%= unit.slug %>" class="unit-card card p-3 flex items-center gap-4">
-                <figure class="piece-tile unit-card-art shrink-0" data-skin="<%= current_skin %>">
-                  <%= image_tag unit.piece.image(current_skin), alt: unit.name, loading: "lazy", decoding: "async" %>
-                </figure>
-                <div class="min-w-0">
-                  <h4 class="text-lg font-bold text-heading mb-1"><%= unit.name %></h4>
-                  <dl class="unit-stats text-sm grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
-                    <dt class="text-muted">Movement</dt><dd class="text-body"><%= unit.movement %></dd>
-                    <dt class="text-muted">Strength</dt><dd class="text-body"><%= unit.strength %></dd>
-                    <% if unit.range %>
-                      <dt class="text-muted">Range</dt><dd class="text-body"><%= unit.range %></dd>
-                    <% end %>
-                    <dt class="text-muted">Trump</dt><dd class="text-body"><%= Rulebook.trump_list(unit) %></dd>
-                  </dl>
-                </div>
-              </article>
+              <%= render "pages/unit_card", unit:, id: "unit-#{unit.slug}" %>
             <% end %>
           </div>
         </section>
