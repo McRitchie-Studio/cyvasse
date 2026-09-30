@@ -12,7 +12,7 @@ class SkinSwitcherTest < ActionDispatch::IntegrationTest
   end
 
   def rules_art_skins
-    css_select("#units figure.piece-tile img").map { |img| img["src"][%r{/pieces/(\w+)/}, 1] }.uniq
+    css_select("#units figure.unit-card-art img").map { |img| img["src"][%r{/pieces/(\w+)/}, 1] }.uniq
   end
 
   def pieces_lead_skin
@@ -89,7 +89,7 @@ class SkinSwitcherTest < ActionDispatch::IntegrationTest
     fresh.post link_consume_path(token: token)
     assert_nil fresh.cookies[:cyvasse_skin], "a new browser carries no skin cookie"
     fresh.get rules_path
-    assert_equal [ "pencil" ], fresh.css_select("#units figure.piece-tile img").map { |img| img["src"][%r{/pieces/(\w+)/}, 1] }.uniq
+    assert_equal [ "pencil" ], fresh.css_select("#units figure.unit-card-art img").map { |img| img["src"][%r{/pieces/(\w+)/}, 1] }.uniq
   end
 
   test "the account's choice outranks a stale cookie" do

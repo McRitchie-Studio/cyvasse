@@ -15,7 +15,7 @@ require "application_system_test_case"
 # Every fill is a gradient the controller builds once in the board's <defs>,
 # one per ripple step, and the selected hex stays flat orange.
 class JumpRangeRingsTest < ApplicationSystemTestCase
-  ORANGE = "rgb(255, 165, 0)".freeze
+  SELECTED_GLOW = [ "inline", 'url("#hex-glow")' ].freeze
   CONTROLLER = "Stimulus.getControllerForElementAndIdentifier(document.querySelector('[data-controller=cyvasse-game]'), 'cyvasse-game')".freeze
 
   setup do
@@ -61,7 +61,7 @@ class JumpRangeRingsTest < ApplicationSystemTestCase
       assert_equal "none", c["dash"]
       assert c["lit"]
     end
-    assert_equal ORANGE, fill_of(61)
+    assert_equal SELECTED_GLOW, selected_glow(61)
 
     within(".skin-toggle") { click_on "Pencil" }
     assert_selector "[data-controller=cyvasse-game][data-skin=pencil]"
@@ -69,7 +69,7 @@ class JumpRangeRingsTest < ApplicationSystemTestCase
     screenshot("cavalry-pencil")
     page.execute_script("document.documentElement.classList.remove('dark')")
     assert_match(/\Aurl\("#ghost-/, fill_of(ghosts.first["hex"]))
-    assert_equal ORANGE, fill_of(61)
+    assert_equal SELECTED_GLOW, selected_glow(61)
     screenshot("cavalry-pencil-light")
     page.execute_script("document.documentElement.classList.add('dark')")
 
@@ -150,7 +150,7 @@ class JumpRangeRingsTest < ApplicationSystemTestCase
     # The target's edge is red and heavier than the field's.
     target = by_code[2].first
     assert_operator target["width"], :>, by_code[1].first["width"]
-    assert_equal ORANGE, fill_of(56)
+    assert_equal SELECTED_GLOW, selected_glow(56)
 
     within(".skin-toggle") { click_on "Pencil" }
     assert_selector "[data-controller=cyvasse-game][data-skin=pencil]"
@@ -191,6 +191,17 @@ class JumpRangeRingsTest < ApplicationSystemTestCase
           texture: getComputedStyle(g.querySelector(".ring-texture")).display
         }
       })
+    JS
+  end
+
+  # The selected hex: its ground stays, and the soft orange glow pulses over
+  # it (game.css .hex-glow, task cyvasse-last-move-fade).
+  def selected_glow(hex)
+    page.evaluate_script(<<~JS)
+      (() => {
+        const s = getComputedStyle(document.querySelector("g.hex[data-hex='#{hex}'] .hex-glow"))
+        return [s.display, s.fill]
+      })()
     JS
   end
 

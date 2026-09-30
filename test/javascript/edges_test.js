@@ -4,6 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { HEXES, hexAt, neighbors, distance } from "cyvasse/board";
+import { UNIT_TYPES } from "cyvasse/units";
+import { threats } from "cyvasse/threats";
 import { sideNeighbors, edgeKey, EDGES, perimeter, EDGE_PRIORITY, hexClaim, resolveEdges, threatRims, outerRim, PERIMETER_STYLE } from "cyvasse/edges";
 
 const disc = (origin, r) => new Set(HEXES.filter((h) => distance(hexAt(origin), h) <= r).map((h) => h.index));
@@ -76,17 +78,18 @@ test("every perimeter edge has the region on exactly one side", () => {
   }
 });
 
-test("the priority runs selection, rings, last move, danger, perimeter, team", () => {
-  const order = ["selected", "target", "ring", "last-move", "danger", "perimeter", "perimeter-ranged", "team-1"].map((k) => EDGE_PRIORITY.indexOf(k));
+test("the priority runs selection, rings, danger, perimeter; the last move draws no edge", () => {
+  const order = ["selected", "target", "ring", "danger", "perimeter", "perimeter-ranged"].map((k) => EDGE_PRIORITY.indexOf(k));
   assert.ok(order.every((rank, i) => rank >= 0 && (i === 0 || rank > order[i - 1])), `${EDGE_PRIORITY}`);
+  for (const gone of ["last-move", "team-0", "team-1"]) assert.equal(EDGE_PRIORITY.includes(gone), false, gone);
 });
 
 test("a hex claims its highest highlight", () => {
   const claim = (names, extra) => hexClaim(new Set(names), extra);
   assert.equal(claim([]), null);
-  assert.equal(claim(["is-last-move"]), "last-move");
-  assert.equal(claim(["is-last-move", "has-unit"], { team: 1 }), "team-1", "a moved unit shows its team");
-  assert.equal(claim(["is-last-move", "is-danger"], { team: 1 }), "danger");
+  assert.equal(claim(["is-last-move"]), null, "the last move is a glow, not an edge");
+  assert.equal(claim(["is-last-move", "has-unit"]), null, "a moved unit wears no ring either");
+  assert.equal(claim(["is-last-move", "is-danger"]), "danger");
   assert.equal(claim(["is-field", "is-lit"]), "field");
   assert.equal(claim(["is-sunken"]), "ring", "a sunken hex is part of the ring: no perimeter crosses it");
   assert.equal(claim(["is-ghost"], { ghost: 7 }), "ghost-7");
@@ -94,19 +97,24 @@ test("a hex claims its highest highlight", () => {
   assert.equal(claim(["is-threatened"]), null, "reach alone claims nothing: only its perimeter is drawn");
 });
 
-test("the last move's orange owns the edge it shares with a moved unit's team edge, whole", () => {
-  // Alex's screenshot: 46 empty and orange, 47 a unit of yours just moved there.
-  const shared = edgeKey(46, sideNeighbors(46).indexOf(47));
-  const owners = resolveEdges(new Map([[46, "last-move"], [47, "team-1"]]));
-  assert.equal(owners.get(shared), "last-move");
-  for (const key of sidesOf(47).filter((k) => k !== shared)) assert.equal(owners.get(key), "team-1");
-  assert.equal([...owners.values()].filter((k) => k === "last-move").length, 6);
+test("the last move leaves the threat outline as it is, whoever moved", () => {
+  // 46 the hex a unit left, 47 where it stands now, both on the outline's rim.
+  const rim = perimeter(disc(46, 1));
+  const claims = new Map();
+  for (const hex of [46, 47]) {
+    const kind = hexClaim(new Set(["is-last-move", ...(hex === 47 ? ["has-unit"] : [])]));
+    if (kind) claims.set(hex, kind);
+  }
+  assert.equal(claims.size, 0);
+  const owners = resolveEdges(claims, rim);
+  assert.deepEqual([...owners.keys()].sort(), [...rim].sort(), "the rim, and nothing else");
+  assert.ok([...owners.values()].every((k) => k === "perimeter"));
 });
 
 test("one owner per edge, the highest claim on either side or the perimeter", () => {
   const region = disc(46, 1);
   const rim = perimeter(region);
-  const claims = new Map([[46, "danger"], [45, "selected"], [47, "ring"], [25, "team-0"], [68, "team-1"]]);
+  const claims = new Map([[46, "danger"], [45, "selected"], [47, "ring"]]);
   const owners = resolveEdges(claims, rim);
   const across = (a, b) => edgeKey(a, sideNeighbors(a).indexOf(b));
   assert.equal(owners.get(across(46, 45)), "selected", "the selection beats danger");
@@ -124,12 +132,6 @@ test("one owner per edge, the highest claim on either side or the perimeter", ()
   const interior = EDGES.filter((e) => region.has(e.hex) && region.has(e.other) && !claims.has(e.hex) && !claims.has(e.other));
   assert.ok(interior.length > 0);
   for (const { key } of interior) assert.equal(owners.has(key), false, `interior edge ${key}`);
-  // Team edges lose to the perimeter where they meet it.
-  const teamOnRim = sidesOf(25).filter((k) => rim.has(k));
-  assert.ok(teamOnRim.length > 0, "25 touches the region");
-  for (const key of teamOnRim) assert.equal(owners.get(key), "perimeter");
-  assert.ok(sidesOf(25).some((k) => owners.get(k) === "team-0"));
-  for (const key of sidesOf(68)) assert.equal(owners.get(key), "team-1");
 });
 
 test("the default style is one solid rim round both groups' areas together", () => {
@@ -176,4 +178,34 @@ test("the threat outline traces only the outer rim, never a hole inside it", () 
   // A gap that reaches the board's rim is outside, not a hole.
   const corner = new Set([...disc(1, 2)].filter((h) => h !== 1));
   assert.deepEqual([...outerRim(corner)].sort(), [...perimeter(corner)].sort());
+});
+
+// Alex's screenshot (2026-09-29): the computer's elephant has just moved
+// 48 -> 58, into its own threat area; your elephant on 59 is in danger. The
+// moved unit's hex drew a red ring of its own (its team edge, the same red as
+// the threat outline) inside the area, so the outline looked to box it.
+test("a last-moved enemy unit inside the threat area draws no ring of its own", () => {
+  const units = [
+    [0, "catapult", 36], [0, "king", 1], [0, "elephant", 58], [0, "rabble", 25],
+    [1, "king", 91], [1, "elephant", 59], [1, "rabble", 70]
+  ].map(([team, codename, hex]) => ({ team, hex, type: UNIT_TYPES[codename], status: "alive" }));
+  const position = { pieceAt: (hex) => units.find((u) => u.hex === hex), teamUnits: (team) => units.filter((u) => u.team === team) };
+  const found = threats(position, 0);
+  const region = new Set([...found.reach, ...found.units]);
+  assert.ok(region.has(58) && region.has(48), "the elephant and the hex it left are inside the area");
+  const { solid, dashed } = threatRims({ melee: region, ranged: new Set() });
+
+  const claims = new Map();
+  for (const [hex, classes] of [[48, ["is-last-move"]], [58, ["is-last-move", "has-unit"]], [59, ["has-unit", "is-danger"]]]) {
+    const kind = hexClaim(new Set(classes));
+    if (kind) claims.set(hex, kind);
+  }
+  const owners = resolveEdges(claims, solid, dashed);
+  const across = (a, b) => edgeKey(a, sideNeighbors(a).indexOf(b));
+  const stray = sidesOf(58).filter((key) => owners.has(key) && !solid.has(key) && key !== across(58, 59));
+  assert.deepEqual(stray.map((key) => `${key}=${owners.get(key)}`), [], "no edge round 58 but the outline and your unit's danger");
+  // Every drawn edge is the outline, or your endangered unit's own pulse.
+  for (const [key, kind] of owners) {
+    assert.ok(kind === "perimeter" || (kind === "danger" && sidesOf(59).includes(key)), `edge ${key} is ${kind}`);
+  }
 });

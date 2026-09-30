@@ -6,7 +6,7 @@ require "application_system_test_case"
 # at the edge, one per ring code and ripple step), a fine hatch texture lies
 # over every lit hex, and the selected hex keeps its flat orange.
 class RangeGradientTest < ApplicationSystemTestCase
-  ORANGE = "rgb(255, 165, 0)".freeze
+  SELECTED_GLOW = [ "inline", 'url("#hex-glow")' ].freeze
 
   test "a selected dragon's range is painted with ring gradients and a texture, and the selection stays orange" do
     visit play_path
@@ -49,8 +49,8 @@ class RangeGradientTest < ApplicationSystemTestCase
     steps = fills.map { |fill, *| fill[/-(\d+)"\)\z/, 1] }.uniq
     assert_operator steps.size, :>, 1, "the ripple spans several steps"
 
-    # The selected hex keeps its flat orange and is not textured.
-    assert_equal ORANGE, fill_of(hex)
+    # The selected hex glows soft orange and is not textured.
+    assert_equal SELECTED_GLOW, selected_glow(hex)
     assert_equal "none", page.evaluate_script("getComputedStyle(document.querySelector(\"g.hex[data-hex='#{hex}'] .ring-texture\")).display")
     # An unlit hex keeps the slate board gradient and no hatch; one the
     # dragon cannot stop on is sunken gray (board_highlights_test.rb).
@@ -70,7 +70,7 @@ class RangeGradientTest < ApplicationSystemTestCase
     # The light site theme leaves the board's own colours alone.
     page.execute_script("document.documentElement.classList.remove('dark')")
     assert_match(/\Aurl\("#ring-/, fill_of(lit.first))
-    assert_equal ORANGE, fill_of(hex)
+    assert_equal SELECTED_GLOW, selected_glow(hex)
     screenshot("dragon-pencil-light")
     page.execute_script("document.documentElement.classList.add('dark')")
     within(".skin-toggle") { click_on "Vector" }
@@ -96,6 +96,17 @@ class RangeGradientTest < ApplicationSystemTestCase
 
   def lit_hexes
     page.evaluate_script("[...document.querySelectorAll('g.hex.is-lit')].map((g) => g.dataset.hex)")
+  end
+
+  # The selected hex: its ground stays, and the soft orange glow pulses over
+  # it (game.css .hex-glow, task cyvasse-last-move-fade).
+  def selected_glow(hex)
+    page.evaluate_script(<<~JS)
+      (() => {
+        const s = getComputedStyle(document.querySelector("g.hex[data-hex='#{hex}'] .hex-glow"))
+        return [s.display, s.fill]
+      })()
+    JS
   end
 
   def fill_of(hex)
