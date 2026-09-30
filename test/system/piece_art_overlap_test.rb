@@ -87,16 +87,47 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
     JS
   end
 
+  # A shot of the board alone, and where it was taken: the whole CSS pixels it
+  # covers and the board's own mapping (its screen CTM, with the scroll) at
+  # that moment. Each shot is mapped by its own record, never by a later
+  # read of the page, so nothing that moves the page between shots can offset
+  # one shot's pixels against another's.
   def board_shot
-    rect = page.evaluate_script(<<~JS)
-      (() => { const r = document.querySelector(".cyvasse-board").getBoundingClientRect();
-        // Whole CSS pixels, so the shot's first pixel is exactly where the analysis maps it.
+    record = page.evaluate_script(<<~JS)
+      (() => { const svg = document.querySelector(".cyvasse-board"), r = svg.getBoundingClientRect(), m = svg.getScreenCTM();
+        if (r.top < 0 || r.left < 0 || r.bottom > innerHeight || r.right > innerWidth) return { outside: [r.left, r.top, r.right, r.bottom, innerWidth, innerHeight] };
         const x = Math.floor(r.left + scrollX), y = Math.floor(r.top + scrollY);
-        window.__artClip = { x, y, width: Math.ceil(r.right + scrollX) - x, height: Math.ceil(r.bottom + scrollY) - y };
-        return window.__artClip; })()
+        return { x, y, width: Math.ceil(r.right + scrollX) - x, height: Math.ceil(r.bottom + scrollY) - y,
+                 ctm: [m.a, m.b, m.c, m.d, m.e + scrollX, m.f + scrollY] }; })()
     JS
-    page.driver.browser.execute_cdp("Page.captureScreenshot", format: "png", captureBeyondViewport: true,
-      clip: rect.merge("scale" => 1))["data"]
+    refute record["outside"], "the whole board is in the viewport, so a viewport shot holds it: #{record["outside"].inspect}"
+    # Not captureBeyondViewport: with classic scrollbars (Linux, so CI) Chrome
+    # lays the page out again for such a capture, without its scrollbar, and
+    # the board in the shot sits 7.5 px off the board the CTM above describes.
+    png = page.driver.browser.execute_cdp("Page.captureScreenshot", format: "png", captureBeyondViewport: false,
+      clip: record.slice("x", "y", "width", "height").merge("scale" => 1))["data"]
+    page.execute_script("window.__artClip = arguments[0]", record)
+    png
+  end
+
+  # Waits until the page has its fonts and the board has not moved for a few
+  # frames, so every shot is of one layout.
+  def settle_board
+    page.evaluate_async_script(<<~JS)
+      const done = arguments[arguments.length - 1];
+      (async () => {
+        await document.fonts.ready;
+        const at = () => { const m = document.querySelector(".cyvasse-board").getScreenCTM(); return `${m.e + scrollX},${m.f + scrollY}`; };
+        let last = at(), still = 0;
+        while (still < 5) {
+          await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 30)));
+          const now = at();
+          still = now === last ? still + 1 : 0;
+          last = now;
+        }
+        done(last);
+      })();
+    JS
   end
 
   # Everything on the board hidden but the art of the hex given (none for nil).
@@ -144,12 +175,23 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
   # keeps the board-unit points it drew, for the outline and click checks.
   def measure(skin)
     hexes = page.evaluate_script("[...document.querySelectorAll('g.hex.has-unit')].map((g) => g.dataset.hex)")
+    # Classic scrollbars, as CI's Linux Chrome draws them, on every machine:
+    # macOS overlay scrollbars hid the relayout that offset CI's shots.
+    page.execute_script("const s = document.createElement('style'); s.textContent = '::-webkit-scrollbar { width: 15px; height: 15px; background: #888 } ::-webkit-scrollbar-thumb { background: #444 }'; document.head.append(s)")
+    settle_board
     keep_shot("__artFull", board_shot)
+    page.execute_script("window.__artFullClip = window.__artClip")
     show_art(nil)
     keep_shot("__artBase", board_shot)
     show_art(hexes.first)
     pieces = hexes.map { |hex| show_art(hex); analyse(hex, board_shot) }
     show_board
+    # One layout under every shot: the art alone and the whole board are
+    # compared pixel for pixel.
+    full = page.evaluate_script("window.__artFullClip.ctm")
+    pieces.each do |piece|
+      assert piece["ctm"].zip(full).all? { |a, b| (a - b).abs < 0.01 }, "#{skin}: the board moved while it was measured (#{full.inspect}, then #{piece["ctm"].inspect} at hex #{piece["hex"]})"
+    end
     pieces
   end
 
@@ -164,9 +206,11 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
         const base = window.__artBase.data;
         const svg = document.querySelector(".cyvasse-board");
         const group = svg.querySelector(`g.hex[data-hex="${hex}"]`);
+        // This shot's own record (board_shot): page pixels, and board units
+        // to page pixels.
         const clip = window.__artClip;
-        const rect = { left: clip.x - scrollX, top: clip.y - scrollY, width: clip.width, height: clip.height };
-        const toBoard = svg.getScreenCTM().inverse();
+        const rect = { left: clip.x, top: clip.y, width: clip.width, height: clip.height };
+        const toBoard = new DOMMatrix(clip.ctm).inverse();
         const m = group.transform.baseVal.consolidate().matrix;
         const kx = rect.width / img.width, ky = rect.height / img.height;
         // A point inside a pointy-top hex of full size (W x H) centred at (cx, cy), shrunk by TOL.
@@ -180,12 +224,10 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
         const pastUpper = (x, y) => Math.max((hq * x - hw * y - hw * hh) / n, (-hq * x - hw * y - hw * hh) / n);
         let pixels = 0, forbidden = 0, upper = -Infinity, worst = null;
         const points = [];
-        const p = svg.createSVGPoint();
         for (let py = 0; py < img.height; py++) for (let px = 0; px < img.width; px++) {
           const i = (py * img.width + px) * 4;
           if (Math.abs(shot[i] - base[i]) + Math.abs(shot[i + 1] - base[i + 1]) + Math.abs(shot[i + 2] - base[i + 2]) < 36) continue;
-          p.x = rect.left + (px + 0.5) * kx; p.y = rect.top + (py + 0.5) * ky;
-          const b = p.matrixTransform(toBoard);
+          const b = new DOMPoint(rect.left + (px + 0.5) * kx, rect.top + (py + 0.5) * ky).matrixTransform(toBoard);
           const x = b.x - m.e, y = b.y - m.f;
           // Art reaches no further than its clip (cyvasse/art_clip, well
           // inside this window); a pixel outside it is some other repaint.
@@ -197,7 +239,7 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
           upper = Math.max(upper, pastUpper(x, y));
         }
         done({ hex, unit: group.dataset.unit, tier: group.dataset.tier, team: group.dataset.team,
-               centre: [m.e, m.f], pixels, forbidden, worst, upper_reach: Math.round(upper * 10) / 10, points });
+               centre: [m.e, m.f], ctm: clip.ctm, pixels, forbidden, worst, upper_reach: Math.round(upper * 10) / 10, points });
       })().catch((e) => done({ error: String(e) }));
     JS
   end
@@ -225,19 +267,19 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
 
         covered << [ piece["unit"], piece["hex"], kind ]
         want = stroke.scan(/\d+/).first(3).map(&:to_i)
-        # On the line's own centre, nearest the art: the pixel there and two
-        # either side across the line (it is 3.5 units wide), the closest to
-        # the line's colour. CI's shot lands a pixel or so off the mapped
-        # centre, where one pixel across read only the line's antialiased edge.
+        # On the line's own centre, nearest the art: the pixel there and one
+        # either side across the line (it is 3.5 units, 3.7 px, wide), the
+        # closest to the line's colour, so a half-pixel rounding never reads
+        # the line's antialiased edge.
         centre = under.map do |x, y|
           t = (x - x1) * ux + (y - y1) * uy
           [ x1 + ux * t, y1 + uy * t ]
         end
-        across = centre.flat_map { |x, y| [ -2, -1, 0, 1, 2 ].map { |k| [ x - uy * k, y + ux * k ] } }
-        board_pixels(across).each_slice(5) do |spread|
+        across = centre.flat_map { |x, y| [ -1, 0, 1 ].map { |k| [ x - uy * k, y + ux * k ] } }
+        board_pixels(across).each_slice(3) do |spread|
           rgb = spread.min_by { |c| c.zip(want).sum { |a, b| (a - b).abs } }
           off = rgb.zip(want).sum { |a, b| (a - b).abs }
-          assert_operator off, :<, 60, "#{skin}: the #{kind} line over the #{piece["unit"]}'s art on hex #{piece["hex"]} shows its own colour #{want.inspect}, not #{rgb.inspect}"
+          assert_operator off, :<, 60, "#{skin}: the #{kind} line over the #{piece["unit"]}'s art on hex #{piece["hex"]} shows its own colour #{want.inspect}, not #{rgb.inspect} (across the line: #{spread.inspect}; line #{[ x1, y1, x2, y2 ].inspect})"
         end
       end
     end
@@ -248,13 +290,12 @@ class PieceArtOverlapTest < ApplicationSystemTestCase
   def board_pixels(points)
     page.evaluate_script(<<~JS, points)
       (() => {
-        const full = window.__artFull, clip = window.__artClip;
-        const svg = document.querySelector(".cyvasse-board"), ctm = svg.getScreenCTM(), p = svg.createSVGPoint();
+        const full = window.__artFull, clip = window.__artFullClip;
+        const ctm = new DOMMatrix(clip.ctm);
         const kx = full.width / clip.width, ky = full.height / clip.height;
         return arguments[0].map(([x, y]) => {
-          p.x = x; p.y = y;
-          const c = p.matrixTransform(ctm);
-          const px = Math.floor((c.x + scrollX - clip.x) * kx), py = Math.floor((c.y + scrollY - clip.y) * ky);
+          const c = new DOMPoint(x, y).matrixTransform(ctm);
+          const px = Math.floor((c.x - clip.x) * kx), py = Math.floor((c.y - clip.y) * ky);
           const i = (py * full.width + px) * 4;
           return [full.data[i], full.data[i + 1], full.data[i + 2]];
         });
