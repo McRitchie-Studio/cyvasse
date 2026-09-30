@@ -10,8 +10,10 @@ class ConversationTest < ActiveSupport::TestCase
     @arya, @brienne, @cersei, @davos = %w[arya brienne cersei davos].map { make_player(_1) }
   end
 
+  # History as the legacy import writes it: saved without the rules a new
+  # message meets (User#can_message? among them), which this does not test.
   def say(from, to, text, at:, match: nil)
-    Message.create!(sender: from, receiver: to, message: text, match: match, created_at: at, updated_at: at)
+    Message.new(sender: from, receiver: to, message: text, match: match, created_at: at, updated_at: at).tap { _1.save!(validate: false) }
   end
 
   test "groups both directions of a pair into one conversation, newest first" do

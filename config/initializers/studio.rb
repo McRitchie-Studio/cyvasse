@@ -49,7 +49,7 @@ Studio.configure do |config|
       { label: "Play", href: "/play", emoji: "🐲", desc: "A game against the computer" },
       { label: "My games", href: "/matches", emoji: "⚔️", desc: "Online matches against players" },
       { label: "Leaderboard", href: "/leaderboard", emoji: "🏆", desc: "Who is winning live games" },
-      { label: "Inbox", href: "/inbox", emoji: "✉️", desc: "Messages from other players" },
+      { label: "Chat", href: "/conversations", emoji: "💬", desc: "Talk with players you have played" },
       { label: "Pieces", href: "/pieces", emoji: "🐘", desc: "Both piece skins" },
       { label: "Rules", href: "/rules", emoji: "📜", desc: "How to play" },
       { label: "About", href: "/about", emoji: "🐉", desc: "Where Cyvasse came from" }

@@ -1,0 +1,4 @@
+<%# The thread's error line: why a message was refused, until the next one
+    is sent. Replaced by the composer's Turbo Stream answer (ChatSending).
+    Locals: thread_id, error (nil hides it). %>
+<p id="<%= thread_id %>_error" class="text-sm chat-error" role="alert" data-chat-target="error"<%= " hidden" if error.blank? %>><%= error %></p>
