@@ -26,7 +26,7 @@ module CyvasseRules
 
     TYPES = [
       type("rabble", "Rabble", "vanguard", attack: 1, defence: 1, move: 3, range: 0, trump: [ "king" ]),
-      type("spearman", "Spearman", "vanguard", attack: 3, defence: 3, move: 2, range: 0, trump: [ "elephant" ]),
+      type("spearman", "Spearman", "vanguard", attack: 3, defence: 3, move: 2, range: 0),
       type("elephant", "Elephant", "vanguard", attack: 4, defence: 4, move: 2, range: 0),
       type("lighthorse", "Light Horse", "cavalry", attack: 2, defence: 2, move: 4, second_jump: 1, range: 0),
       type("heavyhorse", "Heavy Horse", "cavalry", attack: 3, defence: 3, move: 3, second_jump: 1, range: 0),

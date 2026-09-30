@@ -27,8 +27,9 @@
 //   - a trump works on offense only: the trumping unit takes the unit it
 //     trumps when IT attacks, whatever the strengths, and gives no protection
 //     when it is attacked. The dragon, trumped by the trebuchet, can still take
-//     the trebuchet. Trumps: rabble > king, spearman > elephant, trebuchet >
-//     dragon, catapult > dragon, king > dragon;
+//     the trebuchet. Trumps: rabble > king, trebuchet > dragon, catapult >
+//     dragon, king > dragon, and no others (Alex, 21:48 MDT: "take out the
+//     spear trump of elephants"; the spearman trumps nothing);
 //   - cavalry jumps are per unit (`secondJump`): light horse 4 then 1, heavy
 //     horse 3 then 1 (were 3 then 2 and 2 then 2);
 //   - the catapult moves 1, not 2.
@@ -50,7 +51,7 @@ export const SIZE_TIER_UNITS = Object.freeze({
 
 export const UNIT_TYPES = Object.freeze({
   rabble: unit("rabble", "Rabble", "vanguard", { attack: 1, defence: 1, moveRange: 3, secondJump: 0, attackRange: 0, flank: 2, trump: ["king"] }),
-  spearman: unit("spearman", "Spearman", "vanguard", { attack: 3, defence: 3, moveRange: 2, secondJump: 0, attackRange: 0, flank: 1, trump: ["elephant"] }),
+  spearman: unit("spearman", "Spearman", "vanguard", { attack: 3, defence: 3, moveRange: 2, secondJump: 0, attackRange: 0, flank: 1, trump: [] }),
   elephant: unit("elephant", "Elephant", "vanguard", { attack: 4, defence: 4, moveRange: 2, secondJump: 0, attackRange: 0, flank: 1, trump: [] }),
   lighthorse: unit("lighthorse", "Light Horse", "cavalry", { attack: 2, defence: 2, moveRange: 4, secondJump: 1, attackRange: 0, flank: 1, trump: [] }),
   heavyhorse: unit("heavyhorse", "Heavy Horse", "cavalry", { attack: 3, defence: 3, moveRange: 3, secondJump: 1, attackRange: 0, flank: 1, trump: [] }),

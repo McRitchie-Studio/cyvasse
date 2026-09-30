@@ -110,7 +110,7 @@ test("the computer lineups the first-move test reads keep their kings on the top
 // who takes whom; the capture rules answer them, so a change to either shows
 // up here. The new stats and offense-only trumps of September 29, 2026
 // (cyvasse-stats-and-trumps-v3) flipped the elephant's takers from crossbow,
-// dragon and elephant to dragon, elephant and spearman.
+// dragon and elephant to dragon and elephant.
 test("what the openings say about who takes whom is what the rules do", () => {
   const takes = (attacker, defender) => {
     const position = { pieceAt: (i) => ({ 60: { team: PLAYER, type: UNIT_TYPES[attacker] }, 50: { team: COMPUTER, type: UNIT_TYPES[defender] } })[i] };
@@ -121,11 +121,12 @@ test("what the openings say about who takes whom is what the rules do", () => {
   const idea = (slug) => OPENINGS.find((o) => o.slug === slug).idea;
 
   const elephantTakers = Object.keys(UNIT_TYPES).filter((codename) => takes(codename, "elephant")).sort();
-  assert.deepEqual(elephantTakers, ["dragon", "elephant", "spearman"]);
-  assert.match(idea("grey-wall"), /a dragon, a spearman or another elephant/);
+  assert.deepEqual(elephantTakers, ["dragon", "elephant"]);
+  assert.match(idea("grey-wall"), /Only a dragon or another elephant can take an elephant/);
 
-  assert.equal(takes("spearman", "elephant"), true, "a spearman trumps an elephant");
-  assert.match(idea("crossbow-ambush"), /meets a spearman, which trumps it/);
+  const crossbowPrey = Object.keys(UNIT_TYPES).filter((codename) => takes("crossbowman", codename)).sort();
+  assert.deepEqual(crossbowPrey, ["catapult", "crossbowman", "king", "lighthorse", "rabble", "trebuchet"]);
+  assert.match(idea("crossbow-ambush"), /to shoot the rabble and light horse/);
 
   assert.equal(takes("spearman", "lighthorse"), true, "a spearman takes a light horse");
   assert.equal(takes("lighthorse", "spearman"), false, "a light horse cannot take a spearman");

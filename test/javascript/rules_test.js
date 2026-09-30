@@ -51,22 +51,27 @@ test("a capture ends the path: nothing beyond the captured enemy is reached thro
 // legacy "the defender's trump blocks" cases (a light horse could not take a
 // spearman, an elephant could not take a crossbowman), which the new rule
 // reverses.
-test("a trump works on offense: the spearman (3) takes the elephant (4)", () => {
-  const board = position({ 46: [ALLY, "spearman"], 47: [ENEMY, "elephant"] });
-  assert.deepEqual(legalActions(board, 46).attacks, [47]);
-
-  const heavy = position({ 46: [ALLY, "heavyhorse"], 47: [ENEMY, "elephant"] });
-  assert.deepEqual(legalActions(heavy, 46).attacks, [], "control: the heavy horse (3) does not trump it");
-});
-
-test("a trump never protects its holder: the elephant takes the spearman that trumps it", () => {
-  const board = position({ 46: [ALLY, "elephant"], 47: [ENEMY, "spearman"] });
-  assert.deepEqual(legalActions(board, 46).attacks, [47]);
-});
-
-test("the rabble (1) trumps the king (2), and the king can still take the rabble", () => {
+test("a trump works on offense: the rabble (1) takes the king (2)", () => {
   assert.deepEqual(legalActions(position({ 46: [ALLY, "rabble"], 47: [ENEMY, "king"] }), 46).attacks, [47]);
+  assert.deepEqual(legalActions(position({ 46: [ALLY, "rabble"], 47: [ENEMY, "lighthorse"] }), 46).attacks, [],
+    "control: the light horse (2) is not trumped");
+});
+
+test("a trump never protects its holder: the king takes the rabble that trumps it", () => {
   assert.deepEqual(legalActions(position({ 46: [ALLY, "king"], 47: [ENEMY, "rabble"] }), 46).attacks, [47]);
+});
+
+// Alex, 21:48 MDT: "take out the spear trump of elephants". The spearman
+// trumps nothing, so a spearman (3) cannot take an elephant (4).
+test("the spearman trumps nothing: it cannot take an elephant", () => {
+  assert.deepEqual(UNIT_TYPES.spearman.trump, []);
+  assert.deepEqual(legalActions(position({ 46: [ALLY, "spearman"], 47: [ENEMY, "elephant"] }), 46).attacks, []);
+  assert.deepEqual(legalActions(position({ 46: [ALLY, "elephant"], 47: [ENEMY, "spearman"] }), 46).attacks, [47]);
+});
+
+test("only four trumps remain: rabble > king, and trebuchet, catapult and king > dragon", () => {
+  const trumps = Object.values(UNIT_TYPES).flatMap((type) => type.trump.map((t) => `${type.codename}>${t}`)).sort();
+  assert.deepEqual(trumps, ["catapult>dragon", "king>dragon", "rabble>king", "trebuchet>dragon"]);
 });
 
 test("a range unit defends at 1: an elephant takes a crossbowman, a rabble takes a catapult", () => {

@@ -31,7 +31,7 @@ module Rulebook
   CLASSES = [
     UnitClass.new(name: "Vanguard", units: [
       unit("rabble", movement: 3, strength: 1, trumps: [ "King" ]),
-      unit("spearman", movement: 2, strength: 3, trumps: [ "Elephant" ]),
+      unit("spearman", movement: 2, strength: 3),
       unit("elephant", movement: 2, strength: 4)
     ]),
     UnitClass.new(name: "Cavalry", units: [
@@ -68,8 +68,7 @@ module Rulebook
     "unit that holds it. A Trebuchet can take a Dragon, and a Dragon can still take a Trebuchet.",
     "Strength is every unit's attack: Rabble 1, Trebuchet 1, King 2, Light Horse 2, Crossbowman 2, Spearman 3, " \
     "Heavy Horse 3, Catapult 3, Elephant 4, Dragon 5. Range units still defend at 1, so any unit can take one.",
-    "New trumps: Rabble trump the King, and Spearmen trump Elephants instead of Light Horse. Trebuchets trump only " \
-    "Dragons, and Crossbowmen trump nothing.",
+    "New trumps: Rabble trump the King. Trebuchets trump only Dragons, and Spearmen and Crossbowmen trump nothing.",
     "Light Horse now move 4 then 1, and Heavy Horse 3 then 1 (were 3 then 2, and 2 then 2).",
     "Catapults now move 1."
   ].freeze
