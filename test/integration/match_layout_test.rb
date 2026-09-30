@@ -44,7 +44,7 @@ class MatchLayoutTest < ActionDispatch::IntegrationTest
     get match_path(match)
 
     assert_select "h1.match-versus [data-side=them] .match-versus-who" do
-      assert_select "[data-cyvasse-match-target=opponent]", match.display_name_of(match.away_user)
+      assert_select "[data-cyvasse-match-target=opponent]", match.away_user.player_name
       assert_select ".match-versus-bot", "Computer"
     end
     assert_select ".live-computer-tag", 0

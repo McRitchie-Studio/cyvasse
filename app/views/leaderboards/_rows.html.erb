@@ -1,18 +1,28 @@
 <%# The ranked rows of a leaderboard (Leaderboard::Row). Locals: rows, and
     board ("live": points, wins, games; "all-time": wins, losses). Names
-    truncate, so a long username never pushes the page sideways on a phone. %>
+    truncate, so a long username never pushes the page sideways on a phone.
+    The short labels (pts, W, G, L) are spelled out in a key line above the
+    rows and in each label's <abbr title>: each row is its own grid, so
+    column headers would not line up. %>
+<p class="leaderboard-key" data-leaderboard-key>
+  <% if board == "live" %>
+    <span><b>pts</b> points</span> · <span><b>W</b> wins</span> · <span><b>G</b> games finished</span>
+  <% else %>
+    <span><b>W</b> wins</span> · <span><b>L</b> losses</span>
+  <% end %>
+</p>
 <ol class="leaderboard-rows is-<%= board %>" data-leaderboard-rows>
   <% rows.each do |row| %>
     <li class="leaderboard-row<%= ' is-you' if current_user && row.user.id == current_user.id %>" data-leaderboard-row="<%= row.user.username %>">
       <span class="leaderboard-rank" aria-label="Rank <%= row.rank %>" data-stat="rank"><%= row.rank %></span>
-      <span class="leaderboard-name"><%= row.user.username %></span>
+      <span class="leaderboard-name"><%= row.user.player_name %></span>
       <% if board == "live" %>
-        <span class="leaderboard-stat" title="Points" data-stat="points"><strong class="text-heading"><%= row.points %></strong> <span class="text-muted"><%= row.points == 1 ? "pt" : "pts" %></span></span>
-        <span class="leaderboard-stat" title="Wins" data-stat="wins"><%= row.wins %> <span class="text-muted">W</span></span>
-        <span class="leaderboard-stat" title="Games finished" data-stat="games"><%= row.games %> <span class="text-muted">G</span></span>
+        <span class="leaderboard-stat" data-stat="points"><strong class="text-heading"><%= row.points %></strong> <abbr class="text-muted" title="<%= row.points == 1 ? "Point" : "Points" %>"><%= row.points == 1 ? "pt" : "pts" %></abbr></span>
+        <span class="leaderboard-stat" data-stat="wins"><%= row.wins %> <abbr class="text-muted" title="Wins">W</abbr></span>
+        <span class="leaderboard-stat" data-stat="games"><%= row.games %> <abbr class="text-muted" title="Games finished">G</abbr></span>
       <% else %>
-        <span class="leaderboard-stat" title="Wins" data-stat="wins"><strong class="text-heading"><%= row.wins %></strong> <span class="text-muted">W</span></span>
-        <span class="leaderboard-stat" title="Losses" data-stat="losses"><%= row.losses %> <span class="text-muted">L</span></span>
+        <span class="leaderboard-stat" data-stat="wins"><strong class="text-heading"><%= row.wins %></strong> <abbr class="text-muted" title="Wins">W</abbr></span>
+        <span class="leaderboard-stat" data-stat="losses"><%= row.losses %> <abbr class="text-muted" title="Losses">L</abbr></span>
       <% end %>
     </li>
   <% end %>

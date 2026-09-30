@@ -1,5 +1,6 @@
 import GameController from "controllers/cyvasse_game_controller"
 import { Game, PLAYER } from "cyvasse/game"
+import { pointsLine } from "cyvasse/game_over"
 import { fullMove } from "cyvasse/turns"
 import { liveNotice } from "cyvasse/live_notice"
 
@@ -444,6 +445,8 @@ export default class extends GameController {
       ariaLabel: "Game over",
       result: this.outcomeText(),
       boardWin: Boolean(this.state.live?.board_win),
+      points: this.state.live?.board_points ?? null,
+      pointsLine: pointsLine({ points: this.state.live?.board_points, win: this.state.live?.board_win, rank: this.state.live?.board_rank }),
       returnTo: this.returnToValue || null
     })
   }
