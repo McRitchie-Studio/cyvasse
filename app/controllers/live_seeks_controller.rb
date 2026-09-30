@@ -8,6 +8,9 @@ class LiveSeeksController < ApplicationController
   before_action :set_seek, only: %i[show computer]
   helper_method :splash_ms
 
+  # The splash's avatars (live_seeks/show and splash_avatar), one size for both sides.
+  SPLASH_AVATAR_SIZE = "w-14 h-14 text-2xl".freeze
+
   def create
     user = current_user || rescue_and_log { start_guest }
     return redirect_to(username_path, notice: "Choose a player name to play live.") if user.username.blank?
@@ -50,13 +53,15 @@ class LiveSeeksController < ApplicationController
     opponent = match.opponent_of(current_user)
     { status: "matched", match_url: match_path(match), you: current_user.player_name,
       opponent: opponent.player_name, computer: opponent.computer?,
-      opponent_portrait: opponent_portrait_url(opponent), splash_ms: splash_ms }
+      opponent_avatar: splash_avatar(opponent), splash_ms: splash_ms }
   end
 
-  # A computer player's seeded portrait for the splash, or nil (its initial).
-  def opponent_portrait_url(opponent)
-    portrait = opponent.computer? && helpers.bot_portrait(opponent)
-    helpers.asset_path(portrait) if portrait
+  # The opponent's avatar for the splash, rendered by the one partial the
+  # match's versus card uses: a computer player's portrait, a player's photo,
+  # or their piece.
+  def splash_avatar(user)
+    render_to_string(partial: "players/avatar", formats: [ :html ],
+                     locals: { user:, name: user.player_name, size: SPLASH_AVATAR_SIZE })
   end
 
   def splash_ms

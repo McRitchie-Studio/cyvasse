@@ -90,6 +90,19 @@ html:root:not(.dark) {
   object-fit: contain;
 }
 
+/* A quiet word under a player's name, "Computer" or "You": small caps, not a
+ * pill. Shared by the match's versus card (matches/_versus) and the Play Now
+ * splash (live_seeks/show), so the two read alike. Sets no display, so a
+ * `hidden` caption stays hidden. */
+.player-caption {
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  opacity: 0.8;
+}
+
 /* The front door's hero: a game in play under a black scrim. */
 .home-hero-scrim {
   background: rgb(0 0 0 / 0.7);
