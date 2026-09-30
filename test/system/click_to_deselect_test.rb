@@ -71,7 +71,7 @@ class ClickToDeselectTest < ApplicationSystemTestCase
     mover = match.user_to_move
 
     visit link_path(token: Studio::Link.create_magic_link(email: mover.email).token)
-    assert_text "Signed in as #{mover.name}"
+    assert_text "Signed in as #{mover.player_name}"
     visit match_path(match)
     board = "[data-controller=cyvasse-match]"
     assert_selector "#{board}[data-your-turn=true][data-phase=play]"
