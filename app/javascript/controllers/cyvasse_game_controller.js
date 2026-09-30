@@ -220,6 +220,7 @@ export default class extends Controller {
   newGame() {
     this.clearTimers()
     this.game = new Game()
+    this.announcedLineup = undefined
     this.pendingJump = null
     this.holding = false
     this.selectedUnitId = null
@@ -848,6 +849,18 @@ export default class extends Controller {
     this.renderGraveyards()
     this.renderInfo(this.selectedUnitId ? game.unit(this.selectedUnitId) : null)
     this.showBoardWhenPlayOpens()
+    this.announceLineup()
+  }
+
+  // The setup panel's opening picker (cyvasse-openings#reflect) names the
+  // army on the board: the whole lineup string, or null while any unit is
+  // still in the dock. Sent only when it changes, not on every redraw.
+  announceLineup() {
+    if (this.game.phase !== "setup") return
+    const lineup = this.game.readyToStart ? this.game.playerLineup() : null
+    if (lineup === this.announcedLineup) return
+    this.announcedLineup = lineup
+    this.dispatch("lineup", { detail: { lineup } })
   }
 
   // The last move glows until ten seconds after it landed. A redraw partway

@@ -40,7 +40,8 @@ class SavedLineupsTest < ActionDispatch::IntegrationTest
     get match_path(match)
 
     assert_select "[data-controller=cyvasse-setups][data-action*='cyvasse-setups:load->cyvasse-match#loadLineup']"
-    assert_select "[data-controller=cyvasse-openings][data-action='cyvasse-openings:load->cyvasse-match#loadLineup']"
+    assert_select "[data-controller=cyvasse-openings][data-action~='cyvasse-openings:load->cyvasse-match#loadLineup']" \
+      "[data-action~='cyvasse-match:lineup@window->cyvasse-openings#reflect']"
     assert_select "[data-slot='2'] button[data-slot-load][data-lineup=?]", army(73..91), text: "Hammer"
   end
 

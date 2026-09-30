@@ -22,6 +22,13 @@
 //     safe from a first-turn dragon strike.
 //   - The side whose king stands nearer the middle row moves first.
 //
+// Every opening but the King's Gambit and Crown Forward, whose kings stand
+// forward on purpose, is king-safe (cyvasse/king_safety): no enemy unit on any
+// hex of their five rows can take the king on its first turn, a light horse
+// raid through a shooter included. Shooters defend at 1, so a crossbow,
+// trebuchet or catapult next to the king is a doorway, not a guard, unless no
+// horse can reach it.
+//
 // openingLineup(opening) turns a drawing into the legacy setup string that
 // Game#loadLineup and the saved-lineup panel already speak.
 
@@ -45,26 +52,26 @@ export const OPENINGS = Object.freeze([
     "The king stands on the front row, so you move first unless their king is on the front row too. Elephants flank it and the trebuchet and catapult stand right behind, but its forward diagonals are open: spend the first move reading their dragon.",
     ["..SEKES...", "L.HTC.H.L", "X..D...X", "R.M.M.R", "..R..."]),
   opening("crown-forward", "Crown Forward",
-    "The king stands two rows up, near enough the middle to move first against every computer army, with the trebuchet and catapult on its two forward diagonals.",
+    "The king stands two rows up, near enough the middle to move first against every computer army, with the trebuchet and catapult on its two forward diagonals. Those two seal it against the dragon, but a horse that takes either one reaches the king next, and so does their catapult: Smart Setup never deals it.",
     ["L.SETCES.L", "M.H.K.H.M", ".X.D..X.", "R..R..R", "......"]),
   opening("open-skies", "Open Skies",
-    "Your dragon opens on the front row with its lines running into their camp. The catapult and trebuchet sit on your king's diagonals, so their dragon cannot answer in kind.",
-    ["LE.S.D.SEL", "H..CT..H.", "X..K...X", "RM.R.MR", "......"]),
+    "Your dragon opens on the front row with its lines running into their camp. The king stands on the fourth row between the mountains, too deep for a first-turn raid, with the catapult and a crossbow on its forward diagonals, so their dragon cannot answer in kind.",
+    ["LE.S.D.SEL", "H..CTX.H.", "X..R....", "RM.K.MR", "......"]),
   opening("mountain-pass", "Mountain Pass",
     "Two mountains wall the front with a two-hex gap between them. Spearmen and heavy horse guard the gap and the trebuchet waits right behind it.",
     ["L.EM..ME.L", "..SHTHS..", ".X.CD.X.", "R..K..R", "..R..."]),
   opening("horse-lords", "Horse Lords",
-    "All four horses start on the front row, ready to jump twice into their lines on the first turn, with the elephants holding the centre between them.",
-    ["LH..EE..HL", "..S.T.S..", "M..CX..M", "R.XKD.R", "..R..."]),
+    "All four horses start on the front row, ready to jump twice into their lines on the first turn, with the elephants holding the centre between them. The king waits on the back row under a crossbow and a rabble.",
+    ["LH..EE..HL", "..S.T.S..", "M..CX..M", "R.XRD.R", "..K..."]),
   opening("grey-wall", "Grey Wall",
-    "Elephants and spearmen make the front line with mountains on the wings. Only a dragon or another elephant can take an elephant, so the wall stands against every other unit they send.",
-    ["M.SE..ES.M", ".X.T.C.X.", "L.HD.H.L", "..RKR..", "..R..."]),
+    "Elephants and spearmen make the front line with mountains on the wings. Only a dragon or another elephant can take an elephant, so the wall stands against every other unit they send. The king waits on the back row beside a rabble.",
+    ["M.SE..ES.M", ".X.T.C.X.", "L.HD.H.L", "..R.R..", ".KR..."]),
   opening("siege-line", "Siege Line",
     "The trebuchet, the catapult and both crossbows open on the front row around a pair of elephants. Shooters fire without moving, and from there they reach the enemy's front rows.",
     ["..XTEECX..", "S.L...L.S", ".H.MM.H.", "R.DK.R.", "...R.."]),
   opening("left-hook", "Left Hook",
-    "Horses, an elephant and the dragon mass on the left for one heavy blow while the mountains and shooters hold the right, where the king waits behind a crossbow and the catapult.",
-    ["LHED.S..M.", "LHE.T..SM", "R.R..XC.", ".R..XK.", "......"]),
+    "Horses, an elephant and the dragon mass on the left for one heavy blow while the mountains and shooters hold the right. The king shelters on the left edge, behind the massed horses.",
+    ["LHDE.S..M.", "LHE.T..SM", "K.R..XC.", ".R..XR.", "......"]),
   opening("hammer-and-anvil", "Hammer and Anvil",
     "Elephants and spearmen are the anvil in the centre; light and heavy horse on both wings are the hammer that swings round to pin the enemy against it.",
     ["L..SEES..L", "H..T.C..H", "..X.DX..", "M..K..M", ".R.R.R"]),
@@ -72,11 +79,11 @@ export const OPENINGS = Object.freeze([
     "Three rabble lead the way as bait. The computer takes whatever it can; whatever steps up to take them lands next to the elephants, the trebuchet and the crossbows.",
     [".R..R...R.", ".X.ETE.X.", "L.SCD.SL", "H.MK.MH", "......"]),
   opening("spear-hedge", "Spear Hedge",
-    "Spearmen hold both wings, where light horse like to raid: a spearman takes a light horse, and a light horse cannot take a spearman. The king waits in the centre behind the catapult.",
-    ["S.E...TE.S", ".R.RC.R..", "L..XKX.L", "H.M.M.H", "..D..."]),
+    "Spearmen hold both wings, where light horse like to raid: a spearman takes a light horse, and a light horse cannot take a spearman. The king waits on the back row beside your dragon, under a mountain.",
+    ["S.E...TE.S", ".R.RC.R..", "L..X.X.L", "H.M.M.H", "..DK.."]),
   opening("crossbow-ambush", "Crossbow Ambush",
     "Spearmen and mountains lead, and the crossbows hide in the second row, one row back, to shoot the rabble and light horse that slip through the gap.",
-    ["L.S.MM.S.L", "..X.T.X..", ".HECDEH.", "R..K..R", "..R..."]),
+    ["L..SMM.S.L", "..X.T.X..", ".HECDEH.", "R.K...R", "..R..."]),
   opening("the-keep", "The Keep",
     "The king stands in the middle of the fourth row, flanked by elephants, with the catapult and your dragon above it. The trebuchet fires from between the two front mountains.",
     ["L.HMTM.H.L", ".R.S.S.R.", "..XCDX..", "..EKE..", "..R..."]),
@@ -84,29 +91,29 @@ export const OPENINGS = Object.freeze([
     "Trebuchet, crossbows and catapult sit together in the centre of the front row. Their dragon must stop at the first of them it takes, and the trebuchet and catapult both trump it, so either one can take it back.",
     ["E..TXXC..E", "L.S...S.L", ".H.MM.H.", "R.RKD.R", "......"]),
   opening("shadow-keep", "Shadow Keep",
-    "Two mountains stand directly in front of the king: nothing on foot walks through them and no shot passes through them. The trebuchet and catapult beyond them, on the same diagonals, stop the dragon.",
-    ["L.E.T.C.EL", "H.S.MM.SH", ".X.RK.X.", "R.D...R", "......"]),
+    "Two mountains stand directly in front of the king on the fourth row: nothing on foot walks through them and no shot passes through them. The trebuchet and catapult on the front row, on the same diagonals, stop the dragon.",
+    ["L.ET..C.EL", "H.S...SH.", ".X.MM.X.", "R..K..R", "..DR.."]),
   opening("centre-column", "Centre Column",
     "Everything stacks down the middle and mountains close the wings. The enemy has to come through the centre, straight into the elephants, horses and dragon.",
     ["M..HEEH..M", "...STS...", "..LDCL..", "..XKX..", ".RRR.."]),
   opening("wide-net", "Wide Net",
-    "Nine units cover the front row from edge to edge, so nothing crosses no man's land without a fight. The catapult and a crossbow guard the king's diagonals from the second row.",
-    ["LSHE.TEHSL", "..XCX.D..", "M..K...M", ".R.R.R.", "......"]),
+    "Nine units cover the front row from edge to edge, so nothing crosses no man's land without a fight. The king stands between two rabble on the fourth row, and both crossbows guard its diagonals from the second.",
+    ["LSHE.TEHSL", "..XCX.D..", "M......M", ".RKR.R.", "......"]),
   opening("the-split", "The Split",
-    "Both mountains stand in the centre of the front row and split their advance in two. Each half meets its own elephant and horse, while the dragon and catapult shield the king.",
-    ["LE..MM..EL", ".HS.T.SH.", "X..CD..X", "R..K..R", "..R..."]),
+    "Both mountains stand in the centre of the front row and split their advance in two. Each half meets its own elephant and horse, while the king waits on the back row under the catapult and a rabble.",
+    ["LE..MM..EL", ".HS.T.SH.", "X...D..X", "R.CR..R", "..K..."]),
   opening("tusk-line", "Tusk Line",
     "Both elephants stand on the front row with a spearman and a light horse beside each. The king waits in the back row with the catapult and trebuchet directly above it.",
     ["LE.S..SE.L", ".H..D..H.", "M.X..X.M", "..RCTR.", "R..K.."]),
   opening("wall-of-tusks", "Wall of Tusks",
-    "The elephants stand shoulder to shoulder in the centre of the front row, spearmen and mountains beside them. Your dragon and the catapult sit on the king's diagonals.",
-    ["M.S.EE.S.M", "L.H.T.H.L", "..XDCX..", "R..K..R", "..R..."]),
+    "The elephants stand shoulder to shoulder in the centre of the front row, spearmen and mountains beside them. The king waits on the back row, with a crossbow and the catapult on its diagonals.",
+    ["M.S.EE.S.M", "L.H.T.H.L", "..XDCX..", "R..R..R", "..K..."]),
   opening("rams-head", "Ram's Head",
-    "Each elephant leads from the front row with a heavy horse on its outside and the light horse between them. The king stands under a crossbow and the catapult.",
-    ["HE..LL..EH", ".S..T..S.", "M.XC.X.M", "R.K.D.R", "..R..."]),
+    "Each elephant leads from the front row with a heavy horse on its outside and the light horse between them. The king waits on the back row under your dragon, with the catapult on its other diagonal.",
+    ["HE..LL..EH", ".S..T..S.", "M.XC.X.M", "R...D.R", "..RK.."]),
   opening("front-guard", "Front Guard",
-    "Spearmen, elephants and both crossbows hold the front row together, so anything that steps up to them meets a shooter. The trebuchet and catapult cover the king.",
-    ["S.EX..XE.S", "L..H.H..L", "M..TC..M", "R..K..R", "..RD.."]),
+    "Spearmen, elephants and both crossbows hold the front row together, so anything that steps up to them meets a shooter. The king waits on the back row beside your dragon, under the catapult.",
+    ["S.EX..XE.S", "L..H.H..L", "M..T...M", "R.CR..R", "..KD.."]),
   opening("wide-tusks", "Wide Tusks",
     "The elephants hold the two ends of the front row, facing down each flank, with the spearmen in the centre. The catapult and trebuchet stand above the king.",
     ["E.L.SS.L.E", ".H.X.X.H.", "M..CT..M", ".R.K.R.", "..D.R."])
@@ -131,6 +138,13 @@ export function openingLineup({ rows }) {
     });
   });
   return formatLineup(pairs.sort((a, b) => a[0] - b[0]));
+}
+
+// The opening a whole-army lineup string is, or null: the setup panel's
+// picker names it after Smart Setup or a load, and says "Custom" otherwise.
+export function openingFor(lineup) {
+  if (!lineup) return null;
+  return OPENINGS.find((o) => openingLineup(o) === lineup) ?? null;
 }
 
 function opening(slug, name, idea, rows) {
