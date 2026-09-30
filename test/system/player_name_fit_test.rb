@@ -64,6 +64,7 @@ class PlayerNameFitTest < ApplicationSystemTestCase
         you = settled_layout("[data-live-seek-target=you]", LONG_NAME)
         screenshot("splash-name-#{label}")
         assert_one_line you, "the splash at #{label}"
+        assert_not you[:cut], "the splash at #{label}: a 20-character username is cut: #{you.inspect}"
 
         # A computer's two-word name: at most one break, and only at the space.
         page.execute_script("document.querySelector('[data-live-seek-target=opponent]').textContent = 'Tyrion Lannister'")
@@ -85,6 +86,7 @@ class PlayerNameFitTest < ApplicationSystemTestCase
         mine = settled_layout(".match-versus-side[data-side=me] .match-versus-name", LONG_NAME)
         screenshot("versus-name-#{label}")
         assert_one_line mine, "the versus card at #{label}"
+        assert_not mine[:cut], "the versus card at #{label}: a 20-character username is cut: #{mine.inspect}"
         bot = settled_layout(".match-versus-side[data-side=them] .match-versus-name", match.away_user.player_name)
         assert bot[:words].all?(1), "at #{label} a word of the computer's name broke: #{bot.inspect}"
         navbar = page.evaluate_script(<<~JS)

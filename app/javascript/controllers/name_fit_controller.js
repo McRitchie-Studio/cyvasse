@@ -7,7 +7,7 @@ import { fitName } from "cyvasse/name_fit"
 // or the splash showing). Only a width change refits: the fit itself changes
 // the box's height, and refitting on that would loop.
 export default class extends Controller {
-  static values = { floor: { type: Number, default: 13 } }
+  static values = { floor: { type: Number, default: 11 } }
 
   connect() {
     this.box = this.element.parentElement
