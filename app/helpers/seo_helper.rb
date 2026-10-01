@@ -107,6 +107,13 @@ module SeoHelper
       end }
   end
 
+  # Cyvasse Night as a schema.org Event (CyvasseNight#json_ld): an online
+  # event whose location is the /night page itself.
+  def night_json_ld(night = CyvasseNight.current)
+    night.json_ld(page_url: seo_absolute_url("/night"), image: og_image(SeoPage.find(:night)),
+                  site_url: seo_absolute_url("/"))
+  end
+
   # Search Console's HTML-tag ownership check, from GOOGLE_SITE_VERIFICATION.
   def google_site_verification = ENV["GOOGLE_SITE_VERIFICATION"].to_s.strip.presence
 end
