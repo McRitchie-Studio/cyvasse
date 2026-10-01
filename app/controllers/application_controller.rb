@@ -17,7 +17,10 @@ class ApplicationController < ActionController::Base
   include EmailReferral
 
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
-  allow_browser versions: :modern
+  # Never a link-preview fetcher: iMessage's names itself Safari 9.0.1, which
+  # :modern answers with a 406, and no link to Cyvasse would unfurl in Messages
+  # (task cyvasse-adopts-link-preview; test/integration/link_preview_test.rb).
+  allow_browser versions: :modern, unless: :link_preview_bot_request?
 
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
