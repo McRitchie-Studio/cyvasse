@@ -2,6 +2,12 @@
 require "rubygems"
 require "bundler/setup"
 
-ARGV.unshift("--ensure-latest")
+# NOTE: the Rails-generated binstub forces `--ensure-latest`. Brakeman runs
+# `check_latest` BEFORE `run_report` (commandline.rb), so the moment a newer
+# brakeman is RELEASED upstream the binstub exits 5
+# (`Not_Latest_Version_Exit_Code`) without scanning a single file — CI turns red
+# on an external event with no code change. Staying current is dependabot's job,
+# not a hard CI gate. Dropping the flag leaves the real gate intact:
+# `--exit-on-warn` defaults ON, so any actual warning still fails the lane.
 
 load Gem.bin_path("brakeman", "brakeman")
