@@ -1,7 +1,9 @@
-# The head tags a search engine and a link preview read (task
-# cyvasse-seo-profile): <title>, the meta description, the canonical link,
-# robots, Open Graph, the Twitter card, JSON-LD and Search Console's
+# The head tags a search engine reads (task cyvasse-seo-profile): <title>, the
+# meta description, the canonical link, robots, JSON-LD and Search Console's
 # verification tag. The copy lives in SeoPage; layouts/_seo renders the tags.
+# The link-preview card (Open Graph, the Twitter card) is studio-engine's
+# (task cyvasse-adopts-link-preview): layouts/_seo hands it this page's words
+# and og_page_image, and layouts/studio/_head writes the tags.
 #
 #   <% seo_page :rules %>                          a public, indexed page
 #   <% seo_page :home, json_ld: [ ... ] %>         plus that page's structured data
@@ -40,6 +42,15 @@ module SeoHelper
   # og/default.png.
   def og_image(page = current_seo_page)
     seo_absolute_url(image_path(og_image_asset(page)))
+  end
+
+  # The page's OWN preview image, for link_preview: og/<key>.png when the page
+  # has one, else nil, so the card falls back to the site image the operator
+  # sets at /admin/link_preview (then public/og.png, the same picture as
+  # og/default.png). og_image above always answers, for JSON-LD, which must
+  # name an image; the card should not pin the default over the operator's.
+  def og_page_image(page = current_seo_page)
+    og_image(page) if og_asset_exists?("og/#{page.key}.png")
   end
 
   def og_image_asset(page = current_seo_page)

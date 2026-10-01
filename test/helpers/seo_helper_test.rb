@@ -45,6 +45,16 @@ class SeoHelperTest < ActionView::TestCase
     assert_equal "og/default.png", og_image_asset(SeoPage.find(:rules))
   end
 
+  test "a page's own preview image is og/<key>.png, else nil so the site image answers" do
+    ENV["CANONICAL_HOST"] = "cyvasse.xyz"
+    assert_nil og_page_image(SeoPage.find(:pieces)), "no og/pieces.png: the card falls back"
+
+    define_singleton_method(:og_asset_exists?) { |path| path == "og/pieces.png" }
+    define_singleton_method(:image_path) { |path| "/assets/#{path}" }
+    assert_equal "https://cyvasse.xyz/assets/og/pieces.png", og_page_image(SeoPage.find(:pieces))
+    assert_nil og_page_image(SeoPage.find(:rules))
+  end
+
   test "JSON-LD escapes a closing script tag in copy" do
     html = json_ld_tag({ "name" => "</script><script>alert(1)</script>" })
 

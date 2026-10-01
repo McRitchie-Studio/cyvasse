@@ -47,9 +47,10 @@ class SeoMetaTest < ActionDispatch::IntegrationTest
       assert_equal page.description, meta_content(doc, 'meta[property="og:description"]'), path
       assert_equal canonical, meta_content(doc, 'meta[property="og:url"]'), path
       assert_equal "Cyvasse", meta_content(doc, 'meta[property="og:site_name"]')
-      assert_match %r{\Ahttps://#{Regexp.escape(CANONICAL)}/assets/og/default-\h+\.png\z},
-                   meta_content(doc, 'meta[property="og:image"]'), "#{path}: an absolute, digested image URL"
-      assert_equal %w[1200 630], [ meta_content(doc, 'meta[property="og:image:width"]'), meta_content(doc, 'meta[property="og:image:height"]') ]
+      # No page has its own picture yet, so each card carries the site image:
+      # with none saved at /admin/link_preview, public/og.png
+      # (test/integration/link_preview_test.rb has the rest of the chain).
+      assert_equal "https://#{CANONICAL}/og.png", meta_content(doc, 'meta[property="og:image"]'), path
       assert_equal "summary_large_image", meta_content(doc, 'meta[name="twitter:card"]')
       assert_equal page.title, meta_content(doc, 'meta[name="twitter:title"]')
       assert_equal meta_content(doc, 'meta[property="og:image"]'), meta_content(doc, 'meta[name="twitter:image"]')
@@ -192,7 +193,9 @@ class SeoMetaTest < ActionDispatch::IntegrationTest
     doc = page_doc
     assert_equal "noindex", meta_content(doc, 'meta[name="robots"]'), "#{path} is noindex"
     assert_nil doc.at_css('link[rel="canonical"]'), "#{path} names no canonical"
-    assert_nil doc.at_css('meta[property="og:title"]'), "#{path} has no social card"
+    # Its link preview is the site's own card, never a page's SEO copy
+    # (studio-engine's default for every page; task cyvasse-adopts-link-preview).
+    assert_equal Studio.site_description, meta_content(doc, 'meta[property="og:description"]'), "#{path} unfurls with the site card"
     assert_empty json_ld_blocks(doc), "#{path} has no structured data"
   end
 end

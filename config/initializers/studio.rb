@@ -1,6 +1,17 @@
 # studio-engine wiring (studio-engine/docs/NEW_APP_SETUP.md section 4).
 Studio.configure do |config|
   config.app_name = "Cyvasse"
+  # ---- Site identity + link preview (studio-engine docs/LINK_PREVIEW.md) ----
+  # The DRAFTED title and description, the home page's own SEO copy
+  # (SeoPage :home; test/models/link_preview_draft_test.rb keeps them equal).
+  # The operator edits them at /admin/link_preview, a saved value wins, and
+  # Studio.site_identity reads the result. Every page unfurls with this unless
+  # it overrides it: the public pages pass their own words through
+  # link_preview in layouts/_seo. The engine's head writes the og:/twitter:
+  # tags (link_preview_tags :auto), so no template here writes its own.
+  config.site_title = "Cyvasse: Play the Game of Thrones Board Game Online"
+  config.site_description = "Play Cyvasse, the hex-board strategy game from A Song of Ice and Fire, " \
+                            "free in your browser: live matchmaking, a computer opponent, no download."
   config.session_key = :cyvasse_user_id
   # Page changes present with the McRitchie Studio view transition
   # (layouts/studio/_smooth_load); Play Now's searching page and splash lean on it.
@@ -70,6 +81,7 @@ Studio.configure do |config|
       { label: "Message Board", href: "/admin/message_board", emoji: "📌", desc: "The old public message board" },
       { label: "Sign-ins", href: "/admin/sign_ins", emoji: "🔑", desc: "Email sign-ins and onboarding drop-off" },
       { label: "Theme", href: "/admin/theme", emoji: "🎨", desc: "Palette + dark mode" },
+      { label: "Link preview", href: "/admin/link_preview", emoji: "🔗", desc: "The card a shared link unfurls into" },
       { label: "Error logs", href: "/error_logs", emoji: "🚨", desc: "Captured errors" }
     ] }
   ]
