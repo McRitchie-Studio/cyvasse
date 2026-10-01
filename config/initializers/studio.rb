@@ -1,5 +1,14 @@
 # studio-engine wiring (studio-engine/docs/NEW_APP_SETUP.md section 4).
 Studio.configure do |config|
+
+  # ---- Site identity + link preview (studio-engine docs/LINK_PREVIEW.md) ----
+  # The DRAFTED title and description; the operator edits them at
+  # /admin/link_preview, and Studio.site_identity reads the result.
+  config.site_title = "Cyvasse: Play the Game of Thrones Board Game Online"
+  config.site_description = "Play Cyvasse, the hex-board strategy game from A Song of Ice and Fire, free in your browser: live matchmaking, a computer opponent, no download."
+  # This app still writes its own og tags. Delete them, then remove this line.
+  config.link_preview_tags = false
+
   config.app_name = "Cyvasse"
   config.session_key = :cyvasse_user_id
   # Page changes present with the McRitchie Studio view transition

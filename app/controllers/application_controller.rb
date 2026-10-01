@@ -1,4 +1,9 @@
 class ApplicationController < ActionController::Base
+  # Preview fetchers (iMessage, Slack, Discord, X...) get a slim page under
+  # Apple's 1 MiB limit: the page's own head tags and a one-card body
+  # (studio-engine docs/LINK_PREVIEW.md; test/integration/link_preview_test.rb).
+  include Studio::LinkPreviewBots
+
   # Passwordless auth, hub SSO awareness, and rescue_and_log / ErrorLog.
   # NOTE: this adds `before_action :require_authentication` to every
   # controller. PagesController and GamesController opt out
