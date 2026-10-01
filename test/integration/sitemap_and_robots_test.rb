@@ -25,7 +25,7 @@ class SitemapAndRobotsTest < ActionDispatch::IntegrationTest
 
     urls = doc.xpath("//s:url", "s" => SITEMAP_NS)
     locs = urls.map { |url| url.at_xpath("s:loc", "s" => SITEMAP_NS).text }
-    assert_equal %w[/ /play /rules /pieces /about /leaderboard].map { |path| "https://#{CANONICAL}#{path}" }, locs
+    assert_equal %w[/ /play /rules /pieces /about /leaderboard /night].map { |path| "https://#{CANONICAL}#{path}" }, locs
 
     urls.each do |url|
       lastmod = url.at_xpath("s:lastmod", "s" => SITEMAP_NS).text

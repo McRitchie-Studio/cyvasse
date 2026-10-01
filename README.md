@@ -743,7 +743,8 @@ host of its own.
   `/`, `/play`, `/rules`, `/pieces`, `/about`, `/leaderboard` and the all-time
   tab. `SeoPage` holds each page's `<title>` and meta description; a view opts
   in with `<% seo_page :rules %>` (`SeoHelper`), and `layouts/_seo` renders the
-  description, canonical link, Open Graph and Twitter card and JSON-LD.
+  description, canonical link and JSON-LD, and hands the page's title and
+  description to the link-preview card (below).
 - **Every other page is noindex** (`<meta name="robots" content="noindex">`):
   sign-in, onboarding, matches, `/live/:id`, the inbox and the admin. A new
   public page must be added to `SeoPage` to be indexed.
@@ -756,12 +757,24 @@ host of its own.
   `RobotsController`, not a file in `public/`: it allows the site, disallows the
   signed-in, admin, API, auth and match paths, and names the sitemap.
 
-### Open Graph images
+### Link previews (Open Graph images)
 
-Every page's card image is `app/assets/images/og/default.png` (1200x630, the
-dragon board shot with the wordmark) until a page has its own. To give a page
-its own card, drop a **1200x630 PNG** named for its `SeoPage` key; it is picked
-up with no code change:
+The card a shared link unfurls into (iMessage, Slack, Discord, X, WhatsApp) is
+studio-engine's site identity (`docs/LINK_PREVIEW.md` in studio-engine; task
+cyvasse-adopts-link-preview). `layouts/studio/_head` writes the og and twitter
+tags; no Cyvasse template writes its own, and one that did would switch the
+engine's off (`config.link_preview_tags = :auto`).
+
+- **Default card.** Edit the title, description and image at
+  **`/admin/link_preview`** (Admin menu, Link preview), beside a live card. A
+  saved value wins over the draft in `config/initializers/studio.rb`, which is
+  the home page's `SeoPage` copy. With no image saved, the card uses
+  `public/og.png`, the same picture as `app/assets/images/og/default.png`.
+- **Public pages** pass their own `SeoPage` title and description through
+  `link_preview` in `layouts/_seo`, and their own picture when they have one.
+  To give a page its own card, drop a **1200x630 PNG** named for its `SeoPage`
+  key; it is picked up with no code change. Without one, the page shows the
+  default card's image.
 
 | Page | File |
 |---|---|
@@ -773,7 +786,11 @@ up with no code change:
 | `/leaderboard` | `app/assets/images/og/leaderboard.png` |
 | `/leaderboard?board=all-time` | `app/assets/images/og/all_time_leaderboard.png` |
 
-Replacing `og/default.png` itself changes every page without its own file.
+- **Preview bots get a slim page**: `Studio::LinkPreviewBots` serves known
+  fetchers the page's head tags and a one-card body (about 2 KB), under Apple's
+  1 MiB limit, and `allow_browser` lets them through. iMessage's fetcher names
+  itself Safari 9.0.1, which `allow_browser versions: :modern` would refuse.
+- `og/default.png` stays the image JSON-LD names for a page without its own.
 
 ### Google Search Console
 

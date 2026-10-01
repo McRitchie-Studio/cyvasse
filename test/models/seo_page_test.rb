@@ -30,7 +30,7 @@ class SeoPageTest < ActiveSupport::TestCase
   end
 
   test "the sitemap lists the public pages and leaves the all-time tab to its link" do
-    assert_equal %w[/ /play /rules /pieces /about /leaderboard], SeoPage.sitemap_pages.map(&:path)
+    assert_equal %w[/ /play /rules /pieces /about /leaderboard /night], SeoPage.sitemap_pages.map(&:path)
   end
 
   test "find refuses a page that is not named" do

@@ -1,4 +1,9 @@
 class ApplicationController < ActionController::Base
+  # Preview fetchers (iMessage, Slack, Discord, X...) get a slim page under
+  # Apple's 1 MiB limit: the page's own head tags and a one-card body
+  # (studio-engine docs/LINK_PREVIEW.md; test/integration/link_preview_test.rb).
+  include Studio::LinkPreviewBots
+
   # Passwordless auth, hub SSO awareness, and rescue_and_log / ErrorLog.
   # NOTE: this adds `before_action :require_authentication` to every
   # controller. PagesController and GamesController opt out
@@ -12,7 +17,10 @@ class ApplicationController < ActionController::Base
   include EmailReferral
 
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
-  allow_browser versions: :modern
+  # Never a link-preview fetcher: iMessage's names itself Safari 9.0.1, which
+  # :modern answers with a 406, and no link to Cyvasse would unfurl in Messages
+  # (task cyvasse-adopts-link-preview; test/integration/link_preview_test.rb).
+  allow_browser versions: :modern, unless: :link_preview_bot_request?
 
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes

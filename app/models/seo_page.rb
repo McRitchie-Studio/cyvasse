@@ -57,6 +57,14 @@ class SeoPage
       description: "The best Cyvasse players online: a point for every live game finished, three " \
                    "for a win, and the all-time record from the original site."
     ),
+    # Cyvasse Night (CyvasseNight): its date comes from CyvasseNight::NEXT, so
+    # the next night's copy changes with that one line.
+    Page.new(
+      key: :night, path: "/night", heading: "Cyvasse Night", changefreq: "daily", priority: "0.8",
+      title: "Cyvasse Night: Play Live Online With Everyone",
+      description: "Cyvasse Night, #{CyvasseNight.current.date_label} at #{CyvasseNight.current.time_label}: " \
+                   "everyone plays live at once. Press Play Now, get matched against real players."
+    ),
     # /leaderboard?board=all-time is its own page, with its own canonical, but
     # the sitemap lists only the live board: the tab links to it.
     Page.new(

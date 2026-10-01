@@ -32,7 +32,10 @@ page_groups = {
   "cyvasse/seek_splash" => "seek",
   # A player's name fitted to its box: the splash and the match's versus card.
   "controllers/name_fit_controller" => %w[seek game],
-  "cyvasse/name_fit" => %w[seek game]
+  "cyvasse/name_fit" => %w[seek game],
+  # Cyvasse Night's countdown (nights/show).
+  "controllers/night_countdown_controller" => "night",
+  "cyvasse/night_clock" => "night"
 }.freeze # anything else is the board: "game" (games/show, matches/show)
 
 { "controllers" => "app/javascript/controllers", "cyvasse" => "app/javascript/cyvasse" }.each do |under, dir|
