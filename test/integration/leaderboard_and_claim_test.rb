@@ -155,19 +155,29 @@ class LeaderboardAndClaimTest < ActionDispatch::IntegrationTest
     assert_select "[data-leaderboard-row=newcomer]"
   end
 
-  test "opening the email link in another browser claims through the token" do
+  # Carl, reviewing cyvasse-game-over-signin (2026-09-29): a guest could ask
+  # for a sign-in link to someone else's email with its own claim token in the
+  # return address, and the games and chat landed on that person's account.
+  # A claim now rides only in the browser session the guest played in.
+  test "a sign-in link opened in another browser never moves the guest's games" do
     guest_browser = open_session
     guest = become_guest(guest_browser)
     match = live_result(guest, @qavo, winner: guest)
+    message = Message.create!(sender: guest, receiver: @qavo, match:, message: "gg")
     arya = player("arya")
-    return_to = leaderboard_path(claim: GuestClaim.token_for(guest))
+    # What the old code put in the return address: a token naming the guest.
+    token = Rails.application.message_verifier(:guest_claim).generate(guest.id, expires_in: 1.day)
 
-    phone = open_session
-    consume_link(phone, email: arya.email, return_to:)
-    assert_equal guest, match.reload.winner, "the phone's session never saw the guest"
-    phone.follow_redirect!
-    assert_equal arya, match.reload.winner
-    assert_nil User.find_by(id: guest.id)
+    victim = open_session
+    consume_link(victim, email: arya.email, return_to: leaderboard_path(claim: token, from_guest: 1))
+    victim.follow_redirect!
+    victim.get match_path(match, claim: token)
+
+    assert_equal [ guest, guest ], [ match.reload.home_user, match.winner ]
+    assert_equal guest, message.reload.sender
+    assert_equal 0, arya.reload.wins
+    assert User.exists?(guest.id)
+    assert_equal guest.id, guest_browser.session[:guest_user_id], "the guest's own browser can still claim"
   end
 
   test "a forged claim token claims nothing" do
