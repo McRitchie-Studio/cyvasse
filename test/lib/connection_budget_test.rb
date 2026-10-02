@@ -35,7 +35,7 @@ class ConnectionBudgetTest < ActiveSupport::TestCase
   end
 
   test "a blank, zero, negative or non-numeric value falls back to the default" do
-    ["", " ", "0", "-2", "three", "3.5"].each do |value|
+    [ "", " ", "0", "-2", "three", "3.5" ].each do |value|
       env = { "RAILS_MAX_THREADS" => value, "CABLE_WORKER_POOL_SIZE" => value }
       assert_equal 3, Budget.threads(env), value.inspect
       assert_equal 4, Budget.cable_workers(env), value.inspect
@@ -50,7 +50,7 @@ class ConnectionBudgetTest < ActiveSupport::TestCase
   end
 
   test "production's database.yml pool is the budget, and follows env overrides" do
-    [{}, { "RAILS_MAX_THREADS" => "5", "CABLE_WORKER_POOL_SIZE" => "6" }].each do |overrides|
+    [ {}, { "RAILS_MAX_THREADS" => "5", "CABLE_WORKER_POOL_SIZE" => "6" } ].each do |overrides|
       with_env(overrides) do
         config = ActiveSupport::ConfigurationFile.parse(Rails.root.join("config/database.yml"))
         pool = config.fetch("production").fetch("max_connections")
@@ -82,7 +82,7 @@ class ConnectionBudgetTest < ActiveSupport::TestCase
 
   test "Puma's thread count is the budget's, and the pool covers it" do
     require "puma/configuration"
-    [{}, { "RAILS_MAX_THREADS" => "5" }].each do |overrides|
+    [ {}, { "RAILS_MAX_THREADS" => "5" } ].each do |overrides|
       with_env(overrides) do
         puma = Puma::Configuration.new({}, {}, ENV.to_h) { |user| user.load Rails.root.join("config/puma.rb").to_s }
         puma.clamp
@@ -97,7 +97,7 @@ class ConnectionBudgetTest < ActiveSupport::TestCase
 
   def with_env(overrides)
     names = %w[RAILS_MAX_THREADS CABLE_WORKER_POOL_SIZE]
-    saved = names.to_h { |name| [name, ENV[name]] }
+    saved = names.to_h { |name| [ name, ENV[name] ] }
     names.each { |name| ENV.delete(name) }
     overrides.each { |name, value| ENV[name] = value }
     yield
