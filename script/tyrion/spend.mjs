@@ -102,14 +102,16 @@ export class SpendLedger {
   }
 
   // A ledger that cannot be read fails closed: today counts as spent, so a
-  // damaged file can never reopen the purse. A missing one is a fresh start.
+  // damaged file can never reopen the purse. Writes are atomic (a rename), so
+  // only a person damages it, and a person removes it. A missing one is a
+  // fresh start.
   #load() {
     let raw;
     try {
       raw = readFileSync(this.path, "utf8");
     } catch (error) {
       if (error.code === "ENOENT") return { day: null, calls: 0, usd: 0 };
-      this.log.warn(`tyrion: cannot read the spend ledger (${error.code}); no model calls today`);
+      this.log.warn(`tyrion: cannot read the spend ledger ${this.path} (${error.code}); no model calls until it can be read`);
       return this.#spent();
     }
     try {
@@ -117,7 +119,7 @@ export class SpendLedger {
       if (typeof parsed.day !== "string" || !Number.isFinite(parsed.calls) || !Number.isFinite(parsed.usd)) throw new Error("shape");
       return { day: parsed.day, calls: parsed.calls, usd: parsed.usd };
     } catch {
-      this.log.warn("tyrion: the spend ledger is damaged; no model calls today");
+      this.log.warn(`tyrion: the spend ledger ${this.path} is damaged; no model calls until it is fixed or removed`);
       return this.#spent();
     }
   }
