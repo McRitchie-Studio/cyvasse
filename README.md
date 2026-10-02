@@ -313,7 +313,8 @@ machine listens. The character, his setups and the threat model are in the hub
 | `brain.mjs` | His five setups and his turn search: every legal turn (both cavalry jumps) scored by material and temperament, charged for the opponent's best capture in reply. It imports the engine unchanged, so its turns are the server's legal turns |
 | `voice.mjs` | His chat prompt, stock lines, the filter every line passes (280 characters, no links, no emails, none of the runner's secrets) and the budget (one reply per message, 20 a match, 40 to one player a day) |
 | `chat.mjs` | Optional replies through the Claude API (`@anthropic-ai/sdk`, installed in `script/tyrion` on the runner machine only); the model has no tools, and a message asking for keys, cards or his instructions gets his stock answer instead of a model call |
-| `runner.mjs` | The loop: poll the inbox (every 2 s while a live match is on, 30 s otherwise), set up, move, talk |
+| `spend.mjs` | The daily model cap: chat model calls and their estimated dollars per UTC day, kept in a ledger file a restart reads back; the model prices live here |
+| `runner.mjs` | The loop: poll the inbox (every 2 s while a live match is on, 30 s otherwise), set up, move, talk; stop on a refused token |
 
 ```bash
 CYVASSE_BOT_TOKEN=... bin/tyrion                     # stock lines only
@@ -321,9 +322,31 @@ cd script/tyrion && npm install @anthropic-ai/sdk && cd -
 CYVASSE_BOT_TOKEN=... ANTHROPIC_API_KEY=... bin/tyrion   # with chat (TYRION_CHAT_MODEL, default claude-opus-5-5)
 ```
 
-Give the model key its own workspace and a hard monthly spend limit: the
-budget above caps what one player can make him say, not what the key can
-spend. `test/javascript/tyrion_*_test.js` hold his setups to the rules (no
+**The daily model cap.** His turns are his own search and cost nothing; only
+his chat calls a paid model. The per-player budget above lives in memory and
+a restart forgets it, so the runner also keeps a daily cap on disk
+(`spend.mjs`): model calls and their estimated dollars (each response's token
+counts times the prices in `spend.mjs`; a model not listed is charged at the
+dearest row). Once either limit is reached he makes no more model calls until
+UTC midnight, answers from his stock lines and plays on, and the log says so
+once. The ledger survives restarts. A ledger that cannot be read fails closed
+(no model calls) until it is fixed or removed.
+
+| Variable | Default | What |
+|---|---|---|
+| `TYRION_MAX_SPEND_USD` | `1.00` | Estimated dollars a UTC day |
+| `TYRION_MAX_MODEL_CALLS` | `200` | Model calls a UTC day, failed ones included |
+| `TYRION_SPEND_LEDGER` | `tmp/tyrion-spend.json` | The ledger file (one per runner) |
+
+Still give the model key its own workspace and a hard monthly spend limit: the
+cap is the runner's estimate, the key's limit is the provider's.
+
+**A refused token stops him.** A 401 or 403 from `/api/bot` means the token
+was revoked or is wrong: the runner says so, names the command that issues a
+new one, and exits with code 2 instead of retrying. A 5xx or a network failure
+is logged and retried on the next pass.
+
+`test/javascript/tyrion_*_test.js` hold his setups to the rules (no
 first-turn king capture by a dragon, horse, elephant or rabble), his search to
 beating the legacy computer, and the runner to the API contract.
 
