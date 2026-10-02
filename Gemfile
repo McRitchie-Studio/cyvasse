@@ -41,8 +41,8 @@ gem "omniauth-rails_csrf_protection"
 # Pin redis below 6 for ActionCable's redis pubsub adapter (config/cable.yml,
 # production). studio-engine before 0.82.1 declared `redis >= 4.0.1` with NO
 # upper bound (0.82.1 and later cap it `< 6`; this pin stays as Cyvasse's own
-# guard regardless of the engine), so bundler resolved redis 6.0.0 — but ActionCable 8.1's redis adapter declares
-# `gem "redis", ">= 4", "< 6"`, and in production ActionCable.server.pubsub
+# guard regardless of the engine), so bundler resolved redis 6.0.0 — but
+# ActionCable 8.1's redis adapter declares `gem "redis", ">= 4", "< 6"`, and in production ActionCable.server.pubsub
 # raised "can't activate redis (>= 4, < 6), already activated redis-6.0.0":
 # /cable still upgraded (101) but no broadcast reached a subscriber, so live
 # chat never updated. The hub hit the same float and pins it the same way
