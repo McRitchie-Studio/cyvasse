@@ -15,7 +15,9 @@ module Cyvasse
   #
   # The pool is threads + cable workers + 1. The one spare covers the
   # ActiveJob async adapter, which runs the engine's email deliveries on
-  # threads inside the same process.
+  # threads inside the same process. Left alone, that adapter sizes its own
+  # thread pool from RAILS_MAX_THREADS (5 when unset), so production pins it
+  # to job_threads (config/environments/production.rb).
   #
   # Heroku Postgres essential-0 allows 20 connections in all. One web dyno at
   # the defaults holds at most 8; a restart briefly overlaps two (16), and a
@@ -37,8 +39,13 @@ module Cyvasse
       positive(env, "CABLE_WORKER_POOL_SIZE", DEFAULT_CABLE_WORKERS)
     end
 
+    # The ActiveJob async adapter's thread cap: the pool's one spare.
+    def job_threads
+      SPARE
+    end
+
     def pool(env = ENV)
-      threads(env) + cable_workers(env) + SPARE
+      threads(env) + cable_workers(env) + job_threads
     end
 
     # A blank, zero, negative or non-numeric value falls back to the default

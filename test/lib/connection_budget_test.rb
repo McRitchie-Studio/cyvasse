@@ -27,6 +27,13 @@ class ConnectionBudgetTest < ActiveSupport::TestCase
     end
   end
 
+  test "the async job adapter's one thread is the pool's spare" do
+    assert_equal 1, Budget.job_threads
+    assert_equal Budget.threads({}) + Budget.cable_workers({}) + Budget.job_threads, Budget.pool({})
+    production = Rails.root.join("config/environments/production.rb").read
+    assert_match(/AsyncAdapter\.new\(\s*min_threads: 0, max_threads: Cyvasse::ConnectionBudget\.job_threads/, production)
+  end
+
   test "env overrides change the threads, the workers and the pool together" do
     env = { "RAILS_MAX_THREADS" => "5", "CABLE_WORKER_POOL_SIZE" => "6" }
     assert_equal 5, Budget.threads(env)
