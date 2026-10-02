@@ -11,28 +11,36 @@
 # themselves: it stays with the guest, and the guest is kept, marked merged
 # (users.merged_into_id) with its record moved away, and is never claimed again.
 #
-# Only the guest this browser played as is ever passed in: the session's
-# guest, or the one a signed token from that session's own page names. A
-# guest id from the request is never read.
+# Only the guest this browser played as is ever claimed, and the binding is
+# the browser's own session (Rails' encrypted cookie, which no one can read,
+# forge or be sent): Play Now writes the guest's id there (GuestClaim.bind)
+# and a sign-in in that same browser reads it back (GuestClaim.bound_guest).
+# Nothing in a request or a URL can name a guest: a sign-in link opened in
+# another browser or on another device claims nothing, so a guest who asks
+# for a link to someone else's email can never push its games and chat onto
+# that account (task cyvasse-guest-claim-hardening). The guest stays bound to
+# the browser it played in, and a sign-in there later still claims it.
 #
-# Called on every sign-in (ApplicationController#set_app_session) and from a
-# signed claim token when the email link is opened in another browser
-# (ApplicationController#claim_guest_from_link).
+# Called on every sign-in (ApplicationController#set_app_session).
 class GuestClaim
-  PURPOSE = :guest_claim
-  TOKEN_LIFE = 1.day
+  # Under this key since the first claim, so sessions already out there keep it.
+  SESSION_KEY = :guest_user_id
 
-  # A token naming the guest, for the return address in the sign-in email.
-  def self.token_for(guest)
-    Rails.application.message_verifier(PURPOSE).generate(guest.id, expires_in: TOKEN_LIFE)
+  # Binds a Play Now guest to this browser's session.
+  def self.bind(session, guest)
+    session[SESSION_KEY] = guest.id
   end
 
-  # The guest a token names, or nil for a bad, expired or spent one.
-  def self.guest_from_token(token)
-    id = Rails.application.message_verifier(PURPOSE).verified(token.to_s)
+  # The guest this session was bound to, while it may still be claimed; nil
+  # for a session that never played as one.
+  def self.bound_guest(session)
+    id = session[SESSION_KEY]
     id && User.claimable_guests.find_by(id:)
-  rescue ActiveSupport::MessageVerifier::InvalidSignature
-    nil
+  end
+
+  # After a claim: the session holds no guest any more.
+  def self.release(session)
+    session.delete(SESSION_KEY)
   end
 
   # Returns true when the guest's games moved to `user`.

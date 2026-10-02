@@ -2,26 +2,35 @@
 // no ANTHROPIC_API_KEY, or without the SDK installed beside this file
 // (`npm install @anthropic-ai/sdk` in script/tyrion), he answers from his
 // stock lines instead. The model gets no tools: it returns one line of text
-// and the runner decides whether to post it (voice.mjs filterLine).
+// and the runner decides whether to post it (voice.mjs filterLine). Every
+// call is first allowed and then counted by the daily spend ledger
+// (spend.mjs); past its cap reply() returns null without calling the model.
 
 import { SYSTEM_PROMPT } from "./voice.mjs";
+import { costOf } from "./spend.mjs";
 
 export const DEFAULT_MODEL = "claude-opus-5-5";
 
-export async function makeChat({ apiKey = process.env.ANTHROPIC_API_KEY, model = process.env.TYRION_CHAT_MODEL || DEFAULT_MODEL, log = console } = {}) {
+// `ledger` is required: a chat with no spend cap is not built. `sdk` stands
+// in for the @anthropic-ai/sdk module in tests.
+export async function makeChat({ apiKey = process.env.ANTHROPIC_API_KEY, model = process.env.TYRION_CHAT_MODEL || DEFAULT_MODEL, ledger, sdk = null, log = console } = {}) {
   if (!apiKey) return null;
-  let Anthropic;
-  try {
-    ({ default: Anthropic } = await import("@anthropic-ai/sdk"));
-  } catch {
-    log.warn("tyrion: @anthropic-ai/sdk is not installed in script/tyrion; chatting from stock lines");
-    return null;
+  if (!ledger) throw new Error("tyrion: makeChat needs a spend ledger");
+  let Anthropic = sdk;
+  if (!Anthropic) {
+    try {
+      ({ default: Anthropic } = await import("@anthropic-ai/sdk"));
+    } catch {
+      log.warn("tyrion: @anthropic-ai/sdk is not installed in script/tyrion; chatting from stock lines");
+      return null;
+    }
   }
   const client = new Anthropic({ apiKey });
 
   return {
     // chat: [{ from: "tyrion" | "opponent", text }], oldest first.
     async reply({ board, chat }) {
+      if (!ledger.allow()) return null;
       const transcript = chat.map((m) => `${m.from === "tyrion" ? "Tyrion" : "Opponent"}: ${m.text}`).join("\n");
       const params = {
         model,
@@ -37,6 +46,7 @@ export async function makeChat({ apiKey = process.env.ANTHROPIC_API_KEY, model =
       const fallbacks = model === DEFAULT_MODEL ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" } : {};
       try {
         const response = await client.beta.messages.create({ ...params, ...fallbacks });
+        ledger.record(costOf(model, response.usage));
         if (response.stop_reason === "refusal") return null;
         return response.content.filter((b) => b.type === "text").map((b) => b.text).join(" ").trim() || null;
       } catch (error) {
@@ -44,6 +54,7 @@ export async function makeChat({ apiKey = process.env.ANTHROPIC_API_KEY, model =
         else if (error instanceof Anthropic.RateLimitError) log.warn("tyrion: chat rate-limited");
         else if (error instanceof Anthropic.APIError) log.warn(`tyrion: chat refused (${error.status})`);
         else throw error;
+        ledger.record(0); // a failed call still counts toward the day's calls
         return null;
       }
     }

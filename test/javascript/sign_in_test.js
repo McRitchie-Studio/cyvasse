@@ -16,7 +16,7 @@ function fakeFetch(status, payload) {
 
 test("posts the email and the way back, with the CSRF token", async () => {
   const { fn, calls } = fakeFetch(200, { success: true });
-  await postMagicLink("arya@example.com", "/matches/7?claim=abc", { fetch: fn, csrf: "tok" });
+  await postMagicLink("arya@example.com", "/matches/7?from_guest=1", { fetch: fn, csrf: "tok" });
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, "/magic_link");
@@ -24,7 +24,7 @@ test("posts the email and the way back, with the CSRF token", async () => {
   assert.equal(calls[0].options.headers["X-CSRF-Token"], "tok");
   const body = new URLSearchParams(calls[0].options.body);
   assert.equal(body.get("email"), "arya@example.com");
-  assert.equal(body.get("return_to"), "/matches/7?claim=abc");
+  assert.equal(body.get("return_to"), "/matches/7?from_guest=1");
 });
 
 test("leaves the way back out when there is none", async () => {
