@@ -7,9 +7,9 @@
   <meta name="turbo-cache-control" content="no-cache">
 <% end %>
 
-<%# returnTo: a guest signs in from the game-over modal and comes back here;
-    the signed claim token takes their games along if the email link is
-    opened in another browser (GuestClaim). %>
+<%# returnTo: a guest signs in from the game-over modal and comes back here.
+    This browser's session carries the claim (GuestClaim); from_guest only
+    lets a sign-in on another device say the games stayed behind. %>
 <section class="cyvasse-game max-w-6xl mx-auto"
          data-controller="cyvasse-match"
          data-skin="<%= current_skin %>"
@@ -22,7 +22,7 @@
          data-cyvasse-match-move-url-value="<%= moves_match_path(@match) %>"
          data-cyvasse-match-seat-url-value="<%= seat_match_path(@match) %>"
          <% if @match.live? %>data-cyvasse-match-poll-ms-value="1000" data-live="true"<% end %>
-         <% if current_user.guest? %>data-cyvasse-match-return-to-value="<%= match_path(@match, claim: GuestClaim.token_for(current_user)) %>"<% end %>>
+         <% if current_user.guest? %>data-cyvasse-match-return-to-value="<%= match_path(@match, from_guest: 1) %>"<% end %>>
   <%# The versus card heads the sidebar; on a phone it sits above the board. %>
   <div class="cyvasse-layout match-layout">
     <%= render "matches/versus", me: current_user, opponent: @opponent, opponent_name: them %>

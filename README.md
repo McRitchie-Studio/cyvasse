@@ -489,10 +489,14 @@ played the account itself, so it is never claimed again. It runs from
 `ApplicationController#set_app_session`, so every sign-in path claims; the
 session keeps the guest's id under `:guest_user_id` so a guest who signed out
 first is still claimed, and a failed claim is logged without blocking the
-sign-in. When the email link is opened in another browser, the return address
-carries a signed `claim` token (one day) that does the same. Only this
-browser's guest is ever claimed: no guest id is read from a request. An
-account with no username is asked to choose one before the board.
+sign-in. The browser's session is the only binding (`GuestClaim.bind` /
+`GuestClaim.bound_guest`): no guest is ever named by a request, a return
+address or an email link, so a guest who asks for a sign-in link to someone
+else's email cannot push its games onto that account. A sign-in link opened in
+another browser or on another device claims nothing and says so ("Your guest
+games stay in the browser you played in"); the guest stays bound to the
+browser it played in, and signing in there later claims it. An account with no
+username is asked to choose one before the board.
 `/leaderboard/join` is the sign-in page for a browser without script.
 
 ## Email results

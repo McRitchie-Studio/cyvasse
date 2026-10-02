@@ -1,8 +1,10 @@
 # GET /auth/email_handoff?assertion=<JWT>&return_to=<path> — the hub's email
 # CTA signs a player in (the contract is in EmailHandoff).
 #
-#   a good assertion, an account   signed in (GuestClaim runs, as on every
-#                                  sign-in), the session marked email_handoff,
+#   a good assertion, an account   signed in (GuestClaim claims the guest
+#                                  this browser's session played as, as on
+#                                  every sign-in; nothing in the link names
+#                                  one), the session marked email_handoff,
 #                                  then onboarding if the account is
 #                                  incomplete, else return_to or Play Now
 #   a good assertion, no account   Play Now, signed out; no account is made

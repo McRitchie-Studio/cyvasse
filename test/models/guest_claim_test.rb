@@ -116,7 +116,7 @@ class GuestClaimTest < ActiveSupport::TestCase
     assert_not GuestClaim.call(guest: @guest, user: @arya), "the same sign-in twice changes nothing"
     assert_not GuestClaim.call(guest: @guest, user: @brienne), "nor may another account take it"
     assert_equal 0, @brienne.reload.wins
-    assert_nil GuestClaim.guest_from_token(GuestClaim.token_for(@guest)), "its old claim token is spent"
+    assert_nil GuestClaim.bound_guest({ GuestClaim::SESSION_KEY => @guest.id }), "a session still bound to it claims nothing"
   end
 
   test "a failure moves nothing" do
@@ -130,16 +130,26 @@ class GuestClaimTest < ActiveSupport::TestCase
     assert_equal 0, @arya.reload.wins
   end
 
-  test "a claim token names its guest; a forged, expired or spent one names nobody" do
-    token = GuestClaim.token_for(@guest)
+  test "only the session a guest is bound to names it" do
+    session = {}
+    assert_nil GuestClaim.bound_guest(session), "a session that never played names nobody"
 
-    assert_equal @guest, GuestClaim.guest_from_token(token)
-    assert_nil GuestClaim.guest_from_token("#{token}x")
-    assert_nil GuestClaim.guest_from_token("")
-    assert_nil GuestClaim.guest_from_token(Rails.application.message_verifier(:other).generate(@guest.id))
-    travel(GuestClaim::TOKEN_LIFE + 1.minute) { assert_nil GuestClaim.guest_from_token(token) }
+    GuestClaim.bind(session, @guest)
+    assert_equal @guest, GuestClaim.bound_guest(session)
+    assert_nil GuestClaim.bound_guest({}), "another browser's session names nobody"
+    assert_nil GuestClaim.bound_guest({ GuestClaim::SESSION_KEY => @arya.id }), "an account is never bound as a guest"
+
     GuestClaim.call(guest: @guest, user: @arya)
-    assert_nil GuestClaim.guest_from_token(token)
+    assert_nil GuestClaim.bound_guest({ GuestClaim::SESSION_KEY => @guest.id }), "a claimed guest is spent"
+
+    GuestClaim.release(session)
+    assert_empty session
+  end
+
+  test "no token or id from outside a session can name a guest" do
+    assert_not GuestClaim.respond_to?(:token_for)
+    assert_not GuestClaim.respond_to?(:guest_from_token)
+    assert_nil GuestClaim.bound_guest({ "claim" => Rails.application.message_verifier(:guest_claim).generate(@guest.id) })
   end
 
   private

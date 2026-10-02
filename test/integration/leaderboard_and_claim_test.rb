@@ -1,9 +1,9 @@
 require "test_helper"
 
 # [integration] The leaderboards over real requests, and a guest's games
-# claimed through the real magic-link sign-in: in the same browser (the
-# session remembers the guest) and in another one (the signed claim token in
-# the email link's return address).
+# claimed through the real magic-link sign-in in the same browser (the
+# session remembers the guest), never in another one: nothing in a link or a
+# return address names a guest (task cyvasse-guest-claim-hardening).
 class LeaderboardAndClaimTest < ActionDispatch::IntegrationTest
   include LiveResults
   include MatchPlay
@@ -99,17 +99,20 @@ class LeaderboardAndClaimTest < ActionDispatch::IntegrationTest
     assert_equal [ 7, 2, 3 ], Leaderboard.rank_for(arya).then { [ _1.points, _1.wins, _1.games ] }
   end
 
-  test "a guest's join page sends a sign-in link that comes back with a claim token" do
+  test "a guest's join page sends a sign-in link whose way back names no guest" do
     guest = become_guest
+    match = live_result(guest, @qavo, winner: guest)
     get join_leaderboard_path(result: "win")
     assert_select "h1", "Put your win on the leaderboard"
     return_to = css_select("input[name=return_to]").first["value"]
-    assert_match %r{\A/leaderboard\?claim=}, return_to
+    assert_equal leaderboard_path(from_guest: 1), return_to
+    assert_no_match(/#{guest.id}|claim/, return_to)
 
     post magic_link_request_path, params: { email: "arya@example.com", return_to: }
     assert_equal return_to, Studio::Link.last.return_to
-    token = Rack::Utils.parse_query(URI(return_to).query)["claim"]
-    assert_equal guest, GuestClaim.guest_from_token(token)
+    post link_consume_path(token: Studio::Link.last.token)
+    assert_equal User.find_by!(email: "arya@example.com"), match.reload.winner,
+                 "opened in the same browser, the session claims the win"
   end
 
   test "signing in from the guest's browser claims the guest's live win" do
@@ -140,7 +143,7 @@ class LeaderboardAndClaimTest < ActionDispatch::IntegrationTest
     guest = become_guest
     match = live_result(guest, @qavo, winner: guest)
 
-    consume_link(email: "newcomer@example.com", return_to: leaderboard_path(claim: GuestClaim.token_for(guest)))
+    consume_link(email: "newcomer@example.com", return_to: leaderboard_path(from_guest: 1))
     newcomer = User.find_by!(email: "newcomer@example.com")
     assert_equal newcomer, match.reload.winner
 
@@ -180,23 +183,40 @@ class LeaderboardAndClaimTest < ActionDispatch::IntegrationTest
     assert_equal guest.id, guest_browser.session[:guest_user_id], "the guest's own browser can still claim"
   end
 
-  test "a forged claim token claims nothing" do
+  test "the other device is told where the guest's games are" do
+    guest = become_guest(open_session)
+    live_result(guest, @qavo, winner: guest)
+
+    phone = open_session
+    consume_link(phone, email: player("arya").email, return_to: leaderboard_path(from_guest: 1))
+    phone.follow_redirect!
+    assert_equal "Your guest games stay in the browser you played in. Sign in there to keep them.", phone.flash[:notice]
+    phone.get leaderboard_path(from_guest: 1)
+    assert_nil phone.flash[:notice], "said once"
+  end
+
+  test "the same browser's claim says nothing about games left behind" do
+    guest = become_guest
+    live_result(guest, @qavo, winner: guest)
+    consume_link(email: player("arya").email, return_to: leaderboard_path(from_guest: 1))
+    follow_redirect!
+    assert_response :success
+    assert_equal "Signed in. Welcome back!", flash[:notice]
+  end
+
+  test "a forged or expired claim token claims nothing" do
     guest = become_guest(open_session)
     match = live_result(guest, @qavo, winner: guest)
     arya = player("arya")
+    verifier = Rails.application.message_verifier(:guest_claim)
+    expired = verifier.generate(guest.id, expires_in: 1.minute)
 
-    consume_link(email: arya.email)
-    get leaderboard_path(claim: "#{GuestClaim.token_for(guest)}x")
+    consume_link(email: arya.email, return_to: leaderboard_path(claim: "#{verifier.generate(guest.id)}x"))
+    follow_redirect!
+    travel 2.minutes
+    get leaderboard_path(claim: expired)
+    get leaderboard_path(claim: guest.id, guest_user_id: guest.id)
     assert_response :success
-    assert_equal guest, match.reload.winner
-  end
-
-  test "a claim link opened by a player who did not just sign in claims nothing" do
-    guest = become_guest(open_session)
-    match = live_result(guest, @qavo, winner: guest)
-    consume_link(email: player("arya").email)
-    travel 3.minutes
-    get leaderboard_path(claim: GuestClaim.token_for(guest))
     assert_equal guest, match.reload.winner
   end
 
@@ -210,14 +230,13 @@ class LeaderboardAndClaimTest < ActionDispatch::IntegrationTest
     assert_equal brienne, match.reload.winner
   end
 
-  test "a guest's match page names the way back, with a claim token for this guest only" do
+  test "a guest's match page names the way back, and never the guest" do
     guest = become_guest
     match = live_result(guest, @qavo, winner: guest)
 
     get match_path(match)
     return_to = css_select("[data-controller=cyvasse-match]").first["data-cyvasse-match-return-to-value"]
-    assert_match %r{\A/matches/#{match.id}\?claim=}, return_to
-    assert_equal guest, GuestClaim.guest_from_token(Rack::Utils.parse_query(URI(return_to).query)["claim"])
+    assert_equal match_path(match, from_guest: 1), return_to
     assert_select "[data-cyvasse-match-target=claimWin]", 0, "the old card is gone: the modal asks"
 
     arya = player("arya")

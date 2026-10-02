@@ -25,42 +25,47 @@ class ApplicationController < ActionController::Base
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
-  # A guest who signed in from another browser claims their games through the
-  # signed token in the sign-in email's return address (GuestClaim).
-  # Only on the first request after a sign-in, within this window.
-  before_action :claim_guest_from_link, if: -> { params[:claim].present? }
-  CLAIM_WINDOW = 2.minutes
-
-  # After the claim above: the first page after a sign-in opens the
-  # onboarding when the account is incomplete.
+  # The first page after a sign-in opens the onboarding when the account is
+  # incomplete.
   include OnboardingPrompt
 
   # A session an email handoff started needs a fresh magic link before it
   # changes the email or a sign-in method.
   include ConfirmedSession
 
+  # Back from the game-over modal's sign-in in a browser that never played as
+  # the guest (the email link opened on another device): nothing was claimed,
+  # so say where the guest's games are. After the onboarding, which may come
+  # first.
+  before_action :note_guest_left_behind, if: -> { params[:from_guest].present? }
+  LEFT_BEHIND = :guest_left_behind_until
+  LEFT_BEHIND_WINDOW = 10.minutes
+
   private
 
   # Every sign-in passes through here: the engine's magic link, hub SSO, local
-  # review, and Play Now's guest (LiveSeeksController). A Play Now guest's id is
-  # kept in the session under its own key, so that signing in to a real account
-  # afterwards (even after signing out of the guest) claims the guest's games.
+  # review, the email handoff, and Play Now's guest (LiveSeeksController). A
+  # Play Now guest is bound to this browser's session (GuestClaim.bind), so
+  # signing in to a real account in the same browser afterwards (even after
+  # signing out of the guest) claims the guest's games. Only the session
+  # names the guest: a sign-in in another browser claims nothing.
   def set_app_session(user)
     guest = signed_in_guest
     super
     @current_user = user
     # A fresh sign-in is a normal one; EmailHandoffsController marks its own.
     session.delete(EmailHandoff::SESSION_KEY)
+    session.delete(LEFT_BEHIND)
     prompt_onboarding(user)
     if user.guest?
-      session[:guest_user_id] = user.id
+      GuestClaim.bind(session, user)
     else
-      claim_guest(guest, user) if guest
+      if guest
+        claim_guest(guest, user)
+      else
+        session[LEFT_BEHIND] = LEFT_BEHIND_WINDOW.from_now.to_i
+      end
       remember_google_return
-      # Only the redirect right after this sign-in may claim by link: a
-      # claim link opened later (sent by a guest to a signed-in player) must
-      # not push the guest's games and chat onto that player.
-      session[:claim_window_until] = CLAIM_WINDOW.from_now.to_i
     end
   end
 
@@ -84,23 +89,22 @@ class ApplicationController < ActionController::Base
   def signed_in_guest
     return current_user if current_user&.guest?
 
-    User.claimable_guests.find_by(id: session[:guest_user_id]) if session[:guest_user_id]
+    GuestClaim.bound_guest(session)
   end
 
   def claim_guest(guest, user)
     rescue_and_log(target: user, parent: guest) { GuestClaim.call(guest:, user:) }
-    session.delete(:guest_user_id)
+    GuestClaim.release(session)
   rescue StandardError
     # Logged above. The sign-in itself stands, and the guest id stays in the
     # session, so the next sign-in tries the claim again.
     nil
   end
 
-  def claim_guest_from_link
-    window = session.delete(:claim_window_until).to_i
+  def note_guest_left_behind
+    window = session.delete(LEFT_BEHIND).to_i
     return unless current_user && !current_user.guest? && Time.current.to_i < window
 
-    guest = GuestClaim.guest_from_token(params[:claim])
-    claim_guest(guest, current_user) if guest
+    flash.now[:notice] = "Your guest games stay in the browser you played in. Sign in there to keep them."
   end
 end
