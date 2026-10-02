@@ -118,7 +118,7 @@ jobs:
       # times locally, so the screenshot is how the next failure gets explained.
       - name: Keep failed system test screenshots
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: system-test-screenshots
           path: tmp/screenshots
