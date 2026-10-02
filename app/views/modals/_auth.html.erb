@@ -3,12 +3,13 @@
     (Studio.auth_method?(:google)), then the engine's magic link
     (POST /magic_link). Single root; no double quotes inside x-data.
 
-      $store.modals.open('auth', { returnTo: '/matches/1?claim=...', title: '...', subtitle: '...' })
+      $store.modals.open('auth', { returnTo: '/matches/1?from_guest=1', title: '...', subtitle: '...' })
 
     props.returnTo  where the player lands after signing in: the magic link
                     carries it; Google keeps it as ?return_to= (OmniAuth's
                     omniauth.params) and the home page sends them on.
-    Signing in claims the guest this browser played as (GuestClaim). %>
+    Signing in claims the guest this browser played as (GuestClaim), which
+    its session names: never anything in returnTo or the link. %>
 <div x-data="{
        email: '', sending: false, error: '',
        get props() { var c = $store.modals.current(); return (c && c.props) || {}; },
