@@ -127,8 +127,12 @@ test("a damaged ledger fails closed until a person removes it, and is not writte
   const path = join(mkdtempSync(join(tmpdir(), "tyrion-spend-")), "spend.json");
   writeFileSync(path, "{not json");
   const log = quiet();
-  const ledger = new SpendLedger({ path, now: () => NOON, log });
+  let now = NOON;
+  const ledger = new SpendLedger({ path, now: () => now, log });
   assert.equal(ledger.allow(), false);
+  now = NOON + 86_400_000;
+  assert.equal(ledger.allow(), false, "a runner left going stays closed past UTC midnight");
+  ledger.record(0);
   assert.ok(log.warnings.some((w) => /damaged/.test(w)));
   assert.equal(readFileSync(path, "utf8"), "{not json", "left for a person to look at");
   const tomorrow = new SpendLedger({ path, now: () => NOON + 86_400_000, log: quiet() });

@@ -97,7 +97,7 @@ export class SpendLedger {
 
   #today() {
     const day = utcDay(this.now());
-    if (this.entry.day !== day) this.entry = { day, calls: 0, usd: 0 };
+    if (this.entry.day !== day) this.entry = Number.isFinite(this.entry.calls) ? { day, calls: 0, usd: 0 } : { ...this.#spent(), day }; // a failed-closed ledger stays closed across midnight
     return this.entry;
   }
 
