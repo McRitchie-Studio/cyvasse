@@ -25,10 +25,12 @@ gem "tailwindcss-rails", "~> 4.5"
 
 # Shared McRitchie Studio engine: passwordless auth, hub SSO awareness, theme,
 # ErrorLog / rescue_and_log, local email capture, local review. The pin is a
-# FLOOR (a two-segment ~> admits every 0.x): 0.78 is the first release with
-# Studio.navbar_links (NavbarLinks, task cyvasse-nav-links), and is above NEW_APP_SETUP's own floor (0.57,
-# Studio::GeoDetection). Read Gemfile.lock for what actually resolves.
-gem "studio-engine", "~> 0.82"
+# FLOOR (a two-segment ~> admits every 0.x): 0.84 (task
+# cyvasse-engine-bump-and-pool) carries 0.81's warning/danger button contrast
+# and single admin cog on phones, and the `redis < 6` gemspec cap (0.82.1).
+# Older floors: 0.78 for Studio.navbar_links (task cyvasse-nav-links), 0.57 for
+# Studio::GeoDetection. Read Gemfile.lock for what actually resolves.
+gem "studio-engine", "~> 0.84"
 # Google sign-in through the engine's OmniauthCallbacksController, beside the
 # magic link (config/initializers/omniauth.rb). The same three gems the hub runs.
 # ES256 assertions from the hub (EmailHandoff::Verifier).
@@ -37,8 +39,9 @@ gem "omniauth"
 gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
 # Pin redis below 6 for ActionCable's redis pubsub adapter (config/cable.yml,
-# production). studio-engine declares `redis >= 4.0.1` with NO upper bound, so
-# bundler resolved redis 6.0.0 — but ActionCable 8.1's redis adapter declares
+# production). studio-engine before 0.82.1 declared `redis >= 4.0.1` with NO
+# upper bound (0.82.1 and later cap it `< 6`; this pin stays as Cyvasse's own
+# guard regardless of the engine), so bundler resolved redis 6.0.0 — but ActionCable 8.1's redis adapter declares
 # `gem "redis", ">= 4", "< 6"`, and in production ActionCable.server.pubsub
 # raised "can't activate redis (>= 4, < 6), already activated redis-6.0.0":
 # /cable still upgraded (101) but no broadcast reached a subscriber, so live
