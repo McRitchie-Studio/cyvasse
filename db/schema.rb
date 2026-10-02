@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_30_233144) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_01_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -347,7 +347,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_233144) do
     t.datetime "updated_at", null: false
     t.string "username"
     t.integer "wins", default: 0, null: false
-    t.index "lower((username)::text)", name: "index_users_on_lower_username"
+    t.index "lower((username)::text)", name: "index_users_on_lower_username_unique", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["legacy_id"], name: "index_users_on_legacy_id", unique: true
     t.index ["merged_into_id"], name: "index_users_on_merged_into_id"
