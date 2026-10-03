@@ -25,7 +25,12 @@
 # Any libraries that use a connection pool or another resource pool should
 # be configured to provide at least as many connections as the number of
 # threads. This includes Active Record's `pool` parameter in `database.yml`.
-threads_count = ENV.fetch("RAILS_MAX_THREADS", 3)
+#
+# The thread count comes from Cyvasse::ConnectionBudget, which also sizes the
+# database pool (config/database.yml) to cover these threads plus ActionCable's
+# workers. Set RAILS_MAX_THREADS to change it.
+require_relative "../lib/cyvasse/connection_budget"
+threads_count = Cyvasse::ConnectionBudget.threads
 threads threads_count, threads_count
 
 # Specifies the `port` that Puma will listen on to receive requests; default is 3000.

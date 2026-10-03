@@ -23,6 +23,9 @@ Bundler.require(*Rails.groups)
 # (lib/cyvasse/canonical_host.rb).
 require_relative "../lib/cyvasse/canonical_host"
 require_relative "../lib/cyvasse/canonical_host_redirect"
+# The database connection budget: Puma threads, ActionCable workers, and the
+# pool that covers both (lib/cyvasse/connection_budget.rb).
+require_relative "../lib/cyvasse/connection_budget"
 
 module Cyvasse
   class Application < Rails::Application
@@ -33,6 +36,11 @@ module Cyvasse
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks cyvasse])
+
+    # ActionCable's worker pool runs channel callbacks (live chat), each on a
+    # database connection. Set explicitly, from the same budget that sizes the
+    # pool in config/database.yml, rather than left to Rails' default of 4.
+    config.action_cable.worker_pool_size = Cyvasse::ConnectionBudget.cable_workers
 
     # Configuration for the application, engines, and railties goes here.
     #

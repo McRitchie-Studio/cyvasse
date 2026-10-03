@@ -7,7 +7,8 @@ require "application_system_test_case"
 # At 1440px: one theme toggle, the desktop link-sidebar button (the engine's
 # extra_icons_html), and the account link with the player's public name
 # beside the avatar, truncated when long. Signed out, both widths say
-# "Sign in". SCREENSHOTS=1 saves each view to
+# "Sign in". An admin sees one cog (the admin menu) at 390px and at 1440px.
+# SCREENSHOTS=1 saves each view to
 # tmp/screenshots/navbar-config-<width>-<theme>.png.
 class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
   NAV = "header[data-pin=nav]".freeze
@@ -47,6 +48,42 @@ class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
       assert_selector "#{NAV} a[data-nav-account] [data-nav-name]", visible: true, text: @guest.player_name
       screenshot("1440-#{theme}")
     end
+  end
+
+  # Every gear glyph in the bar: the engine draws the same cog for the admin
+  # dropdown (components/_admin_dropdown) and the link-sidebar trigger.
+  COG = "#{NAV} button:has(svg path[d^='M9.594 3.94'])".freeze
+
+  # studio-engine 0.81.0 draws components/_user_nav's admin cog from md up
+  # only, because below md the navbar's phone row draws one; before that an
+  # admin's phone showed two. Cyvasse renders the engine's user nav (no copy
+  # since 0.80.0) and its link sidebar replaces the admin dropdown, so the one
+  # cog an admin sees is the sidebar trigger, titled "Admin Menu", at each
+  # width (task cyvasse-engine-bump-and-pool).
+  { 390 => true, 1440 => false }.each do |width, mobile|
+    test "#{width}px: an admin sees exactly one cog, the admin menu" do
+      Capybara.reset_sessions!
+      admin = User.create!(email: "navbar-admin@example.com", name: "Admin", role: "admin")
+      at_width(width, mobile: mobile)
+      visit link_path(token: Studio::Link.create_magic_link(email: admin.email).token)
+      assert_text "Signed in as #{admin.player_name}"
+      visit root_path
+
+      assert_selector COG, visible: true, count: 1
+      assert_selector "#{NAV} button[title='Admin Menu']", visible: true, count: 1
+      assert_no_selector "#{NAV} button[title='Admin']", visible: true
+      screenshot("#{width}-admin")
+    end
+  end
+
+  test "390px: a player's one cog opens the links, not an admin menu" do
+    at_width(390, mobile: true)
+    visit root_path
+
+    assert_selector COG, visible: true, count: 1
+    assert_selector "#{NAV} button[title='Links']", visible: true, count: 1
+    assert_no_selector "#{NAV} button[title='Admin Menu']", visible: :all
+    assert_no_selector "#{NAV} button[title='Admin']", visible: :all
   end
 
   test "1440px: a long name truncates inside its box and the avatar stays whole" do

@@ -49,8 +49,13 @@ Rails.application.configure do
   # Replace the default in-process memory cache store with a durable alternative.
   # config.cache_store = :mem_cache_store
 
-  # Replace the default in-process and non-durable queuing backend for Active Job.
-  # config.active_job.queue_adapter = :resque
+  # Active Job runs in process on the async adapter (the engine's email
+  # deliveries). Its thread cap would otherwise follow RAILS_MAX_THREADS (5 when
+  # unset); pin it to the one connection the pool keeps for it
+  # (lib/cyvasse/connection_budget.rb).
+  config.active_job.queue_adapter = ActiveJob::QueueAdapters::AsyncAdapter.new(
+    min_threads: 0, max_threads: Cyvasse::ConnectionBudget.job_threads
+  )
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
