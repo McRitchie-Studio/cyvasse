@@ -19,10 +19,13 @@ class HomePageSystemTest < ApplicationSystemTestCase
     assert_match(/\Argba?\(0, 0, 0, 0\.[67]\d*\)\z/, alpha, "a black scrim of at least 60%")
     assert_equal "rgb(255, 255, 255)", page.evaluate_script("getComputedStyle(document.querySelector('.home-hero h1')).color")
     assert_selector ".home-hero [data-leaderboard-card]"
-    assert_no_link "Play the computer"
+    # The hero offers Play Now, not the computer. (The site footer below lists
+    # "Play the computer" among its links, task cyvasse-footer-and-legal, so
+    # this looks at the hero alone.)
+    within("section.home-hero") { assert_no_link "Play the computer" }
     screenshot("desktop")
 
-    click_on "Rules"
+    within("section.home-hero") { click_on "Rules" }
     assert_current_path rules_path
   end
 

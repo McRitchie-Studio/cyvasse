@@ -16,6 +16,7 @@ require "application_system_test_case"
 class SiteFooterRowsTest < ApplicationSystemTestCase
   teardown do
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
+    page.driver.browser.execute_cdp("Emulation.setScrollbarsHidden", hidden: false)
   end
 
   EXPECTED_ROWS = {
@@ -48,6 +49,10 @@ class SiteFooterRowsTest < ApplicationSystemTestCase
   def viewport!(width)
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
                                     width: width, height: 900, deviceScaleFactor: 1, mobile: width < 768)
+    # A desktop viewport on CI's Chrome draws a 15px classic scrollbar inside
+    # the width, which would measure 1280 as 1265. Hide it: the rows are
+    # measured at the width the engine's breakpoints see.
+    page.driver.browser.execute_cdp("Emulation.setScrollbarsHidden", hidden: true)
   end
 
   def footer_layout
