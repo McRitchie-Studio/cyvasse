@@ -243,7 +243,8 @@ html:root:not(.dark) {
 }
 
 .rules-prose a,
-.about-page a {
+.about-page a,
+.legal-page a {
   color: var(--cyvasse-gold-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
