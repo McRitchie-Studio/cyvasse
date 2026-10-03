@@ -11,8 +11,10 @@ class AuthGateTest < ActionDispatch::IntegrationTest
   # EmailHandoffsController is a sign-in door: its assertion is the credential.
   # NightsController: Cyvasse Night's page and calendar file, where the
   # invitation emails land a visitor who may have no account yet.
+  # LegalController: the Privacy Policy and the Terms, which a visitor must be
+  # able to read before signing in (task cyvasse-footer-and-legal).
   PUBLIC_CONTROLLERS = %w[PagesController GamesController SkinsController LeaderboardsController EmailHandoffsController
-                          SitemapsController RobotsController NightsController].freeze
+                          SitemapsController RobotsController NightsController LegalController].freeze
 
   test "the leaderboard and its sign-in page render publicly" do
     get leaderboard_path
