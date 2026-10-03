@@ -72,10 +72,11 @@ class SiteFooterTest < ActionDispatch::IntegrationTest
     assert_select "#{FOOTER} a[href^='tel:']", false
     assert_select "#{FOOTER} .ftr-social", false
     assert_select "[data-booking-popup], [data-booking-link], iframe", false
-    # A footer with no address requests neither Leaflet nor a tile. (Its inline
-    # stylesheet's comments still say the word, so look at what loads.)
+    # A footer with no address requests neither Leaflet nor a tile. The engine's
+    # inline map script still ships, dormant: it acts only on a [data-footer-map]
+    # element, asserted absent above, so look at what loads, not at the words.
+    # test/system/site_footer_rows_test.rb checks the browser fetched neither.
     assert_select "script[src*=leaflet], link[href*=leaflet], [data-leaflet-js]", false
-    assert_no_match(/tile\.openstreetmap\.org/, response.body)
   end
 
   test "a visitor sees it on the public reading pages and the sign-in page" do
