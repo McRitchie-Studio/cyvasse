@@ -838,6 +838,51 @@ verify the site and submit the sitemap:
 4. In the property, open **Sitemaps**, enter `sitemap.xml` and **Submit**. Then
    use **URL inspection** on the home page and **Request indexing**.
 
+## Site footer and legal pages
+
+Every public page ends with studio-engine's site footer (`studio_site_footer` at
+the end of `layouts/application`; facts in `config/initializers/studio.rb`,
+`site_footer`; engine docs `docs/SITE_FOOTER.md`). It carries the elephant icon
+and wordmark, a tagline from the home page's description, the contact email, the
+Play, Learn and Legal columns and the legal line. By the operator's standard
+(2026-10-03) it has no address, no map, no phone and no booking scheduler, so it
+fetches nothing from another origin and the app (which enforces no content
+security policy) needs no new source.
+
+**Where it shows.** A visitor sees it on every page except the board against the
+computer (`/play`). A signed-in player, a Play Now guest included, sees it only
+on the reading pages (`pages`, `legal`, `leaderboards`, `nights`): never on a
+board, a match, Play Now's search, the onboarding, Chat or the profile.
+`test/integration/site_footer_test.rb` pins the links and the visibility;
+`test/system/site_footer_rows_test.rb` the rows at 320, 390, 768, 1024 and 1280px.
+
+**The legal pages.** `/privacy` and `/terms` (`LegalController`, public) are
+written from what the code does, operated by McRitchie Studio LLC (doing
+business as McRitchie Studio). A change to any practice below owes an edit to
+`app/views/legal/privacy.html.erb` in the same change.
+`test/integration/legal_pages_test.rb` pins the entity, the contact email, and
+that no page a visitor reaches on the way to an account renders a password field.
+
+| Statement | Rests on |
+|-----------|----------|
+| No passwords; email link, Google where configured, email handoff | `config/initializers/studio.rb` (`auth_methods`), `config/initializers/omniauth.rb`, `app/controllers/email_handoffs_controller.rb`, no `password_digest` in `db/schema.rb` |
+| Google sign-in is off in production today (no `GOOGLE_CLIENT_ID`); the policy covers it conditionally | `CyvasseGoogleSignIn.enabled?` |
+| Play against the computer is not saved | `app/controllers/games_controller.rb` |
+| Play Now makes a guest account, claimed by a later sign-in | `User.create_guest!`, `GuestClaim` |
+| Account fields: email, name, username, role, piece art, email-updates answer and time, optional birthday and photo | `db/schema.rb` `users`, `app/controllers/onboarding_controller.rb`, `has_one_attached :avatar` |
+| Games: players, setups, moves, turns, times, result; records; saved lineups | `db/schema.rb` `matches`, `setups`; `Match#finish!` |
+| Messages stored with sender, receiver, time, read flag; admins can read them | `db/schema.rb` `messages`, `Admin::ConversationsController`, `/about` |
+| Legacy players, matches, messages, lineups, board posts imported; no passwords | `app/models/legacy_import.rb` |
+| Errors recorded against an account or game | `Studio::ErrorHandling`, `error_logs` |
+| Username, rank, points, wins, losses public on the leaderboard | `app/views/leaderboards/_rows.html.erb` |
+| Sign-in and match emails (challenge, your move, not for live games) | `UserMailer`, `MatchMailer`, `Match#notify` |
+| News emails sent from the hub, with opens, clicks and unsubscribe; the hub holds a Cyvasse record summary | hub `BroadcastMailer`, `EmailTrackingController`, `Contacts::CyvasseTraitsImport` |
+| A 30-day cookie remembers the email that brought a reader; sign-in and game-start reported to the hub | `app/controllers/concerns/email_referral.rb` |
+| Heroku (hosting, database, Redis), Resend (mail) | `config/cable.yml`, `config/initializers/studio_mail_transport.rb`, production config names |
+| A computer player's chat may go to Anthropic | `script/tyrion/chat.mjs` |
+| Cookies: session, piece skin, the two email-ref cookies; local storage for display choices | `config/initializers/session_store.rb`, `PieceSkinPreference`, `EmailReferral`, `smart_setup.js`, `cyvasse_game_controller.js` |
+| HTTPS only | `config/environments/production.rb` (`force_ssl`) |
+
 ## Auth and hub SSO
 
 Sign-in is passwordless: the engine's magic link, and Google through the engine's

@@ -243,7 +243,13 @@ html:root:not(.dark) {
 }
 
 .rules-prose a,
-.about-page a,
+.about-page a {
+  color: var(--cyvasse-gold-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* The Privacy Policy and the Terms (legal/): links read like the rules'. */
 .legal-page a {
   color: var(--cyvasse-gold-ink);
   text-decoration: underline;
