@@ -27,7 +27,9 @@ gem "tailwindcss-rails", "~> 4.5"
 # ErrorLog / rescue_and_log, local email capture, local review. The pin is a
 # FLOOR (a two-segment ~> admits every 0.x): 0.84 (task
 # cyvasse-engine-bump-and-pool) carries 0.81's warning/danger button contrast
-# and single admin cog on phones, and the `redis < 6` gemspec cap (0.82.1).
+# and single admin cog on phones, the `redis < 6` gemspec cap (0.82.1), and the
+# site footer's fixed-row grid that keeps the contact email on one line (0.84.0;
+# task cyvasse-footer-and-legal).
 # Older floors: 0.78 for Studio.navbar_links (task cyvasse-nav-links), 0.57 for
 # Studio::GeoDetection. Read Gemfile.lock for what actually resolves.
 gem "studio-engine", "~> 0.84"

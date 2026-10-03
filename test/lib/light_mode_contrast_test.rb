@@ -62,6 +62,9 @@ class LightModeContrastTest < ActiveSupport::TestCase
 
     assert_match "color: var(--cyvasse-gold-ink)", @css[/^\.text-primary,\n\.hover\\:text-primary:hover \{(.*?)\}/m, 1].to_s
     assert_match "color: var(--cyvasse-gold-ink)", @css[/^\.rules-prose a,\n\.about-page a \{(.*?)\}/m, 1].to_s
+    assert_match "color: var(--cyvasse-gold-ink)", @css[/^\.legal-page a \{(.*?)\}/m, 1].to_s
+    # The site footer's wordmark and link hover read the ink, not the bare gold.
+    assert_match "--ftr-primary: var(--cyvasse-gold-ink)", @css[/^footer\.ftr \{(.*?)\}/m, 1].to_s
     assert_match "color: var(--cyvasse-gold-ink)", @css[/^\.leaderboard-inline-cta strong \{(.*?)\}/m, 1].to_s
     refute_match "color: rgb(var(--color-primary-rgb))", @css, "gold text should read the ink, not the bare gold"
 
