@@ -249,6 +249,14 @@ html:root:not(.dark) {
   text-underline-offset: 2px;
 }
 
+/* The engine's site footer paints its wordmark and its link hover in
+ * --ftr-primary, the bare gold: 2.73:1 on the light page. Gold TEXT reads the
+ * ink (the 700 shade in light mode, the gold itself in dark). `footer.ftr`
+ * outranks the engine's inline `.ftr` rule, which comes later in the page. */
+footer.ftr {
+  --ftr-primary: var(--cyvasse-gold-ink);
+}
+
 /* The Privacy Policy and the Terms (legal/): links read like the rules'. */
 .legal-page a {
   color: var(--cyvasse-gold-ink);

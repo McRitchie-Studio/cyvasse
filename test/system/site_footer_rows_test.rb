@@ -44,6 +44,29 @@ class SiteFooterRowsTest < ApplicationSystemTestCase
     end
   end
 
+  # The engine paints the wordmark (and a hovered link) in --ftr-primary; the
+  # bare gold is 2.73:1 on the light page, so the app points it at the gold ink
+  # (application.css, footer.ftr). Measured as the browser resolves it, so the
+  # engine's inline rule winning the cascade would fail here.
+  %w[light dark].each do |theme|
+    test "the footer wordmark clears AA on the #{theme} page" do
+      visit rules_path
+      assert_selector "footer[data-site-footer] .ftr-wordmark-accent"
+      page.execute_script("document.documentElement.classList.toggle('dark', arguments[0])", theme == "dark")
+
+      ink, ground = page.evaluate_script(<<~'JS')
+        (() => {
+          const hex = (css) => "#" + css.match(/\d+/g).slice(0, 3).map((n) => Number(n).toString(16).padStart(2, "0")).join("")
+          const solid = (el) => { for (; el; el = el.parentElement) { const bg = getComputedStyle(el).backgroundColor; if (!/, 0\)$|transparent/.test(bg)) return bg } return "rgb(255, 255, 255)" }
+          const mark = document.querySelector("footer[data-site-footer] .ftr-wordmark-accent")
+          return [hex(getComputedStyle(mark).color), hex(solid(mark))]
+        })()
+      JS
+      ratio = Studio::ColorScale.contrast_ratio(ink, ground)
+      assert_operator ratio, :>=, 4.5, "wordmark #{ink} on #{ground} is #{ratio.round(2)}:1 in #{theme} mode"
+    end
+  end
+
   private
 
   def viewport!(width)

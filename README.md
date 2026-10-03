@@ -870,7 +870,7 @@ that no page a visitor reaches on the way to an account renders a password field
 | Play against the computer is not saved | `app/controllers/games_controller.rb` |
 | Play Now makes a guest account, claimed by a later sign-in | `User.create_guest!`, `GuestClaim` |
 | Account fields: email, name, username, role, piece art, email-updates answer and time, optional birthday and photo | `db/schema.rb` `users`, `app/controllers/onboarding_controller.rb`, `has_one_attached :avatar` |
-| Games: players, setups, moves, turns, times, result; records; saved lineups | `db/schema.rb` `matches`, `setups`; `Match#finish!` |
+| Games: players, each side's setup and current position, the most recent move and its time, whose turn, result; records; saved lineups. No move history is kept | `db/schema.rb` `matches`, `setups`; `Match#apply_turn`, `Match#finish!` |
 | Messages stored with sender, receiver, time, read flag; admins can read them | `db/schema.rb` `messages`, `Admin::ConversationsController`, `/about` |
 | Legacy players, matches, messages, lineups, board posts imported; no passwords | `app/models/legacy_import.rb` |
 | Errors recorded against an account or game | `Studio::ErrorHandling`, `error_logs` |
@@ -879,6 +879,7 @@ that no page a visitor reaches on the way to an account renders a password field
 | News emails sent from the hub, with opens, clicks and unsubscribe; the hub holds a Cyvasse record summary | hub `BroadcastMailer`, `EmailTrackingController`, `Contacts::CyvasseTraitsImport` |
 | A 30-day cookie remembers the email that brought a reader; sign-in and game-start reported to the hub | `app/controllers/concerns/email_referral.rb` |
 | Heroku (hosting, database, Redis), Resend (mail) | `config/cable.yml`, `config/initializers/studio_mail_transport.rb`, production config names |
+| ZeroBounce receives the email addresses of the hub's `cyvasse-legacy` list, to check each can receive mail before news email is sent (that audience is verified-only) | hub `app/services/contacts/verification.rb`, `zero_bounce.rb`, `Broadcast::VERIFIED_AUDIENCES`, hub `docs/email-delivery.md` |
 | A computer player's chat may go to Anthropic | `script/tyrion/chat.mjs` |
 | Cookies: session, piece skin, the two email-ref cookies; local storage for display choices | `config/initializers/session_store.rb`, `PieceSkinPreference`, `EmailReferral`, `smart_setup.js`, `cyvasse_game_controller.js` |
 | HTTPS only | `config/environments/production.rb` (`force_ssl`) |

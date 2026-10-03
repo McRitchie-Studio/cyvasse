@@ -39,8 +39,15 @@ class LegalPagesTest < ActionDispatch::IntegrationTest
       "the Site's administrators can read them",
       "We did not carry over passwords",
       "Every one of these emails carries an unsubscribe link",
+      "its current position on the board, the most recent move and when it was made",
+      "We do not keep a history of earlier moves",
+      "ZeroBounce checks that an email address can receive mail before we send it news email. It receives the email address only.",
       "Heroku", "Resend", "Google", "Anthropic"
     ].each { |phrase| assert_includes text, phrase }
+    # The matches table keeps positions and the last move, never a move list
+    # (Match#apply_turn): the policy must not claim one.
+    assert_no_match(/every move, whose turn|time of each move/i, text)
+    refute_includes Match.column_names, "moves"
     # No retention period, response time or age is promised.
     assert_no_match(/\b\d+\s+(days?|months?|years?)\b(?! after)/i, text.gsub("for 30 days", ""))
     assert_no_match(/under (the age of )?\d+/i, text)
