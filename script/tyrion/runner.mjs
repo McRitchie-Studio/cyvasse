@@ -8,12 +8,29 @@
 //   CYVASSE_URL         default https://cyvasse.mcritchie.studio
 //   ANTHROPIC_API_KEY   optional: without it he chats from stock lines
 //   TYRION_CHAT_MODEL   optional: default claude-opus-5-5
+//   TYRION_MAX_SPEND_USD, TYRION_MAX_MODEL_CALLS, TYRION_SPEND_LEDGER
+//                       the chat's daily model cap (spend.mjs; README)
+//
+// A token the server refuses (401 or 403) ends the run with exit code
+// EXIT_TOKEN_REJECTED: retrying cannot help, so it says so and stops. Any
+// other failure (a 5xx, the network) is logged and the next pass tries again.
 
 import { chooseSetup, chooseTurn, gameFromState } from "./brain.mjs";
 import { ChatBudget, asksForThePurse, filterLine, stockLine } from "./voice.mjs";
+import { SpendLedger } from "./spend.mjs";
 
 export const POLL_LIVE_MS = 2_000;
 export const POLL_IDLE_MS = 30_000;
+export const EXIT_TOKEN_REJECTED = 2;
+
+// The server answered 401 or 403: the bot token is revoked or wrong.
+export class TokenRejected extends Error {
+  constructor(status) {
+    super(`the server refused the bot token (${status})`);
+    this.name = "TokenRejected";
+    this.status = status;
+  }
+}
 
 export function makeApi({ base, token, fetchImpl = fetch }) {
   return async function api(method, path, body) {
@@ -24,6 +41,7 @@ export function makeApi({ base, token, fetchImpl = fetch }) {
     });
     const json = await response.json().catch(() => ({}));
     if (response.ok || response.status === 422) return { status: response.status, body: json };
+    if (response.status === 401 || response.status === 403) throw new TokenRejected(response.status);
     throw new Error(`${method} ${path} answered ${response.status}`);
   };
 }
@@ -100,6 +118,26 @@ export function newState() {
   return { cursor: null, greeted: new Set(), chats: new Map(), budget: new ChatBudget() };
 }
 
+// The loop: one pass, then a wait (short while a match is live). A refused
+// token returns EXIT_TOKEN_REJECTED at once; anything else is logged and
+// retried on the next pass. `passes` and `sleep` are for tests.
+export async function run({ api, state = newState(), chat = null, secrets = [], log = console, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), passes = Infinity }) {
+  for (let pass = 0; pass < passes; pass += 1) {
+    let live = false;
+    try {
+      live = await tick({ api, state, chat, secrets, log });
+    } catch (error) {
+      if (error instanceof TokenRejected) {
+        log.error(`tyrion: ${error.message}; it was revoked or is wrong. Issue a new one (bin/rails "bot_tokens:issue[tyrion]" on the server), set CYVASSE_BOT_TOKEN, and start again. Stopping.`);
+        return EXIT_TOKEN_REJECTED;
+      }
+      log.warn(`tyrion: ${error.message}; trying again`);
+    }
+    await sleep(live ? POLL_LIVE_MS : POLL_IDLE_MS);
+  }
+  return 0;
+}
+
 async function main() {
   const token = process.env.CYVASSE_BOT_TOKEN;
   if (!token) {
@@ -108,20 +146,13 @@ async function main() {
   }
   const base = process.env.CYVASSE_URL || "https://cyvasse.mcritchie.studio";
   const { makeChat } = await import("./chat.mjs");
-  const chat = await makeChat();
+  const ledger = SpendLedger.fromEnv();
+  const chat = await makeChat({ ledger });
   const api = makeApi({ base, token });
   const secrets = [token, process.env.ANTHROPIC_API_KEY].filter(Boolean);
-  const state = newState();
-  console.info(`tyrion: at the table on ${base}${chat ? ", chatting" : ", stock lines only"}`);
-  for (;;) {
-    let live = false;
-    try {
-      live = await tick({ api, state, chat, secrets });
-    } catch (error) {
-      console.warn(`tyrion: ${error.message}; trying again`);
-    }
-    await new Promise((resolve) => setTimeout(resolve, live ? POLL_LIVE_MS : POLL_IDLE_MS));
-  }
+  const cap = chat ? `, chatting (cap ${ledger.maxCalls} calls / $${ledger.maxUsd.toFixed(2)} a UTC day, ${ledger.today.calls} used)` : ", stock lines only";
+  console.info(`tyrion: at the table on ${base}${cap}`);
+  process.exit(await run({ api, chat, secrets }));
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main();

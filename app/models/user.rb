@@ -289,16 +289,27 @@ class User < ApplicationRecord
   SLUG_SUFFIX_TRIES = 2
   SLUG_SAVE_TRIES = 5
   SLUG_INDEX = "index_users_on_slug".freeze
+  # The unique indexes behind username_free_in_any_case: lower(username)
+  # (task cyvasse-username-unique-index) and the exact-case one.
+  USERNAME_INDEXES = %w[index_users_on_lower_username_unique index_users_on_username].freeze
 
   # A save that loses the slug to a concurrent one retries with a fresh slug.
-  # The savepoint keeps a caller's outer transaction usable after the failed
-  # statement; any other unique violation is re-raised untouched.
+  # A save that loses the username to a concurrent one (both passed
+  # username_free_in_any_case before either wrote) fails as the validation
+  # would have: "is taken" on username, so save returns false and save!
+  # raises RecordInvalid, never a 500. The savepoint keeps a caller's outer
+  # transaction usable after the failed statement; any other unique violation
+  # is re-raised untouched.
   def create_or_update(**options, &block)
     @slug_conflicts = 0
     begin
       self.class.transaction(requires_new: true) { super(**options, &block) }
     rescue ActiveRecord::RecordNotUnique => e
-      raise unless slug_index_violation?(e) && (@slug_conflicts += 1) < SLUG_SAVE_TRIES
+      if USERNAME_INDEXES.include?(violated_index(e))
+        errors.add(:username, "is taken")
+        raise ActiveRecord::RecordInvalid, self
+      end
+      raise unless violated_index(e) == SLUG_INDEX && (@slug_conflicts += 1) < SLUG_SAVE_TRIES
 
       retry
     end
@@ -307,11 +318,11 @@ class User < ApplicationRecord
   end
 
   # Matched on the constraint Postgres names in the error, not the message text:
-  # an email or username violation whose DETAIL quotes a value containing the
-  # index name must still raise.
-  def slug_index_violation?(error)
+  # an email violation whose DETAIL quotes a value containing an index name
+  # must still raise.
+  def violated_index(error)
     result = error.cause.respond_to?(:result) ? error.cause.result : nil
-    result&.error_field(PG::Result::PG_DIAG_CONSTRAINT_NAME) == SLUG_INDEX
+    result&.error_field(PG::Result::PG_DIAG_CONSTRAINT_NAME)
   end
 
   def slug_stem

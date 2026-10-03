@@ -9,7 +9,7 @@ import { createServer } from "node:http";
 import { Game, PLAYER } from "cyvasse/game";
 import { COMPUTER_OPPONENTS, parseLineup } from "cyvasse/setups";
 import { openingLineup } from "cyvasse/openings";
-import { makeApi, newState, tick } from "../../script/tyrion/runner.mjs";
+import { EXIT_TOKEN_REJECTED, POLL_IDLE_MS, TokenRejected, makeApi, newState, run, tick } from "../../script/tyrion/runner.mjs";
 import { SETUPS } from "../../script/tyrion/brain.mjs";
 import { seeded } from "./support/fixtures.js";
 
@@ -138,4 +138,51 @@ test("a refused move is logged and left for the next pass; a server error throws
   await withServer(() => [500, {}], async ({ base }) => {
     await assert.rejects(tick({ api: makeApi({ base, token: TOKEN }), state: newState(), log: quiet }), /answered 500/);
   });
+});
+
+// task tyrion-runner-safeguards: a refused token stops the runner; a server
+// that is down is waited out.
+function recorder() {
+  const lines = { error: [], warn: [] };
+  return { lines, info() {}, warn(m) { lines.warn.push(m); }, error(m) { lines.error.push(m); } };
+}
+
+for (const status of [401, 403]) {
+  test(`a ${status} from /api/bot ends the run with a clear message and no retry`, async () => {
+    await withServer(() => [status, { error: "unauthenticated" }], async ({ base, calls }) => {
+      const log = recorder();
+      const sleeps = [];
+      const code = await run({ api: makeApi({ base, token: TOKEN }), log, secrets: [TOKEN], sleep: async (ms) => { sleeps.push(ms); }, passes: 5 });
+      assert.equal(code, EXIT_TOKEN_REJECTED);
+      assert.notEqual(code, 0);
+      assert.equal(calls.length, 1, "one call, then it stops");
+      assert.deepEqual(sleeps, [], "no wait for a retry");
+      assert.match(log.lines.error[0], new RegExp(`refused the bot token \\(${status}\\)`));
+      assert.match(log.lines.error[0], /bot_tokens:issue/);
+      assert.ok(!log.lines.error[0].includes(TOKEN), "the token is not logged");
+    });
+  });
+}
+
+test("a 503 is logged and retried after the idle wait, pass after pass", async () => {
+  await withServer(() => [503, { error: "unavailable" }], async ({ base, calls }) => {
+    const log = recorder();
+    const sleeps = [];
+    const code = await run({ api: makeApi({ base, token: TOKEN }), log, sleep: async (ms) => { sleeps.push(ms); }, passes: 3 });
+    assert.equal(code, 0, "still running when the test stops it");
+    assert.equal(calls.length, 3, "it kept asking");
+    assert.deepEqual(sleeps, [POLL_IDLE_MS, POLL_IDLE_MS, POLL_IDLE_MS]);
+    assert.equal(log.lines.warn.length, 3);
+    assert.match(log.lines.warn[0], /answered 503; trying again/);
+    assert.deepEqual(log.lines.error, []);
+  });
+});
+
+test("a network failure is retried, not treated as a refused token", async () => {
+  const log = recorder();
+  const api = makeApi({ base: "http://127.0.0.1:9", token: TOKEN, fetchImpl: async () => { throw new TypeError("fetch failed"); } });
+  const code = await run({ api, log, sleep: async () => {}, passes: 2 });
+  assert.equal(code, 0);
+  assert.equal(log.lines.warn.length, 2);
+  assert.ok(!(new TypeError("x") instanceof TokenRejected));
 });
