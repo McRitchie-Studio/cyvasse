@@ -35,6 +35,10 @@ Rails.application.routes.draw do
   # The rulebook and the about page, ported from the original site (piece 7).
   get "rules", to: "pages#rules", as: :rules
   get "about", to: "pages#about", as: :about
+  # The Privacy Policy and the Terms of Service (task cyvasse-footer-and-legal).
+  # Public: the site footer links both from every public page.
+  get "privacy", to: "legal#privacy", as: :privacy
+  get "terms", to: "legal#terms", as: :terms
   # A game against the computer, played in the browser (piece 4). Public: no
   # account and nothing saved until matches arrive (piece 6).
   get "play", to: "games#show", as: :play

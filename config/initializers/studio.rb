@@ -65,6 +65,57 @@ Studio.configure do |config|
       { key: :username, title: "Username", page: :edit, partial: "profiles/username", requires: :username }
     ] + Studio.default_profile_sections
   }
+  # ---- Site footer (studio-engine docs/SITE_FOOTER.md) ----
+  # The engine's footer, rendered by `studio_site_footer` at the end of the
+  # application layout (task cyvasse-footer-and-legal). The operator's standard
+  # for every app (2026-10-03): the brand, a tagline from the app's own copy, the
+  # app's own links, a contact email and the legal links. NO address, NO map, NO
+  # phone and no booking scheduler, so the engine never requests Leaflet or a
+  # map tile and the app needs no content-security-policy source (it enforces no
+  # policy: config/initializers/content_security_policy.rb is the scaffold's,
+  # commented out). No social row: Cyvasse shows no profile handles.
+  #
+  # The © line prints "© <year> <name>", and `name` is also the home link's
+  # accessible name, so it says both the game and the operator.
+  # test/integration/site_footer_test.rb pins every link below.
+  config.site_footer = ->(view) {
+    {
+      name: "Cyvasse by McRitchie Studio LLC",
+      wordmark: %w[Cyvasse],
+      # The elephant the app already serves as its touch icon (layouts/_seo),
+      # 22KB. The navbar has no logo (theme_logos is empty), so the engine
+      # would otherwise draw none.
+      logo: "/icon.png",
+      home_path: view.root_path,
+      # The home page's own description (SeoPage :home), cut to one line.
+      tagline: "The hex-board strategy game from A Song of Ice and Fire, free in your browser.",
+      # The address every Cyvasse email is sent from (mailer_from above).
+      email: "team@mcritchie.studio",
+      columns: [
+        [ "Play", [ [ "Play the computer", view.play_path ],
+                    [ "Cyvasse Night", view.night_path ],
+                    [ "Leaderboard", view.leaderboard_path ] ] ],
+        [ "Learn", [ [ "Rules", view.rules_path ],
+                     [ "Pieces", view.pieces_path ],
+                     [ "About", view.about_path ] ] ],
+        [ "Legal", [ [ "Privacy Policy", view.privacy_path ],
+                     [ "Terms of Service", view.terms_path ] ] ]
+      ],
+      legal: [ [ "Privacy Policy", view.privacy_path ], [ "Terms of Service", view.terms_path ] ]
+    }
+  }
+
+  # WHERE IT SHOWS. A visitor sees it on every public page; a signed-in player
+  # (a Play Now guest included) only on the reading pages below. Never on a
+  # game board, signed in or out: /play (games), a match and Play Now's search
+  # (live_seeks) keep the whole screen for the board, and the onboarding and
+  # the Chat hub are working surfaces. The engine's default rule, narrowed.
+  config.site_footer_controllers = %w[pages legal leaderboards nights]
+  config.site_footer_visible = ->(view) {
+    Studio::SiteFooter.default_visible?(view) &&
+      %w[games matches live_seeks onboarding conversations].exclude?(view.controller_name)
+  }
+
   config.sidebar_sections = [
     { title: "Cyvasse", links: [
       { label: "Home", href: "/", emoji: "♟️", desc: "The front door" },

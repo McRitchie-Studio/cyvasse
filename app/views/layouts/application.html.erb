@@ -36,6 +36,12 @@
       <% email_goal_beacons.each do |beacon| %><img src="<%= beacon %>" alt="" width="1" height="1" hidden data-email-beacon><% end %>
     </main>
 
+    <%# The engine's site footer: brand, links, contact email and the legal
+        links (config/initializers/studio.rb, site_footer). It decides for
+        itself whether this page shows it (site_footer_visible): never on a
+        game board. %>
+    <%= studio_site_footer %>
+
     <%# The engine's modal host. Cyvasse's modals (game over, sign in) are
         registered in modals/_host_extras. Card widths by modal id, set
         before the host reads them. %>
