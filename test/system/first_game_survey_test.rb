@@ -30,14 +30,19 @@ class FirstGameSurveySystemTest < ApplicationSystemTestCase
     page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-color-scheme", value: "dark" } ])
     visit "/surveys/first-game?ref=#{REF}"
     assert_selector "[data-studio-survey].is-enhanced"
-    assert_selector "h1, h2", text: "How was your first game?"
-    click_on "Start"
-
+    # studio-engine 0.89 opens straight on question 1: no intro step, no Start
+    # button, and no Back button. The title repeats question 1, so the engine
+    # keeps it in the DOM but hides it visually.
+    assert_selector "h1, h2", text: "How was your first game?", visible: :all
+    assert_text "Question 1 of 6"
+    assert_no_button "Start"
+    assert_no_button "Back"
     find("[data-key=overall] .studio-survey__tile", match: :first) # the stepper is showing
     assert_equal "overall", step_key
     shot("cyvasse-survey-phone-dark.png")
     all("[data-key=overall] .studio-survey__tile")[3].click
     assert_text "Question 2 of 6"
+    assert_button "Back" # Back appears from question 2 on
     find("[data-key=rules] input[value='5']", visible: :all).find(:xpath, "..").click
     assert_text "Question 3 of 6"
     find("[data-key=found_us]").find("label", text: "An email from us").click
@@ -53,6 +58,7 @@ class FirstGameSurveySystemTest < ApplicationSystemTestCase
     find("[data-survey-submit]").click
 
     assert_selector "h1, h2", text: "Thank you!"
+    assert_text "We read every answer."
     assert_link "Play another game", href: "/play"
     overflow = page.evaluate_script("document.documentElement.scrollWidth - window.innerWidth")
     assert_operator overflow, :<=, 0, "the survey scrolls sideways at 375px"

@@ -32,7 +32,7 @@ gem "tailwindcss-rails", "~> 4.5"
 # task cyvasse-footer-and-legal).
 # Older floors: 0.78 for Studio.navbar_links (task cyvasse-nav-links), 0.57 for
 # Studio::GeoDetection. Read Gemfile.lock for what actually resolves.
-gem "studio-engine", "~> 0.88"
+gem "studio-engine", "~> 0.89"
 # Google sign-in through the engine's OmniauthCallbacksController, beside the
 # magic link (config/initializers/omniauth.rb). The same three gems the hub runs.
 # ES256 assertions from the hub (EmailHandoff::Verifier).
