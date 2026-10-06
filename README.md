@@ -529,11 +529,26 @@ token>` from the hub's click redirect. `EmailReferral`
 (`app/controllers/concerns/email_referral.rb`) keeps it for thirty days and
 reports results to the hub's email analytics as beacons: `signed_in` on the
 first full page a signed-in player sees, `played_match` when a game starts or
-an online army is accepted. `EMAIL_ANALYTICS_URL` names the hub; production
+an online army is accepted, and `survey_completed` when a survey response
+credited to the email completes (sent from the server by
+`EmailGoalBeaconJob`, since a survey completes in a POST with no page to draw
+on). `EMAIL_ANALYTICS_URL` names the hub; production
 defaults to `https://mcritchie.studio`, anywhere else to `http://localhost:3000`,
 so a desk or a test never reports to production. The beacons are images with an
 absolute hub URL, so they need no CORS and work from any host Cyvasse is on; an
 old-host link's `?ref=` rides the 301 to `cyvasse.xyz` and is kept there.
+
+## Surveys
+
+The engine's survey primitive (studio-engine `docs/SURVEYS.md`, 0.88.0) is on:
+`config.draw_survey_routes` and `config.draw_admin_survey_routes` in
+`config/initializers/studio.rb`. Definitions live in `config/surveys/`; the
+first is `first_game.rb`, at `/surveys/first-game`, open to anyone, ending in
+"Play another game" (`/play`). A response is credited to the email that brought
+the respondent the way every page credits one (`EmailReferral.ref_for`:
+`?ref=`, else the cookie), and completing it reports `survey_completed` (above).
+Results, filters and a CSV are at `/admin/surveys`, linked from the admin menu.
+Sending the link is not the app's job yet.
 
 ## Messages
 

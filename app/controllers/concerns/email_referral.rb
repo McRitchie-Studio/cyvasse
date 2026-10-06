@@ -10,6 +10,10 @@
 #                 reader sees, and marked sent only once it was drawn
 #   played_match  fired by the board (cyvasse_game_controller#emailGoal) when
 #                 a game starts, from the URL in the email-goal-url meta tag
+#   survey_completed
+#                 fired from the server (EmailGoalBeaconJob) when a survey
+#                 response credited to the ref completes (the engine's
+#                 Studio.on_survey_completed, config/initializers/studio.rb)
 #
 # The hub counts each goal once per email, so a repeated beacon is harmless;
 # a lost one is not, which is why the ref is saved before the sign-in gate
@@ -26,6 +30,31 @@ module EmailReferral
 
   def self.hub_url
     ENV.fetch("EMAIL_ANALYTICS_URL") { Rails.env.production? ? "https://mcritchie.studio" : "http://localhost:3000" }.chomp("/")
+  end
+
+  # The hub's beacon URL for `goal` on the email `ref`; with no goal, the stem
+  # the board's JavaScript finishes.
+  def self.goal_url(ref, goal = nil)
+    "#{hub_url}/e/g/#{ref}?g=#{goal}"
+  end
+
+  # The email a survey response is credited to (Studio.survey_ref_resolver):
+  # this request's ?ref=, else the one the cookie remembers. Never a value that
+  # is not a delivery token, so a hand-typed ?ref=test stamps nothing.
+  def self.ref_for(controller)
+    ref = controller.params[:ref].to_s
+    return ref if ref.match?(TOKEN)
+
+    controller.send(:email_ref)
+  end
+
+  # Reports `goal` for the email `ref` from the server, for a result that has no
+  # page to draw a beacon on (a survey completes in a POST). Nothing without a
+  # ref: an answer from a visitor no email brought is credited to no email.
+  def self.report_goal(ref, goal)
+    return unless ref.to_s.match?(TOKEN)
+
+    EmailGoalBeaconJob.perform_later(ref.to_s, goal.to_s)
   end
 
   included do
@@ -47,7 +76,7 @@ module EmailReferral
   def email_goal_url(goal = nil)
     return unless email_ref
 
-    "#{EmailReferral.hub_url}/e/g/#{email_ref}?g=#{goal}"
+    EmailReferral.goal_url(email_ref, goal)
   end
 
   # The beacons the layout draws. Calling this is what marks them drawn.
