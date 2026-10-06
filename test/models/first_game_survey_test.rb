@@ -24,7 +24,7 @@ class FirstGameSurveyTest < ActiveSupport::TestCase
     assert_equal %w[overall rules found_us liked one_word anything_else], survey.keys
     assert survey.allow_anonymous?
     assert survey.question("overall").required?
-    assert_equal [ "Lost", "Crystal clear" ], [ survey.question("rules").low_label, survey.question("rules").high_label ]
+    assert_equal [ "Very confusing", "Crystal clear" ], [ survey.question("rules").low_label, survey.question("rules").high_label ]
     assert_equal [ "An email from us", "A friend", "Search", "Somewhere else" ],
                  survey.question("found_us").options.map(&:label)
     assert_equal 5, survey.question("liked").options.size

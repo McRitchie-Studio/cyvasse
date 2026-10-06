@@ -10,7 +10,7 @@ Studio.define_survey "first-game" do
   allow_anonymous true
 
   emoji_scale  :overall, "How was your first game?", required: true
-  rating       :rules, "How clear were the rules?", low_label: "Lost", high_label: "Crystal clear"
+  rating       :rules, "How clear were the rules?", low_label: "Very confusing", high_label: "Crystal clear"
   choice       :found_us, "How did you find us?",
                options: [ "An email from us", "A friend", "Search", "Somewhere else" ]
   multi_choice :liked, "What did you enjoy?",
