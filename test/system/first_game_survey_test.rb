@@ -30,8 +30,10 @@ class FirstGameSurveySystemTest < ApplicationSystemTestCase
     page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-color-scheme", value: "dark" } ])
     visit "/surveys/first-game?ref=#{REF}"
     assert_selector "[data-studio-survey].is-enhanced"
-    assert_selector "h1, h2", text: "How was your first game?"
-    click_on "Start"
+    # studio-engine 0.89 opens on question 1 with no Start button and may hide a title
+    # that repeats question 1 visually; 0.88 shows an intro with Start. Both pass here.
+    assert_selector "h1, h2", text: "How was your first game?", visible: :all
+    click_on "Start" if page.has_button?("Start", wait: 0)
 
     find("[data-key=overall] .studio-survey__tile", match: :first) # the stepper is showing
     assert_equal "overall", step_key
