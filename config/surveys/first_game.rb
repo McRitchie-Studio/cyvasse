@@ -5,7 +5,7 @@
 Studio.define_survey "first-game" do
   title "How was your first game?"
   intro "Six quick questions. Your answers shape what we build next."
-  thank_you "We read every single answer."
+  thank_you "We read every answer."
   next_action label: "Play another game", url: "/play"
   allow_anonymous true
 
