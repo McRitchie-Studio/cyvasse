@@ -116,6 +116,18 @@ Studio.configure do |config|
       %w[games matches live_seeks onboarding conversations].exclude?(view.controller_name)
   }
 
+  # ---- Surveys (studio-engine docs/SURVEYS.md) ----
+  # /surveys/:slug for respondents and /admin/surveys for the results; the
+  # definitions live in config/surveys/ (first_game.rb). Neither path was
+  # Cyvasse's own before (test/integration/surveys_test.rb).
+  config.draw_survey_routes = true
+  config.draw_admin_survey_routes = true
+  # A response is credited to the email that brought the respondent, read the
+  # way every other page reads it (EmailReferral: ?ref=, else the cookie), and
+  # completing one reports the hub's survey_completed goal for that email.
+  config.survey_ref_resolver = ->(controller) { EmailReferral.ref_for(controller) }
+  config.on_survey_completed = ->(response) { EmailReferral.report_goal(response.email_ref, "survey_completed") }
+
   config.sidebar_sections = [
     { title: "Cyvasse", links: [
       { label: "Home", href: "/", emoji: "♟️", desc: "The front door" },
@@ -133,6 +145,7 @@ Studio.configure do |config|
       { label: "Sign-ins", href: "/admin/sign_ins", emoji: "🔑", desc: "Email sign-ins and onboarding drop-off" },
       { label: "Theme", href: "/admin/theme", emoji: "🎨", desc: "Palette + dark mode" },
       { label: "Link preview", href: "/admin/link_preview", emoji: "🔗", desc: "The card a shared link unfurls into" },
+      { label: "Surveys", href: "/admin/surveys", emoji: "📋", desc: "Survey results" },
       { label: "Error logs", href: "/error_logs", emoji: "🚨", desc: "Captured errors" }
     ] }
   ]
