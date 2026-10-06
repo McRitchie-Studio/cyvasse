@@ -36,7 +36,7 @@ class ClientIpSpoofTest < ActionDispatch::IntegrationTest
     seen = nil
     app = lambda do |inner|
       seen = ActionDispatch::Request.new(inner).remote_ip
-      [200, {}, []]
+      [ 200, {}, [] ]
     end
     ActionDispatch::RemoteIp.new(app).call(env)
     seen
@@ -50,7 +50,7 @@ class ClientIpSpoofTest < ActionDispatch::IntegrationTest
   end
 
   test "[unit] only X-Forwarded-For is read for the client address" do
-    assert_equal [:x_forwarded], Rack::Request.forwarded_priority
+    assert_equal [ :x_forwarded ], Rack::Request.forwarded_priority
   end
 
   test "[unit] with no spoof, the address is the one the router appended" do
@@ -85,7 +85,7 @@ class ClientIpSpoofTest < ActionDispatch::IntegrationTest
       hand_off(xff: "192.0.2.#{i + 1}, #{CLIENT}", forwarded: "for=203.0.113.#{i + 1}")
     end
 
-    assert_equal [302] * EmailHandoffsController::RATE + [429], statuses
+    assert_equal [ 302 ] * EmailHandoffsController::RATE + [ 429 ], statuses
   end
 
   # The limit is per address, so a second real client behind the same router

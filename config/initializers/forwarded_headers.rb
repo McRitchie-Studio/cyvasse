@@ -38,4 +38,4 @@
 #
 # If a proxy that speaks `Forwarded` is ever put in front of the router,
 # revisit this. test/integration/client_ip_spoof_test.rb holds the property.
-Rack::Request.forwarded_priority = [:x_forwarded]
+Rack::Request.forwarded_priority = [ :x_forwarded ]
