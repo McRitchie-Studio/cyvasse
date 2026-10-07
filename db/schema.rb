@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_06_041113) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_07_131240) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -96,6 +96,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_041113) do
     t.string "target_type"
     t.datetime "updated_at", null: false
     t.index ["slug"], name: "index_error_logs_on_slug", unique: true
+  end
+
+  create_table "image_caches", force: :cascade do |t|
+    t.integer "bytes"
+    t.string "content_type"
+    t.datetime "created_at", null: false
+    t.bigint "owner_id"
+    t.string "owner_type"
+    t.string "purpose", null: false
+    t.string "s3_key", null: false
+    t.string "source_url"
+    t.datetime "updated_at", null: false
+    t.string "variant", null: false
+    t.index ["owner_type", "owner_id", "purpose", "variant"], name: "idx_image_caches_owner_purpose_variant", unique: true
+    t.index ["owner_type", "owner_id"], name: "index_image_caches_on_owner"
+    t.index ["s3_key"], name: "index_image_caches_on_s3_key", unique: true
   end
 
   create_table "live_seeks", force: :cascade do |t|
@@ -337,6 +353,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_041113) do
     t.string "dark"
     t.string "light"
     t.string "primary"
+    t.string "slug"
     t.datetime "updated_at", null: false
     t.string "warning"
     t.index ["app_name"], name: "index_theme_settings_on_app_name", unique: true
