@@ -25,7 +25,7 @@ class PlayTimesSurveyTest < ActiveSupport::TestCase
     question = survey.question("first_game")
     overall = Studio.survey("first-game").question("overall")
 
-    assert_equal "How was your first game on the new Cyvasse?", question.label
+    assert_equal "How was your game on the new Cyvasse?", question.label
     assert_equal overall.type, question.type
     assert_equal overall.options.map(&:to_h), question.options.map(&:to_h)
     assert_not question.required?
@@ -39,7 +39,8 @@ class PlayTimesSurveyTest < ActiveSupport::TestCase
   end
 
   test "the options read in order, and both multi-selects say to pick all that apply" do
-    assert_equal [ "Morning", "Afternoon", "Evening", "Late night" ], survey.question("times").options.map(&:label)
+    assert_equal [ "🌅 Morning", "☀️ Afternoon", "🌆 Evening", "🌙 Late night" ], survey.question("times").options.map(&:label)
+    assert_equal %w[morning afternoon evening late_night], survey.question("times").options.map(&:value)
     assert_equal %w[Monday Tuesday Wednesday Thursday Friday Saturday Sunday], survey.question("days").options.map(&:label)
     assert_equal [ "Pacific", "Mountain", "Central", "Eastern", "UK / Europe", "Somewhere else" ],
                  survey.question("time_zone").options.map(&:label)

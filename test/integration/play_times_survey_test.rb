@@ -1,4 +1,5 @@
 require "test_helper"
+require "csv"
 
 # [integration] The play-times survey over HTTP (task cyvasse-play-times-survey):
 # it opens to an email link's ref, a legacy player can skip the first-game
@@ -35,7 +36,7 @@ class PlayTimesSurveyFlowTest < ActionDispatch::IntegrationTest
     assert_select "[data-studio-survey]"
     assert_select "fieldset", 6
     assert_includes response.body, "Cyvasse Night: tell us about you"
-    assert_includes response.body, "How was your first game on the new Cyvasse?"
+    assert_includes response.body, "How was your game on the new Cyvasse?"
     assert_includes response.body, "Haven&#39;t played yet? Skip this one."
     assert_equal REF, cookies[:email_ref], "the ref is remembered like any other email arrival"
   end
@@ -90,5 +91,13 @@ class PlayTimesSurveyFlowTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Which time zone are you in?"
     assert_includes response.body, "Every other week"
+    assert_includes response.body, "🌆 Evening", "the admin breakdown shows the emoji label"
+
+    get "/admin/surveys/play-times/export"
+    assert_response :success
+    row = CSV.parse(response.body.force_encoding("UTF-8"), headers: true).first
+    assert_equal REF, row["email_ref"]
+    # The CSV carries option values, and [value, label] keeps the emoji out of them.
+    assert_equal "evening; late_night", row["times"]
   end
 end

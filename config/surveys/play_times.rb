@@ -14,11 +14,13 @@ Studio.define_survey "play-times" do
 
   # Not required: many recipients are legacy players who have not tried the new
   # version yet, and they must be able to skip straight past it.
-  emoji_scale  :first_game, "How was your first game on the new Cyvasse?",
+  emoji_scale  :first_game, "How was your game on the new Cyvasse?",
                help: "Haven't played yet? Skip this one."
   multi_choice :times, "What time of day are you usually free to play?", required: true,
                help: "Pick all that apply.",
-               options: [ "Morning", "Afternoon", "Evening", "Late night" ]
+               # [value, label]: the emoji are for the respondent; the stored values stay plain.
+               options: [ [ "morning", "🌅 Morning" ], [ "afternoon", "☀️ Afternoon" ],
+                          [ "evening", "🌆 Evening" ], [ "late_night", "🌙 Late night" ] ]
   multi_choice :days, "Which days work best?", required: true,
                help: "Pick all that apply.",
                options: %w[Monday Tuesday Wednesday Thursday Friday Saturday Sunday]

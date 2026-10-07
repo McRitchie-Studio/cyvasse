@@ -9,6 +9,7 @@ class PlayTimesSurveySystemTest < ApplicationSystemTestCase
   include ActiveJob::TestHelper
 
   REF = "PlayTimesRef0123456789"
+  FINITE_ANIMATIONS = "document.getAnimations().filter(a => a.effect?.getTiming().iterations !== Infinity).length"
 
   teardown do
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
@@ -17,6 +18,9 @@ class PlayTimesSurveySystemTest < ApplicationSystemTestCase
   def shot(name)
     dir = ENV["SURVEY_SHOTS"].presence or return
     FileUtils.mkdir_p(dir)
+    # Let a view transition finish, or the page it leaves bleeds into the shot
+    # (a looping animation never finishes, so only finite ones count).
+    Timeout.timeout(5) { sleep 0.05 until page.evaluate_script(FINITE_ANIMATIONS).zero? }
     page.save_screenshot(File.join(dir, name))
   end
 
@@ -37,8 +41,8 @@ class PlayTimesSurveySystemTest < ApplicationSystemTestCase
     click_on "Next" # not required: a player who has not played moves straight on
     assert_text "Question 2 of 6"
     assert_equal "times", step_key
-    find("[data-key=times]").find("label", text: "Evening").click
-    find("[data-key=times]").find("label", text: "Late night").click
+    find("[data-key=times]").find("label", text: "🌆 Evening").click
+    find("[data-key=times]").find("label", text: "🌙 Late night").click
     click_on "Next"
     assert_text "Question 3 of 6"
     assert_equal "days", step_key
