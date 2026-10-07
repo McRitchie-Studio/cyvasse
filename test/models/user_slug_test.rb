@@ -66,11 +66,20 @@ class UserSlugTest < ActiveSupport::TestCase
     assert_equal "carl-2", second.reload.slug
   end
 
-  test "a new name moves the slug to that name" do
+  # studio-engine's Sluggable writes the slug once, at create, from the release
+  # that ships rename_slug! (task slugs-set-once-then-cascade); before it, a
+  # later name moved the slug. Both hold until the lock carries that release,
+  # then only the first branch stays (task cyvasse-slug-test-both-engines).
+  test "a name typed after signup moves the slug only on an engine that recomputes it" do
     user = User.create!(email: "c@example.com", name: nil)
+    was = user.slug
     user.update!(name: "Rook Ravenholt")
 
-    assert_equal "rook-ravenholt", user.reload.slug
+    if Sluggable.method_defined?(:rename_slug!)
+      assert_equal was, user.reload.slug, "the slug is written once, at create"
+    else
+      assert_equal "rook-ravenholt", user.reload.slug
+    end
   end
 
   test "a lost race on the slug index retries with a fresh slug" do
