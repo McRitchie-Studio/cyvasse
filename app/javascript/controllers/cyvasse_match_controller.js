@@ -22,6 +22,7 @@ import { liveNotice } from "cyvasse/live_notice"
 //   moveUrl   POST { steps }       pollMs    how often to look for news
 //   seatUrl   POST, take back a seat the computer took over
 //   returnTo  a guest's way back here after signing in (the game-over modal)
+//   goneUrl   where to go when the match no longer exists (called off)
 
 const ARMY_IN_PLACE = "Your army is in place. Press Ready to lock it in."
 
@@ -41,7 +42,8 @@ export default class extends GameController {
     moveUrl: String,
     seatUrl: String,
     pollMs: { type: Number, default: 15000 },
-    returnTo: String
+    returnTo: String,
+    goneUrl: String
   }
 
   connect() {
@@ -142,6 +144,9 @@ export default class extends GameController {
             this.state = { ...this.state, live: state.live }
             this.syncClock()
           }
+        } else if (response.status === 404 && this.goneUrlValue) {
+          // The opponent called the match off before it started.
+          return window.location.assign(this.goneUrlValue)
         }
       } catch {
         // Offline for a moment: look again next time.
