@@ -93,6 +93,19 @@ class LiveSeekTest < ActiveSupport::TestCase
     assert_equal 1, LiveSeek.open.where(user: @arya).count
   end
 
+  # A match called off during setup takes both searches with it: they blocked
+  # the delete on their foreign key, and an emptied one would read as open.
+  test "calling off a paired match before play removes it and both searches" do
+    LiveSeek.join!(@arya)
+    match = LiveSeek.join!(@brienne).match
+
+    match.withdraw!(@arya)
+
+    assert_not Match.exists?(match.id)
+    assert_empty LiveSeek.where(user: [ @arya, @brienne ])
+    assert_empty LiveSeek.open, "no search is left to start another match"
+  end
+
   test "a guest gets a temporary name and no email" do
     guest = User.create_guest!(rng: Random.new(1))
     assert guest.guest?

@@ -21,6 +21,7 @@
          data-cyvasse-match-setup-url-value="<%= setup_match_path(@match) %>"
          data-cyvasse-match-move-url-value="<%= moves_match_path(@match) %>"
          data-cyvasse-match-seat-url-value="<%= seat_match_path(@match) %>"
+         data-cyvasse-match-gone-url-value="<%= matches_path %>"
          <% if @match.live? %>data-cyvasse-match-poll-ms-value="1000" data-live="true"<% end %>
          <% if current_user.guest? %>data-cyvasse-match-return-to-value="<%= match_path(@match, from_guest: 1) %>"<% end %>>
   <%# The versus card heads the sidebar; on a phone it sits above the board. %>

@@ -43,6 +43,10 @@ class Match < ApplicationRecord
   # The match's chat (piece 12). A deleted match leaves its messages in the
   # players' conversation: the foreign key nulls match_id (on_delete).
   has_many :messages, dependent: nil
+  # The Play Now searches that made this match (LiveSeek). They go with a
+  # match called off before play: left behind they block the delete, and
+  # emptied they would read as open searches and start another match.
+  has_many :live_seeks, dependent: :delete_all
 
   validates :match_status, inclusion: { in: STATUSES }
   validates :finish_reason, inclusion: { in: REASONS }, allow_nil: true
