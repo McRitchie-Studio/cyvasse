@@ -19,7 +19,7 @@ gem "stimulus-rails"
 # fails to dump into db/schema.rb and every decode raises ArgumentError. The hub
 # and turf-monster resolve 2.x because their locks predate 3.0; an unpinned
 # fresh app resolves 3.0. Lift this with the Rails bump that supports json 3.
-gem "json", "~> 2.20"
+gem "json", "~> 3.0"
 # Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
 gem "tailwindcss-rails", "~> 4.5"
 
