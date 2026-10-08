@@ -126,6 +126,8 @@ export default class extends GameController {
     this.pollTimer = setTimeout(async () => {
       try {
         const response = await fetch(this.stateUrlValue, { headers: { Accept: "application/json" }, credentials: "same-origin" })
+        // The player left this board while the answer was on its way: stop here.
+        if (!this.element.isConnected) return
         if (response.ok) {
           const state = await response.json()
           // A move's own answer can land before an older poll's: never step back.
