@@ -1,11 +1,16 @@
 require "test_helper"
 
-# Browser tests (test/system), run by CI's `test` job with `test:system`.
-# Headless Chrome ships on ubuntu-latest; locally Selenium Manager fetches the
-# matching driver.
+# Browser tests (test/system), run by CI's `ci / system` lane with
+# `test:system`. Selenium Manager fetches the driver that matches the
+# installed Chrome.
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   SCREEN_SIZE = [ 1400, 1100 ].freeze
   driven_by :selenium, using: :headless_chrome, screen_size: SCREEN_SIZE
+
+  # A failed test's screenshot keeps the page's HTML beside it
+  # (tmp/screenshots), which CI uploads as an artifact. Rails reads the
+  # variable when it takes the screenshot.
+  ENV["RAILS_SYSTEM_TESTING_SCREENSHOT_HTML"] ||= "1"
 
   # One browser serves every test, so what a test changes in it outlives the
   # test (task cyvasse-system-test-flakes). Put back:
