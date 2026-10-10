@@ -4,7 +4,7 @@
 # node:test and node:assert only: no npm install, no package.json. The hook in
 # test/javascript/support maps the importmap's "cyvasse/*" specifiers onto
 # app/javascript/cyvasse so the modules run unchanged. CI runs this in the
-# `javascript` job (.github/workflows/ci.yml).
+# `ci / javascript` lane (.github/workflows/ci.yml calls the hub suite).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
