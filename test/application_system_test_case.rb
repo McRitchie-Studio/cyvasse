@@ -49,6 +49,30 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     assert_empty missing
   end
 
+  # Clicks a button whose form submits outside Turbo (data-turbo=false), a full
+  # page load, and returns once the new document has replaced the old one.
+  # click_button returns before the browser commits that navigation, so the
+  # next query can match a node in the OLD document (any selector both pages
+  # share: assert_text's <html>, a within's card) and ask it for its
+  # visibility just as the new document replaces it. Chromedriver then answers
+  # UnknownError, "Node with given id does not belong to the document", which
+  # Capybara's synchronize does not retry (it retries only stale-element
+  # errors), and the test errors (CI run 38622385292, task
+  # cyvasse-username-navbar-seam). So the old page is stamped first, and the
+  # wait asks the browser by script whether the stamp is gone, holding no
+  # element at all. A Capybara query cannot do this wait: even
+  # has_no_selector? matches the old <html> and reads its text for the failure
+  # message on every retry, the same race (it reproduced locally that way).
+  # The URL cannot tell the pages apart: the card redirects back to itself.
+  def click_button_and_await_page_load(locator, **options)
+    page.execute_script("document.documentElement.dataset.leavingPage = ''")
+    click_button(locator, **options)
+    page.document.synchronize do
+      left = page.evaluate_script("!('leavingPage' in document.documentElement.dataset)")
+      raise Capybara::ExpectationNotMet, "clicking #{locator.inspect} loaded no new page" unless left
+    end
+  end
+
   # Runs the block with the browser's Math.random seeded (mulberry32) on
   # every page it loads, so /play's army, the computer's lineup, who moves
   # first and the computer's moves are one fixed game rather than a random
