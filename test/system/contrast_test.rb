@@ -123,7 +123,7 @@ class ContrastSystemTest < ApplicationSystemTestCase
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
     visit root_path
     assert_selector "header[data-pin=nav] button[title='Toggle theme']", visible: true, count: 1
-    assert_selector "header[data-pin=nav] a[data-nav-account]", visible: true, count: 1
+    assert_selector "header[data-pin=nav] [data-nav-account]", visible: true, count: 1
     # The name is screen-reader text there: in the page, but a 1px clipped box.
     width = page.evaluate_script("document.querySelector('header[data-pin=nav] [data-nav-name]').parentElement.getBoundingClientRect().width")
     assert_operator width, :<=, 1, "the name takes no room on a phone"

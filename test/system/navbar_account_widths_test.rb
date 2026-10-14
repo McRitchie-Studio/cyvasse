@@ -3,9 +3,9 @@ require "application_system_test_case"
 # [e2e] The navbar as studio-engine renders it, with no Cyvasse copy of
 # components/_user_nav (0.80.0; task cyvasse-navbar-config-switch), in a real
 # browser, in the light theme and the dark. At 390px: one theme toggle, and
-# the account link is the avatar alone, the name a clipped screen-reader box.
+# the account control is the avatar alone, the name a clipped screen-reader box.
 # At 1440px: one theme toggle, the desktop link-sidebar button (the engine's
-# extra_icons_html), and the account link with the player's public name
+# extra_icons_html), and the account control with the player's public name
 # beside the avatar, truncated when long. Signed out, both widths say
 # "Sign in". An admin sees one cog (the admin menu) at 390px and at 1440px.
 # SCREENSHOTS=1 saves each view to
@@ -26,13 +26,13 @@ class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
   end
 
   %w[light dark].each do |theme|
-    test "#{theme}, 390px: one theme toggle and the avatar alone as the account link" do
+    test "#{theme}, 390px: one theme toggle and the avatar alone as the account control" do
       at_width(390, mobile: true)
       visit_in_theme(root_path, theme)
 
       assert_selector "#{NAV} button[title='Toggle theme']", visible: true, count: 1
-      assert_selector "#{NAV} a[data-nav-account]", visible: true, count: 1
-      assert_selector "#{NAV} a[data-nav-account] [aria-hidden=true]", visible: true
+      assert_selector "#{NAV} [data-nav-account]", visible: true, count: 1
+      assert_selector "#{NAV} [data-nav-account] [aria-hidden=true]", visible: true
       width = page.evaluate_script("document.querySelector('#{NAV} [data-nav-name]').parentElement.getBoundingClientRect().width")
       assert_operator width, :<=, 1, "the name takes no room on a phone"
       screenshot("390-#{theme}")
@@ -44,8 +44,8 @@ class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
 
       assert_selector "#{NAV} button[title='Toggle theme']", visible: true, count: 1
       assert_selector "#{NAV} [data-link-sidebar-trigger]", visible: true, count: 1
-      assert_selector "#{NAV} a[data-nav-account]", visible: true, count: 1
-      assert_selector "#{NAV} a[data-nav-account] [data-nav-name]", visible: true, text: @guest.player_name
+      assert_selector "#{NAV} [data-nav-account]", visible: true, count: 1
+      assert_selector "#{NAV} [data-nav-account] [data-nav-name]", visible: true, text: @guest.player_name
       screenshot("1440-#{theme}")
     end
   end
@@ -91,7 +91,7 @@ class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
     at_width(1440, mobile: false)
     visit root_path
 
-    name = find("#{NAV} a[data-nav-account] [data-nav-name]", visible: true, text: "W" * 20)
+    name = find("#{NAV} [data-nav-account] [data-nav-name]", visible: true, text: "W" * 20)
     box = page.evaluate_script(<<~JS, name)
       ((el) => ({ scroll: el.scrollWidth, client: el.clientWidth,
                   overflow: getComputedStyle(el).textOverflow,
@@ -100,7 +100,7 @@ class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
     assert_operator box["scroll"], :>, box["client"], "twenty W's overflow the name box"
     assert_equal "ellipsis", box["overflow"]
     assert_operator box["box"], :<=, 160, "md:max-w-40 caps the name at 10rem"
-    avatar = page.evaluate_script("document.querySelector('#{NAV} a[data-nav-account] [aria-hidden=true]').getBoundingClientRect().right")
+    avatar = page.evaluate_script("document.querySelector('#{NAV} [data-nav-account] [aria-hidden=true]').getBoundingClientRect().right")
     assert_operator avatar, :<=, 1440, "the avatar stays on screen"
     screenshot("1440-long-name")
   end

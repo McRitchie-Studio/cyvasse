@@ -34,13 +34,16 @@ class NavbarAccountTest < ActionDispatch::IntegrationTest
     assert_equal 1, triggers.count { |trigger| shown_on_desktop?(trigger) }, "the desktop bar's sidebar button (the engine's extra_icons_html)"
   end
 
-  test "the name and the avatar are one link to the profile" do
-    links = css_select("header[data-pin=nav] a[href='#{profile_path}']")
-    assert_equal 1, links.size, "one tab stop to the profile"
+  # One control, one tab stop. Through studio-engine 0.106 it is a link to the
+  # profile; from task universal-navbar-account-primitive it is a button that
+  # opens the link sidebar, which heads with the profile. Either answers this.
+  test "the name and the avatar are one account control" do
+    controls = css_select("header[data-pin=nav] [data-nav-account]")
+    assert_equal 1, controls.size, "one tab stop to the account"
 
-    link = links.first
-    assert_equal @guest.player_name, link.at_css("[data-nav-name]").text.strip
-    assert_equal "true", link.at_css("[aria-hidden]")["aria-hidden"], "the avatar adds nothing to the link's name"
+    control = controls.first
+    assert_equal @guest.player_name, control.at_css("[data-nav-name]").text.strip
+    assert_equal "true", control.at_css("[aria-hidden]")["aria-hidden"], "the avatar adds nothing to the control's name"
   end
 
   test "on a phone the name is screen-reader text, so it never truncates on screen" do
