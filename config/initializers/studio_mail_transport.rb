@@ -1,6 +1,5 @@
 require "studio/mail_transport"
 
-# SES when MAIL_TRANSPORT=ses and its SMTP credentials are present, Resend as
-# the rollback, local capture on a developer desk (studio-engine
-# docs/EMAIL_TRANSPORT.md).
+# Resend when RESEND_API_KEY is present, local capture on a developer desk
+# (studio-engine docs/EMAIL_TRANSPORT.md). The engine dropped SES in 0.102.0.
 Studio::MailTransport.configure!
