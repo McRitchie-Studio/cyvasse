@@ -59,13 +59,18 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # Capybara's synchronize does not retry (it retries only stale-element
   # errors), and the test errors (CI run 38622385292, task
   # cyvasse-username-navbar-seam). So the old page is stamped first, and the
-  # wait looks for the stamp with visible: :all, which never asks a node for
-  # its visibility. It queries the document, not the current within scope.
+  # wait asks the browser by script whether the stamp is gone, holding no
+  # element at all. A Capybara query cannot do this wait: even
+  # has_no_selector? matches the old <html> and reads its text for the failure
+  # message on every retry, the same race (it reproduced locally that way).
+  # The URL cannot tell the pages apart: the card redirects back to itself.
   def click_button_and_await_page_load(locator, **options)
     page.execute_script("document.documentElement.dataset.leavingPage = ''")
     click_button(locator, **options)
-    assert page.document.has_no_selector?("html[data-leaving-page]", visible: :all),
-           "clicking #{locator.inspect} loaded no new page"
+    page.document.synchronize do
+      left = page.evaluate_script("!('leavingPage' in document.documentElement.dataset)")
+      raise Capybara::ExpectationNotMet, "clicking #{locator.inspect} loaded no new page" unless left
+    end
   end
 
   # Runs the block with the browser's Math.random seeded (mulberry32) on
