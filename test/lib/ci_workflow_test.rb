@@ -15,7 +15,7 @@ class CiWorkflowTest < ActiveSupport::TestCase
     "playwright" => false,
     "rails-shards" => false,
     "await-gem-propagation" => false,
-    "postgres-image" => "public.ecr.aws/docker/library/postgres:18",
+    "postgres-image" => "ghcr.io/mcritchie-studio/postgres:18",
     "gem-audit-command" => "bin/bundler-audit",
     "importmap-audit-command" => "bin/importmap audit",
     "system-packages" => "libpq-dev libvips postgresql-client",

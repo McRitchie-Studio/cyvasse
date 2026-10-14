@@ -23,7 +23,9 @@ on:
 # - system: the whole Rails suite, unit, integration and system, in one
 #   command, after the Tailwind build the integration pages link.
 #
-# Postgres is the mirror's 18, production's major (heroku pg:info).
+# Postgres is the hub mirror's 18 on ghcr.io, production's major (heroku pg:info).
+# A non-ghcr name breaks the hub workflow: its service `credentials` evaluate
+# to empty strings, which GitHub rejects before the job starts (2026-10-14).
 jobs:
   ci:
     uses: McRitchie-Studio/mcritchie-studio/.github/workflows/reusable-ci.yml@main
@@ -32,7 +34,7 @@ jobs:
       playwright: false
       rails-shards: false
       await-gem-propagation: false
-      postgres-image: public.ecr.aws/docker/library/postgres:18
+      postgres-image: ghcr.io/mcritchie-studio/postgres:18
       gem-audit-command: bin/bundler-audit
       importmap-audit-command: bin/importmap audit
       system-packages: libpq-dev libvips postgresql-client
