@@ -978,7 +978,7 @@ outcomes and where the onboarding loses people.
 | `APP_PORT` | desks | the desk's port, default 3600 |
 | `STUDIO_SSO_SHARED_COOKIE` | production | `true` joins the hub's SSO cookie (above) |
 | `CYVASSE_SESSION_KEY` | desks | renames the dev cookie so two stacks on localhost do not collide |
-| `MAIL_TRANSPORT`, `SES_SMTP_USERNAME`, `SES_SMTP_PASSWORD`, `RESEND_API_KEY`, `RESEND_MAILER_FROM` | production | mail transport (studio-engine `docs/EMAIL_TRANSPORT.md`) |
+| `RESEND_API_KEY`, `RESEND_MAILER_FROM` | production | mail transport (studio-engine `docs/EMAIL_TRANSPORT.md`). The engine dropped SES in 0.102.0; `MAIL_TRANSPORT=ses` now falls through to Resend |
 | `GOOGLE_SITE_VERIFICATION` | production (optional) | the `content` of Search Console's HTML-tag verification; set, every page carries `<meta name="google-site-verification">` ([Google Search Console](#google-search-console)) |
 
 ## Deploy
