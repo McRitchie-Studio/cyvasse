@@ -155,7 +155,10 @@ class PlayLayoutFitTest < ApplicationSystemTestCase
   def hexes_in_view
     page.evaluate_script(<<~JS)
       (() => {
-        const pinned = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0
+        // The navbar's live bottom, off the board section (a pin follower), as the
+        // controller reads it: studio-engine 0.108.0+ writes <html> only once a
+        // scroll has been still for 160ms, so <html> lags the opening scroll.
+        const pinned = parseFloat(getComputedStyle(document.querySelector("section.cyvasse-game[data-pin-follow]")).getPropertyValue("--pin-stack-bottom")) || 0
         const hexes = [...document.querySelectorAll("svg.cyvasse-board g.hex")]
         const outside = hexes.filter((hex) => {
           const r = hex.querySelector(".hex-poly").getBoundingClientRect()
