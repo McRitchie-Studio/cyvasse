@@ -1,5 +1,10 @@
 # studio-engine wiring (studio-engine/docs/NEW_APP_SETUP.md section 4).
 Studio.configure do |config|
+  # The navbar collapses on the page's scroll timeline from 768px: one header
+  # height, the shrink as compositor transforms, no script per frame (engine
+  # 0.111, docs/NAVBAR_SETUP.md "Scroll-Driven Collapse"). Phones keep the
+  # --nav-p collapse.
+  config.navbar_scroll_timeline = true
   config.app_name = "Cyvasse"
   # ---- Site identity + link preview (studio-engine docs/LINK_PREVIEW.md) ----
   # The DRAFTED title and description, the home page's own SEO copy
