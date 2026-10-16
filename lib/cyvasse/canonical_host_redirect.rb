@@ -12,6 +12,10 @@
 #     (test/integration/health_endpoint_test.rb)
 #   - /api/: the bot runner's bearer-token JSON (Api::Bot); an HTTP client
 #     drops the Authorization header on a cross-host redirect
+#   - /_studio/health_report: the hub's bearer-token pull (studio-engine
+#     0.109.0), the same reason; an operator's curl sends Accept: */*, which
+#     would otherwise read as a navigation
+#     (test/integration/health_report_endpoint_test.rb)
 #   - /cable: a websocket upgrade does not follow redirects
 #   - any GET that is not a full-page navigation: a live match's state poll
 #     and the seek poll fetch JSON from the page's own host, and a 301 to
@@ -31,7 +35,7 @@
 module Cyvasse
   class CanonicalHostRedirect
     REDIRECTED_METHODS = %w[GET HEAD].freeze
-    EXEMPT_PATHS = %w[/up].freeze
+    EXEMPT_PATHS = %w[/up /_studio/health_report].freeze
     EXEMPT_PREFIXES = %w[/api/ /cable].freeze
 
     def initialize(app, host: -> { Cyvasse::CanonicalHost.redirect_host })
