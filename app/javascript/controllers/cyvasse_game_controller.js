@@ -13,7 +13,7 @@ import { hexCorners, artClipCorners, pointsAttribute } from "cyvasse/art_clip"
 import { playIntent, setupIntent } from "cyvasse/selection"
 import { smartLineup, smartSetupMode, SMART_LABELS, recentPicks, rememberPick } from "cyvasse/smart_setup"
 import { hexLabel, hexStates, selectionNote } from "cyvasse/hex_label"
-import { setupScrollBy } from "cyvasse/setup_fit"
+import { setupScrollBy, pinnedStackBottom } from "cyvasse/setup_fit"
 
 // The Cyvasse board at /play: one game against the computer, in the browser.
 //
@@ -460,7 +460,7 @@ export default class extends Controller {
       fit,
       board: this.boardTarget.getBoundingClientRect(),
       army: this.armyTarget.getBoundingClientRect(),
-      pinned: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0,
+      pinned: pinnedStackBottom(this.element),
       viewportHeight: window.innerHeight
     })
     if (!by) return
@@ -501,7 +501,7 @@ export default class extends Controller {
     const by = setupScrollBy({
       fit: "side",
       board: { top: wrap.getBoundingClientRect().top, bottom: board.bottom },
-      pinned: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0,
+      pinned: pinnedStackBottom(this.element),
       viewportHeight: window.innerHeight
     })
     if (!by) return
