@@ -25,7 +25,7 @@ Message Board pages.
 | | |
 |---|---|
 | Ruby / Rails | 3.3.11 / 8.1 (matches the mcritchie-studio hub) |
-| Engine | `studio-engine` from RubyGems (`~> 0.76`) |
+| Engine | `studio-engine` from RubyGems (`~> 0.109`, the health report endpoint; the Gemfile says why) |
 | Database | Postgres |
 | CSS / JS | Tailwind v4 (`tailwindcss-rails`), importmap, Turbo, Stimulus; Alpine from the engine |
 | Realtime | ActionCable carrying Turbo Streams (the live chat): Heroku Redis in production (`REDIS_URL`), the in-process adapter in development and tests |
