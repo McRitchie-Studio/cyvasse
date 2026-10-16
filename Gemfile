@@ -25,16 +25,19 @@ gem "tailwindcss-rails", "~> 4.5"
 
 # Shared McRitchie Studio engine: passwordless auth, hub SSO awareness, theme,
 # ErrorLog / rescue_and_log, local email capture, local review. The pin is a
-# FLOOR (a two-segment ~> admits every 0.x): 0.106 keeps the app current with
-# the engine (task cyvasse-daily-health-report; the daily health report itself
-# runs centrally from the hub, not here).
+# FLOOR (a two-segment ~> admits every 0.x): 0.109 is where GET
+# /_studio/health_report arrives, the endpoint the hub's 07:00 daily report pulls
+# with STUDIO_HEALTH_TOKEN (task cyvasse-engine-health-report;
+# test/integration/health_report_endpoint_test.rb). Below it the route is absent
+# and the hub's Cyvasse report reads a 404. 0.106 kept the app current before it
+# (task cyvasse-daily-health-report).
 # Older floors: 0.84 (task cyvasse-engine-bump-and-pool) for 0.81's
 # warning/danger button contrast and single admin cog on phones, the `redis < 6`
 # gemspec cap (0.82.1), and the site footer's fixed-row grid that keeps the
 # contact email on one line (0.84.0; task cyvasse-footer-and-legal); 0.78 for
 # Studio.navbar_links (task cyvasse-nav-links); 0.57 for Studio::GeoDetection.
 # Read Gemfile.lock for what actually resolves.
-gem "studio-engine", "~> 0.106"
+gem "studio-engine", "~> 0.109"
 # Google sign-in through the engine's OmniauthCallbacksController, beside the
 # magic link (config/initializers/omniauth.rb). The same three gems the hub runs.
 # ES256 assertions from the hub (EmailHandoff::Verifier).

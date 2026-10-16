@@ -114,7 +114,10 @@ class PhoneSetupDockTest < ApplicationSystemTestCase
     page.evaluate_script(<<~JS)
       (() => {
         const box = (selector) => { const r = document.querySelector(selector).getBoundingClientRect(); return { top: r.top, bottom: r.bottom } }
-        const pinned = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pin-stack-bottom")) || 0
+        // The navbar's live bottom, off the board section (a pin follower), as the
+        // controller reads it: studio-engine 0.108.0+ writes <html> only once a
+        // scroll has been still for 160ms, so <html> lags the opening scroll.
+        const pinned = parseFloat(getComputedStyle(document.querySelector("section.cyvasse-game[data-pin-follow]")).getPropertyValue("--pin-stack-bottom")) || 0
         return { scrollY: window.scrollY, viewport: window.innerHeight, pinned, board: box("svg.cyvasse-board"),
                  army: box(".cyvasse-army"), ready: box(".cyvasse-ready") }
       })()

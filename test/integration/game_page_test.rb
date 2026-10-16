@@ -15,6 +15,10 @@ class GamePageTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", text: "Play Cyvasse"
     assert_select "[data-controller=cyvasse-game] svg.cyvasse-board[data-cyvasse-game-target=board]"
+    # A studio/pinned_stack follower: the setup scroll reads the navbar's live
+    # bottom off this section (cyvasse/setup_fit pinnedStackBottom), since
+    # studio-engine 0.108.0 writes <html> only after a scroll settles.
+    assert_select "section[data-controller=cyvasse-game][data-pin-follow]", 1
     assert_select "button.cyvasse-smart", text: "✨ Smart Setup"
     assert_select "button[disabled]", text: "Ready"
   end

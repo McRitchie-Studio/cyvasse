@@ -25,7 +25,7 @@ Message Board pages.
 | | |
 |---|---|
 | Ruby / Rails | 3.3.11 / 8.1 (matches the mcritchie-studio hub) |
-| Engine | `studio-engine` from RubyGems (`~> 0.76`) |
+| Engine | `studio-engine` from RubyGems (`~> 0.109`, the health report endpoint; the Gemfile says why) |
 | Database | Postgres |
 | CSS / JS | Tailwind v4 (`tailwindcss-rails`), importmap, Turbo, Stimulus; Alpine from the engine |
 | Realtime | ActionCable carrying Turbo Streams (the live chat): Heroku Redis in production (`REDIS_URL`), the in-process adapter in development and tests |
@@ -717,6 +717,7 @@ already sent survive the hop. It never redirects:
   webhook breaks),
 - `/up`, which the deploy gates and the release smoke probe on the herokuapp host,
 - `/api/` (the bot runner's bearer-token calls) and `/cable` (the websocket),
+- `/_studio/health_report` (the hub's bearer-token pull; [Daily health report](#daily-health-report)),
 - any GET that is not a full-page navigation (`Sec-Fetch-Mode` other than
   `navigate`, an XHR, or a JSON-only `Accept`): a live match's poll from a page
   already open on the old host keeps working there, since a 301 to another
@@ -979,6 +980,7 @@ outcomes and where the onboarding loses people.
 | `STUDIO_SSO_SHARED_COOKIE` | production | `true` joins the hub's SSO cookie (above) |
 | `CYVASSE_SESSION_KEY` | desks | renames the dev cookie so two stacks on localhost do not collide |
 | `RESEND_API_KEY`, `RESEND_MAILER_FROM` | production | mail transport (studio-engine `docs/EMAIL_TRANSPORT.md`). The engine dropped SES in 0.102.0; `MAIL_TRANSPORT=ses` now falls through to Resend |
+| `STUDIO_HEALTH_TOKEN` | production | the bearer the hub sends to `GET /_studio/health_report` (the hub holds the same value as `HEALTH_TOKEN_CYVASSE`); unset, the endpoint answers 404 ([Daily health report](#daily-health-report)) |
 | `GOOGLE_SITE_VERIFICATION` | production (optional) | the `content` of Search Console's HTML-tag verification; set, every page carries `<meta name="google-site-verification">` ([Google Search Console](#google-search-console)) |
 
 ## Deploy
@@ -990,6 +992,20 @@ idempotently seeds only the three identities above. The Heroku
 app `cyvasse` serves `cyvasse.xyz`, and `www.cyvasse.xyz` and the old
 `cyvasse.mcritchie.studio` (which redirect; [Canonical host](#canonical-host)). Object storage: none provisioned; Active Storage uses local disk
 until an upload feature needs a bucket.
+
+## Daily health report
+
+The hub reports on Cyvasse every morning: one 07:00 America/Denver job there
+(its daily app report, and Tyrion's CTO report) pulls
+`GET https://cyvasse.xyz/_studio/health_report` with
+`Authorization: Bearer <STUDIO_HEALTH_TOKEN>` and posts the counts to Discord.
+Cyvasse runs no schedule or worker for it. The endpoint is studio-engine's
+(0.109.0 and later; studio-engine `docs/HEALTH_REPORT.md`, *The hub endpoint*):
+404 with no token configured, 401 without the right bearer, else 200 JSON,
+counts only. Sections: signups (the engine default, `User` by `created_at`, so
+a Play Now guest counts) and errors; Cyvasse has no contact form, so no
+contacts section. `test/integration/health_report_endpoint_test.rb` pins all of
+it.
 
 ## Engine upkeep
 

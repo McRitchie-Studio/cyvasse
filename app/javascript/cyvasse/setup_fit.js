@@ -39,3 +39,15 @@ export function setupScrollBy({ fit, board, army, pinned = 0, viewportHeight }) 
   const by = height <= room ? boxTop - (top + (room - height) / 2) : boxBottom - bottom
   return Math.abs(by) < 1 ? 0 : by
 }
+
+// The pinned navbar's bottom, read off the board's own element, never off
+// <html>. Since studio-engine 0.108.0 studio/pinned_stack writes <html> only
+// once a scroll has been still for 160ms; while one is in motion it writes the
+// values onto the elements that read them, among them any [data-pin-follow].
+// The board's section carries that attribute (games/show, matches/show), so
+// it reads the live value even on the controller's settle pass, which can land
+// in the tail of the smooth scroll it started. At rest the element inherits
+// the root's value.
+export function pinnedStackBottom(element, computed = (el) => getComputedStyle(el)) {
+  return parseFloat(computed(element).getPropertyValue("--pin-stack-bottom")) || 0
+}

@@ -160,4 +160,15 @@ class MatchLayoutTest < ActionDispatch::IntegrationTest
     # The in-play control is there for when the game starts under this page.
     assert_select "aside.match-panel [data-forfeit=play] form[action=?]", resign_match_path(match)
   end
+
+  # The board's section is a studio/pinned_stack follower, so the controller's
+  # setup scroll reads the navbar's live bottom off it (cyvasse/setup_fit
+  # pinnedStackBottom): since studio-engine 0.108.0 <html> holds the value only
+  # once a scroll has been still for 160ms.
+  test "the match board section follows the pinned stack" do
+    log_in_as(@home)
+    get match_path(started_match(@home, @away))
+
+    assert_select "section[data-controller=cyvasse-match][data-pin-follow]", 1
+  end
 end

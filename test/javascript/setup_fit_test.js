@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { setupScrollBy, SETUP_FIT_MARGIN } from "cyvasse/setup_fit";
+import { setupScrollBy, pinnedStackBottom, SETUP_FIT_MARGIN } from "cyvasse/setup_fit";
 
 const M = SETUP_FIT_MARGIN;
 
@@ -52,4 +52,22 @@ test("a box taller than the room lines up its foot first", () => {
 
 test("a sub-pixel miss is no scroll", () => {
   assert.equal(setupScrollBy({ fit: "side", board: { top: 57.2, bottom: 386.9 }, army: { top: 0, bottom: 0 }, pinned: 53, viewportHeight: 390 }), 0);
+});
+
+// The navbar's bottom comes off the element handed in (the board's section, a
+// [data-pin-follow]), never off <html>, which studio-engine 0.108.0 writes only
+// once a scroll has been still for 160ms.
+test("pinnedStackBottom reads --pin-stack-bottom off the element it is given", () => {
+  const board = { id: "board" };
+  const seen = [];
+  const computed = (el) => {
+    seen.push(el);
+    return { getPropertyValue: (name) => (name === "--pin-stack-bottom" ? " 53.5px" : "") };
+  };
+  assert.equal(pinnedStackBottom(board, computed), 53.5);
+  assert.deepEqual(seen, [board]);
+});
+
+test("pinnedStackBottom is 0 when no stack is published", () => {
+  assert.equal(pinnedStackBottom({}, () => ({ getPropertyValue: () => "" })), 0);
 });
