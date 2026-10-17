@@ -71,3 +71,32 @@ test("pinnedStackBottom reads --pin-stack-bottom off the element it is given", (
 test("pinnedStackBottom is 0 when no stack is published", () => {
   assert.equal(pinnedStackBottom({}, () => ({ getPropertyValue: () => "" })), 0);
 });
+
+// studio-engine 0.112's live read wins over any custom property: it is measured
+// on call, and the properties lag a scroll in motion by up to 160ms.
+test("pinnedStackBottom takes the engine's live read over a lagging property", () => {
+  let calls = 0;
+  const stack = { bottom: () => { calls++; return 64; } };
+  const lagging = () => ({ getPropertyValue: () => "94px" });
+  assert.equal(pinnedStackBottom({}, lagging, stack), 64);
+  assert.equal(calls, 1);
+  // A live read of 0 (no pinned chrome) is an answer, not a miss.
+  assert.equal(pinnedStackBottom({}, lagging, { bottom: () => 0 }), 0);
+});
+
+test("pinnedStackBottom falls back to the element when the engine has no live read", () => {
+  const prop = () => ({ getPropertyValue: () => "53px" });
+  assert.equal(pinnedStackBottom({}, prop, undefined), 53);
+  assert.equal(pinnedStackBottom({}, prop, {}), 53);
+  assert.equal(pinnedStackBottom({}, prop, { bottom: () => NaN }), 53);
+});
+
+test("pinnedStackBottom reads window.studioPinnedStack by default", () => {
+  const had = globalThis.window;
+  globalThis.window = { studioPinnedStack: { bottom: () => 71 } };
+  try {
+    assert.equal(pinnedStackBottom({}, () => ({ getPropertyValue: () => "94px" })), 71);
+  } finally {
+    globalThis.window = had;
+  }
+});

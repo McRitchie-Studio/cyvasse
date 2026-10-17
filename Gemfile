@@ -25,19 +25,25 @@ gem "tailwindcss-rails", "~> 4.5"
 
 # Shared McRitchie Studio engine: passwordless auth, hub SSO awareness, theme,
 # ErrorLog / rescue_and_log, local email capture, local review. The pin is a
-# FLOOR (a two-segment ~> admits every 0.x): 0.109 is where GET
-# /_studio/health_report arrives, the endpoint the hub's 07:00 daily report pulls
-# with STUDIO_HEALTH_TOKEN (task cyvasse-engine-health-report;
-# test/integration/health_report_endpoint_test.rb). Below it the route is absent
-# and the hub's Cyvasse report reads a 404. 0.106 kept the app current before it
-# (task cyvasse-daily-health-report).
+# FLOOR (a two-segment ~> admits every 0.x): 0.111 for
+# config.navbar_scroll_timeline, which config/initializers/studio.rb sets: the
+# navbar collapses on the scroll timeline from 768px with no script per frame
+# (task scroll-timeline-navbar-rollout, folded into pinned-stack-live-reads).
+# The game board reads the pinned stack through window.studioPinnedStack.bottom()
+# (engine 0.112) and falls back to the root's --pin-stack-bottom below it, so
+# this floor rises to 0.112 once that release publishes.
+# 0.109 is where GET /_studio/health_report arrives, the endpoint the hub's
+# 07:00 daily report pulls with STUDIO_HEALTH_TOKEN (task
+# cyvasse-engine-health-report; test/integration/health_report_endpoint_test.rb).
+# Below it the route is absent and the hub's Cyvasse report reads a 404. 0.106
+# kept the app current before it (task cyvasse-daily-health-report).
 # Older floors: 0.84 (task cyvasse-engine-bump-and-pool) for 0.81's
 # warning/danger button contrast and single admin cog on phones, the `redis < 6`
 # gemspec cap (0.82.1), and the site footer's fixed-row grid that keeps the
 # contact email on one line (0.84.0; task cyvasse-footer-and-legal); 0.78 for
 # Studio.navbar_links (task cyvasse-nav-links); 0.57 for Studio::GeoDetection.
 # Read Gemfile.lock for what actually resolves.
-gem "studio-engine", "~> 0.109"
+gem "studio-engine", "~> 0.111"
 # Google sign-in through the engine's OmniauthCallbacksController, beside the
 # magic link (config/initializers/omniauth.rb). The same three gems the hub runs.
 # ES256 assertions from the hub (EmailHandoff::Verifier).

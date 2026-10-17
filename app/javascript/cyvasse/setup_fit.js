@@ -40,14 +40,22 @@ export function setupScrollBy({ fit, board, army, pinned = 0, viewportHeight }) 
   return Math.abs(by) < 1 ? 0 : by
 }
 
-// The pinned navbar's bottom, read off the board's own element, never off
-// <html>. Since studio-engine 0.108.0 studio/pinned_stack writes <html> only
-// once a scroll has been still for 160ms; while one is in motion it writes the
-// values onto the elements that read them, among them any [data-pin-follow].
-// The board's section carries that attribute (games/show, matches/show), so
-// it reads the live value even on the controller's settle pass, which can land
-// in the tail of the smooth scroll it started. At rest the element inherits
-// the root's value.
-export function pinnedStackBottom(element, computed = (el) => getComputedStyle(el)) {
+// The pinned navbar's bottom, MEASURED ON CALL by studio-engine's live read
+// (window.studioPinnedStack.bottom(), engine 0.112; task
+// pinned-stack-live-reads). The custom properties are for CSS: studio/pinned_stack
+// writes <html> only once a scroll has been still for 160ms, and while one is in
+// motion it writes the elements that read the stack in CSS. This controller's
+// settle pass can land in the tail of the smooth scroll it started, so a value
+// read off <html> there was stale, and on a phone (375x667) the dock left the
+// board under the navbar.
+//
+// Below engine 0.112 there is no live read: fall back to the board's own
+// element, a [data-pin-follow] (games/show, matches/show) that the publisher
+// writes in motion and that inherits the root's value at rest.
+export function pinnedStackBottom(element, computed = (el) => getComputedStyle(el), stack = globalThis.window?.studioPinnedStack) {
+  if (stack && typeof stack.bottom === "function") {
+    const live = Number(stack.bottom())
+    if (Number.isFinite(live)) return live
+  }
   return parseFloat(computed(element).getPropertyValue("--pin-stack-bottom")) || 0
 }
