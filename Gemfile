@@ -25,7 +25,11 @@ gem "tailwindcss-rails", "~> 4.5"
 
 # Shared McRitchie Studio engine: passwordless auth, hub SSO awareness, theme,
 # ErrorLog / rescue_and_log, local email capture, local review. The pin is a
-# FLOOR (a two-segment ~> admits every 0.x): 0.111 for
+# FLOOR: 0.114.2 makes Tailwind CSS-first. app/assets/tailwind/application.css
+# carries no @config, and the engine entry it imports (host.css) brings the
+# theme tokens, the dark: variant, the scan of the engine views and the motion
+# layer; below 0.114.2 that entry is engine.css alone and the build loses every
+# engine class (task satellites-adopt-css-first-tailwind). Before it, 0.111 for
 # config.navbar_scroll_timeline, which config/initializers/studio.rb sets: the
 # navbar collapses on the scroll timeline from 768px with no script per frame
 # (task scroll-timeline-navbar-rollout, folded into pinned-stack-live-reads).
@@ -43,7 +47,7 @@ gem "tailwindcss-rails", "~> 4.5"
 # contact email on one line (0.84.0; task cyvasse-footer-and-legal); 0.78 for
 # Studio.navbar_links (task cyvasse-nav-links); 0.57 for Studio::GeoDetection.
 # Read Gemfile.lock for what actually resolves.
-gem "studio-engine", "~> 0.111"
+gem "studio-engine", "~> 0.114", ">= 0.114.2"
 # Google sign-in through the engine's OmniauthCallbacksController, beside the
 # magic link (config/initializers/omniauth.rb). The same three gems the hub runs.
 # ES256 assertions from the hub (EmailHandoff::Verifier).
