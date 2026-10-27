@@ -15,13 +15,17 @@ on:
 
 # ONE JOB, AND IT IS A CALL. The lanes live in the hub's reusable-ci.yml and
 # check out this repo, so every script they run is this repo's own. GitHub
-# names each check `ci / <lane>`: `ci / static`, `ci / javascript`,
+# names each check `ci / <lane>`: `ci / static` and
 # `ci / system`. test/lib/ci_workflow_test.rb pins the call and every input.
 #
 # - static: brakeman, bundler-audit, importmap audit and rubocop, in one job.
-# - javascript: the game engine's unit tests (bin/test-js).
 # - system: the whole Rails suite, unit, integration and system, in one
-#   command, after the Tailwind build the integration pages link.
+#   command, after the Tailwind build the integration pages link. It includes
+#   the game engine's node:test files: test/lib/javascript_unit_test.rb runs
+#   bin/test-js, on the runner's Node, which bin/test-js holds to .tool-versions.
+#
+# The hub's `javascript` lane is off: it runs with no Ruby and no bundle, and
+# the node:test importmap hook ships in the studio-engine gem.
 #
 # Postgres is the hub mirror's 18 on ghcr.io, production's major (heroku pg:info).
 # A non-ghcr name breaks the hub workflow: its service `credentials` evaluate
@@ -30,6 +34,7 @@ jobs:
   ci:
     uses: McRitchie-Studio/mcritchie-studio/.github/workflows/reusable-ci.yml@main
     with:
+      javascript: false
       island-animator: false
       playwright: false
       rails-shards: false

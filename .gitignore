@@ -45,3 +45,8 @@
 !/app/assets/builds/.keep
 coverage/
 /script/tyrion/node_modules/
+
+# node_modules/.studio-engine is a symlink `bin/rails studio:node:link` writes
+# to studio-engine's Node tooling package; bin/test-js makes it. Never commit
+# it. Guarded by test/lib/node_tooling_test.rb.
+/node_modules/
