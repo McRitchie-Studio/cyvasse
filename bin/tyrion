@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 # Tyrion's runner: plays the `tyrion` computer player's matches over /api/bot
 # from any machine that can reach the site (script/tyrion/runner.mjs; README,
-# "Tyrion's runner"). Node 20+. The importmap hook lets it import the game
-# engine (app/javascript/cyvasse) unchanged.
+# "Tyrion's runner"). Node 22, the major .tool-versions pins. studio-engine's
+# importmap hook (test/javascript/support/register.mjs registers it) lets it
+# import the game engine (app/javascript/cyvasse) unchanged; it is reached
+# through node_modules/.studio-engine, linked here when missing.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+if [ ! -e node_modules/.studio-engine/node_test/register.mjs ]; then
+  bin/rails studio:node:link >/dev/null
+fi
 exec node --import ./test/javascript/support/register.mjs script/tyrion/runner.mjs "$@"
