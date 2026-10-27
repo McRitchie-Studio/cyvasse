@@ -7,10 +7,11 @@ require "yaml"
 class CiWorkflowTest < ActiveSupport::TestCase
   SUITE = "McRitchie-Studio/mcritchie-studio/.github/workflows/reusable-ci.yml@main".freeze
 
-  # Every input the call passes. A lane left at the hub's default (`javascript`,
-  # `system`) is absent; each one here switches off a hub lane this app has no
-  # use for, or names this app's own command.
+  # Every input the call passes. A lane left at the hub's default (`system`) is
+  # absent; each one here switches off a hub lane this app has no use for, or
+  # names this app's own command.
   INPUTS = {
+    "javascript" => false,
     "island-animator" => false,
     "playwright" => false,
     "rails-shards" => false,
@@ -66,9 +67,13 @@ class CiWorkflowTest < ActiveSupport::TestCase
     refute_empty Dir[Rails.root.join("test/system/**/*_test.rb")], "a system lane over an empty directory tests nothing"
   end
 
-  test "the JavaScript lane stays on, and there are tests for it to run" do
-    refute call["with"].key?("javascript"), "the hub's javascript lane (bin/test-js) is on by default"
-    assert File.executable?(Rails.root.join("bin/test-js")), "the lane runs bin/test-js"
+  # The hub's `javascript` lane runs bin/test-js with no Ruby and no bundle, so
+  # it cannot reach the studio-engine gem that holds the shared importmap hook.
+  # The node:test files run in the system lane instead, through the Rails suite.
+  test "the JavaScript tests run inside the Rails suite, and there are tests for it to run" do
+    assert_equal false, call.dig("with", "javascript")
+    assert File.executable?(Rails.root.join("bin/test-js")), "test/lib/javascript_unit_test.rb runs bin/test-js"
+    assert Rails.root.join("test/lib/javascript_unit_test.rb").file?, "no Rails test runs bin/test-js"
     refute_empty Dir[Rails.root.join("test/javascript/*_test.js")], "bin/test-js would have nothing to run"
   end
 

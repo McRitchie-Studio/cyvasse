@@ -23,7 +23,7 @@ pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
 # this file is instance_eval'd again on every redraw.
 #
 # The game engine (epic piece 4): plain ES modules that import each other as
-# "cyvasse/<module>". test/javascript/support/importmap_hooks.mjs maps the
+# "cyvasse/<module>". test/javascript/support/register.mjs maps the
 # same prefix for the node unit tests, so keep the two in step.
 every_page = %w[controllers/application controllers cyvasse/sign_in].freeze
 page_groups = {

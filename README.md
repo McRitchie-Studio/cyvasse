@@ -658,7 +658,7 @@ bundler-audit, importmap audit and rubocop:
 |---|---|
 | `bin/rails test` | unit, component and integration tests (single-process), and a guard that fails on a committed merge-conflict marker (`lib/conflict_markers.rb`) |
 | `bin/rails test:system` | browser tests in headless Chrome: a whole game against the computer (a win, a loss or a draw), keyboard play, the live chat between two browsers, and two players starting an online match |
-| `bin/test-js` | the game engine's unit tests, on `node:test` (Node 20+, no npm install) |
+| `bin/test-js` | the game engine's unit tests, on `node:test` (Node 22, the major `.tool-versions` pins; no npm install) |
 | `bin/rules-agreement` | regenerate the JS engine's recorded answers the Ruby rules port is tested against |
 
 The seeds create three identities: `alex@mcritchie.studio` (admin),

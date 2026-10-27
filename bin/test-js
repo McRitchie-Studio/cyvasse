@@ -1,16 +1,37 @@
 #!/usr/bin/env bash
 # [unit] The game engine's JavaScript unit tests (app/javascript/cyvasse).
 #
-# node:test and node:assert only: no npm install, no package.json. The hook in
-# test/javascript/support maps the importmap's "cyvasse/*" specifiers onto
-# app/javascript/cyvasse so the modules run unchanged. CI runs this in the
-# `ci / javascript` lane (.github/workflows/ci.yml calls the hub suite).
+# node:test and node:assert only: no npm install, no package.json. The importmap
+# hook is studio-engine's shared one (lib/studio/node_tooling/node_test), reached
+# through the node_modules/.studio-engine link this script makes with
+# `bin/rails studio:node:link`; test/javascript/support/register.mjs names the
+# "cyvasse/*" prefix. CI runs this inside the Rails suite
+# (test/lib/javascript_unit_test.rb), because the gem is only there once bundled.
+#
+# Node is the major .tool-versions pins. Under mise (a laptop) the run goes
+# through `mise exec`, which reads that file; elsewhere (CI) it is the node on
+# PATH, and a different major fails the run rather than testing the wrong Node.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+pinned="$(awk '$1 == "nodejs" || $1 == "node" { print $2; exit }' .tool-versions)"
+node=(node)
+if command -v mise >/dev/null 2>&1; then
+  node=(mise exec "node@${pinned}" -- node)
+fi
+running="$("${node[@]}" -p 'process.versions.node.split(".")[0]')"
+if [ "$running" != "$pinned" ]; then
+  echo "bin/test-js: node is $running, but .tool-versions pins nodejs $pinned" >&2
+  exit 1
+fi
+
+if [ ! -e node_modules/.studio-engine/node_test/register.mjs ]; then
+  bin/rails studio:node:link >/dev/null
+fi
 
 files=("$@")
 if [ ${#files[@]} -eq 0 ]; then
   files=(test/javascript/*_test.js)
 fi
 
-exec node --import ./test/javascript/support/register.mjs --test "${files[@]}"
+exec "${node[@]}" --import ./test/javascript/support/register.mjs --test "${files[@]}"
