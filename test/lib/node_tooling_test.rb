@@ -30,10 +30,13 @@ class NodeToolingTest < ActiveSupport::TestCase
   test "the hook's cyvasse prefix agrees with the importmap" do
     assert_includes REGISTER.read, 'cyvasse: "app/javascript/cyvasse/"'
 
-    pins = Rails.application.importmap.packages.select { |name, _| name.start_with?("cyvasse/") }
+    # The resolved map, as the browser receives it: pin_all_from directories
+    # and explicit pins alike.
+    imports = JSON.parse(Rails.application.importmap.to_json(resolver: ActionController::Base.helpers))["imports"]
+    pins = imports.select { |name, _| name.start_with?("cyvasse/") }
     assert_not_empty pins
-    pins.each do |name, pin|
-      assert_equal "#{name}.js", pin.path, "#{name} is pinned to #{pin.path}; the hook maps it to #{name}.js"
+    pins.each do |name, url|
+      assert_match %r{\A/assets/#{Regexp.escape(name)}-\h+\.js\z}, url, "#{name} resolves to #{url}; the hook maps it to #{name}.js"
       assert Rails.root.join("app/javascript", "#{name}.js").file?, "#{name}.js is missing"
     end
   end
