@@ -29,12 +29,15 @@ class EmailHandoff::VerifierTest < ActiveSupport::TestCase
     assert_in_delta now.to_i + 200 + EmailHandoff::SKEW, nonce.expires_at.to_i, 1
   end
 
+  # The time claims are lambdas, read when the test runs: a value computed here,
+  # at class load, goes stale on a long suite (the "future" iat was 2 minutes
+  # ahead of LOAD time, so a test run 90 seconds later saw it inside the skew).
   {
     "a wrong issuer" => [ { iss: "evil.example" }, :wrong_issuer ],
     "a wrong audience" => [ { aud: "turf-monster" }, :wrong_audience ],
-    "an expired assertion" => [ { iat: 10.minutes.ago.to_i, exp: 6.minutes.ago.to_i }, :expired ],
-    "one issued in the future past the skew" => [ { iat: 2.minutes.from_now.to_i, exp: 4.minutes.from_now.to_i }, :issued_in_future ],
-    "a lifetime over five minutes" => [ { iat: 10.seconds.ago.to_i, exp: 291.seconds.from_now.to_i }, :lifetime_too_long ],
+    "an expired assertion" => [ -> { { iat: 10.minutes.ago.to_i, exp: 6.minutes.ago.to_i } }, :expired ],
+    "one issued in the future past the skew" => [ -> { { iat: 2.minutes.from_now.to_i, exp: 4.minutes.from_now.to_i } }, :issued_in_future ],
+    "a lifetime over five minutes" => [ -> { { iat: 10.seconds.ago.to_i, exp: 291.seconds.from_now.to_i } }, :lifetime_too_long ],
     "no jti" => [ { jti: nil }, :missing_claim ],
     "no ref" => [ { ref: nil }, :missing_claim ],
     "no sub" => [ { sub: nil }, :missing_claim ],
@@ -44,7 +47,7 @@ class EmailHandoff::VerifierTest < ActiveSupport::TestCase
     "a ref that is no delivery token" => [ { ref: "x" }, :bad_ref ]
   }.each do |label, (claims, reason)|
     test "refuses #{label}" do
-      result = verify(hub_assertion("arya@example.com", **claims))
+      result = verify(hub_assertion("arya@example.com", **(claims.respond_to?(:call) ? claims.call : claims)))
       assert_not result.ok?
       assert_equal reason, result.reason
       assert_nil result.email
