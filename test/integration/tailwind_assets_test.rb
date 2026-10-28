@@ -15,9 +15,14 @@ require "test_helper"
 #                   Only studio-engine's views name it (studio/modals/blocks/
 #                   _processing_card, error_logs/index, style/_modals,
 #                   components/_theme_toggle_morph, solana_sessions/
-#                   phantom_callback); nothing else in this repo, and no engine
-#                   CSS, component, helper or JavaScript declares it, so it
-#                   compiles only when Tailwind reaches those views. If this
+#                   phantom_callback); no tracked source in this repo, and no
+#                   engine CSS, component, helper or JavaScript, names it, so
+#                   it compiles only when Tailwind reaches those views. On a
+#                   laptop the gem sits outside the app and only host.css's
+#                   @source reaches it. On CI (bundler-cache) the gem sits in
+#                   vendor/bundle inside the app, where Tailwind's automatic
+#                   scan reaches its views too, so there the probe proves the
+#                   engine views reach the build, not by which route. If this
 #                   app's code ever uses it, pick another engine-only class.
 #   .spinner        the engine's motion layer (engine-motion.css). It is plain
 #                   CSS, emitted on import alone: it proves the import, not any
@@ -26,10 +31,11 @@ require "test_helper"
 # the classes here is safe, but it picks up a class written as a code literal:
 # a literal probe in the code below would compile because this file names it,
 # and pass whatever the engine scan does (proven in alex-build PR #9). So the
-# code spells each probe as words joined with "-" at runtime.
+# code spells each probe as words joined at runtime, the one-word .spinner
+# included.
 class TailwindAssetsTest < ActionDispatch::IntegrationTest
-  PROBES = [ %w[text heading], %w[btn primary], %w[animate spin], %w[spinner] ]
-           .map { |words| words.join("-") }.freeze
+  PROBES = [ %w[text heading].join("-"), %w[btn primary].join("-"),
+             %w[animate spin].join("-"), %w[spin ner].join ].freeze
 
   test "the home page names only assets that are served" do
     get root_path
