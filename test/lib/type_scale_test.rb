@@ -39,7 +39,7 @@ class TypeScaleTest < ActiveSupport::TestCase
     CSS.read.scan(/--text-([0-9a-z]+): calc\(var\(--type-base, 16px\) \* ([\d.]+)\);/).to_h { |size, n| [ size, n.to_f ] }
   end
 
-  def sources = Dir[Rails.root.join("app/{views,components,helpers,javascript,services}/**/*.{erb,rb,js}")]
+  def sources = Dir[Rails.root.join("app/{views,components,controllers,helpers,javascript,models,services}/**/*.{erb,rb,js}")]
 
   def relative(path) = Pathname(path).relative_path_from(Rails.root).to_s
 
