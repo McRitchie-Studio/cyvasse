@@ -9,6 +9,10 @@ module Admin
 
     def require_admin_or_not_found
       raise ActiveRecord::RecordNotFound, "admins only" unless current_user&.admin?
+
+      # An admin's page reads the type scale's dense base
+      # (ApplicationController#type_dense_page?).
+      mark_type_dense_page
     end
   end
 end

@@ -501,7 +501,7 @@ DEPENDENCIES
   rubocop-rails-omakase
   selenium-webdriver
   stimulus-rails
-  studio-engine (~> 0.116, >= 0.116.0)
+  studio-engine (~> 0.118, >= 0.118.0)
   tailwindcss-rails (~> 4.5)
   thruster
   turbo-rails

@@ -49,10 +49,14 @@ gem "tailwindcss-rails", "~> 4.5"
 # gemspec cap (0.82.1), and the site footer's fixed-row grid that keeps the
 # contact email on one line (0.84.0; task cyvasse-footer-and-legal); 0.78 for
 # Studio.navbar_links (task cyvasse-nav-links); 0.57 for Studio::GeoDetection.
-# Read Gemfile.lock for what actually resolves. 0.116.0 is the floor now, for
-# the navbar account group: where the account opens the link sidebar, as the gear does, the engine lights the gear, the name and the avatar together on hover or focus, the avatar with a primary glow. Below 0.116.0 nothing raises; the three just hover apart (task cyvasse-adopts-engine-0-116).
+# Read Gemfile.lock for what actually resolves. 0.118.0 is the floor now, for
+# the type scale roles: Studio::TypeScale, --type-base in the theme tag and the
+# four Studio.type_* writers, which config/initializers/studio.rb sets and
+# app/assets/tailwind/type_scale.css reads; below 0.118 the writers are missing
+# and boot raises (task cyvasse-adopts-type-scale). 0.116.0 was the floor before
+# it, for the navbar account group: where the account opens the link sidebar, as the gear does, the engine lights the gear, the name and the avatar together on hover or focus, the avatar with a primary glow. Below 0.116.0 nothing raises; the three just hover apart (task cyvasse-adopts-engine-0-116).
 # test/lib/engine_pin_contract_test.rb holds the floor.
-gem "studio-engine", "~> 0.116", ">= 0.116.0"
+gem "studio-engine", "~> 0.118", ">= 0.118.0"
 # Google sign-in through the engine's OmniauthCallbacksController, beside the
 # magic link (config/initializers/omniauth.rb). The same three gems the hub runs.
 # ES256 assertions from the hub (EmailHandoff::Verifier).

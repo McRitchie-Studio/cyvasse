@@ -404,7 +404,7 @@
   border: 1px solid rgb(255 255 255 / 0.6);
   color: white;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: calc(var(--type-base, 16px) * 1);
   line-height: 1.5rem;
   /* One line where it fits; a long line ("Opponent passes · Turn 6 · …")
    * wraps on a phone rather than running past the board. */
@@ -524,7 +524,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
 .cyvasse-stats div {
   display: flex;
   justify-content: space-between;
-  font-size: 0.875rem;
+  font-size: calc(var(--type-base, 16px) * 1);
 }
 
 .cyvasse-stats dt {
@@ -616,7 +616,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
 .live-notice {
   padding: 0.6rem 0.9rem;
   border-radius: 0.5rem;
-  font-size: 0.9rem;
+  font-size: calc(var(--type-base, 16px) * 1);
   border: 1px solid color-mix(in srgb, var(--color-cta, #8E82FE) 40%, transparent);
   background: color-mix(in srgb, var(--color-cta, #8E82FE) 12%, transparent);
   color: var(--color-text-heading, inherit);
@@ -635,7 +635,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
 .live-notice-dismiss {
   flex: none;
   line-height: 1;
-  font-size: 1.1rem;
+  font-size: calc(var(--type-base, 16px) * 1);
   padding: 0 0.2rem;
   opacity: 0.7;
   cursor: pointer;
@@ -707,7 +707,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
 
 .match-panel-status .cyvasse-threat-toggles {
   margin-left: 0;
-  font-size: 0.875rem;
+  font-size: calc(var(--type-base, 16px) * 1);
 }
 
 /* The status line, the board's one live region, sits under the army or unit
@@ -779,7 +779,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
   flex-direction: column;
   gap: 0.5rem;
   margin: 0;
-  font-size: 1.125rem;
+  font-size: calc(var(--type-base, 16px) * 1.5);
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.2;
@@ -809,7 +809,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
   align-items: center;
   gap: 0.6rem;
   padding-left: 3.5rem;
-  font-size: 0.7rem;
+  font-size: calc(var(--type-base, 16px) * 0.75);
   font-weight: 500;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.12em;
@@ -932,12 +932,15 @@ html.dark [data-skin="pencil"] .dock-unit img {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  min-height: 2.125rem; /* the touch hint: 19.5px line + 0.35rem padding + border = 32.7px */
+  min-height: 2.125rem; /* the touch hint: 18px line (12px fine print x 1.5) + 0.35rem padding + border = 31.2px */
   margin-bottom: 0.375rem;
   /* The board wrap clips sideways (the banner, above), so inset the strip
    * enough that a focused hint's ring is not shaved at the wrap's edge. */
   padding-inline: 0.25rem;
-  font-size: 0.8125rem;
+  /* Fine print, not body (task cyvasse-adopts-type-scale): at body the hint's
+   * 24px line makes the strip 37px, past its 34px floor, so the board would
+   * drop 3px each time a piece is picked. */
+  font-size: calc(var(--type-base, 16px) * 0.75);
 }
 
 .cyvasse-hint {
@@ -964,7 +967,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
   border-bottom-width: 2px;
   font: inherit;
   font-weight: 700;
-  font-size: 0.75rem;
+  font-size: calc(var(--type-base, 16px) * 0.75);
 }
 
 /* A touch screen has no Esc key: the hint becomes a tap target. */
@@ -1039,7 +1042,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
   height: 1.125rem;
   border-radius: 9999px;
   border: 1px solid var(--color-border-strong, var(--color-border));
-  font-size: 0.6875rem;
+  font-size: calc(var(--type-base, 16px) * 0.75);
   font-weight: 700;
   line-height: 1;
 }
@@ -1065,7 +1068,7 @@ html.dark [data-skin="pencil"] .dock-unit img {
   color: var(--color-text-body, inherit);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
   list-style: none;
-  font-size: 0.75rem;
+  font-size: calc(var(--type-base, 16px) * 0.75);
   line-height: 1.25;
 }
 

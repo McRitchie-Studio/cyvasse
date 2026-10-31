@@ -41,7 +41,33 @@ class ApplicationController < ActionController::Base
   LEFT_BEHIND = :guest_left_behind_until
   LEFT_BEHIND_WINDOW = 10.minutes
 
+  helper_method :type_dense_page?
+
   private
+
+  # Whether the page reads the type scale's 14px dense base (task
+  # cyvasse-adopts-type-scale): the layout puts `type-dense` on <body>, not
+  # <html>, where the theme tag's unlayered :root rule would win. Dense means
+  # admin-only, and Cyvasse has two kinds: its own /admin pages, behind
+  # Admin::BaseController#require_admin_or_not_found, and the engine's (theme,
+  # link preview, survey results, error logs), which render in this layout
+  # behind Studio::ErrorHandling#require_admin. Each guard marks the page as it
+  # runs, so the callback honours its controller's only:/except: itself, and a
+  # visitor it refuses is redirected or 404'd before the flag reaches a render
+  # (test/integration/type_dense_test.rb). A player's pages, the board
+  # included, keep the 16px base.
+  def type_dense_page?
+    @type_dense_page == true
+  end
+
+  def mark_type_dense_page
+    @type_dense_page = true
+  end
+
+  def require_admin
+    mark_type_dense_page
+    super
+  end
 
   # Every sign-in passes through here: the engine's magic link, hub SSO, local
   # review, the email handoff, and Play Now's guest (LiveSeeksController). A
