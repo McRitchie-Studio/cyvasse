@@ -115,9 +115,12 @@
 
   <% if @tonight %>
     <section class="card p-4 sm:p-5" aria-labelledby="night-board-title" data-night-leaderboard>
-      <div class="flex items-baseline justify-between gap-3 mb-3">
-        <h2 id="night-board-title" class="text-sm font-semibold uppercase tracking-widest text-secondary">Tonight's leaderboard</h2>
-        <%= link_to "All players", leaderboard_path, class: "text-sm text-secondary underline underline-offset-2" %>
+      <%# On the type scale's 16px body the tracked kicker and the link no longer
+          share a 375px phone's row, so the row wraps whole: each keeps one line
+          and the link drops beneath (task cyvasse-adopts-type-scale). %>
+      <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 mb-3">
+        <h2 id="night-board-title" class="text-sm font-semibold uppercase tracking-widest text-secondary whitespace-nowrap">Tonight's leaderboard</h2>
+        <%= link_to "All players", leaderboard_path, class: "text-sm text-secondary underline underline-offset-2 whitespace-nowrap" %>
       </div>
       <% if @tonight.empty? %>
         <p class="text-secondary" data-night-leaderboard-empty>
