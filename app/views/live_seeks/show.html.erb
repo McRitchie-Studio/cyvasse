@@ -53,7 +53,7 @@
   .live-seek-radar span { position: absolute; inset: 0; border-radius: 9999px; border: 3px solid var(--color-cta, #8E82FE); opacity: 0; animation: live-seek-ping 2.4s ease-out infinite; }
   .live-seek-radar span:nth-child(2) { animation-delay: 0.8s; }
   .live-seek-radar span:nth-child(3) { animation-delay: 1.6s; }
-  .live-seek-count { font-size: 3.25rem; font-weight: 800; color: var(--color-text-heading, inherit); font-variant-numeric: tabular-nums; }
+  .live-seek-count { font-size: calc(var(--type-base, 16px) * 3); font-weight: 800; color: var(--color-text-heading, inherit); font-variant-numeric: tabular-nums; }
   @keyframes live-seek-ping { 0% { transform: scale(0.35); opacity: 0.9; } 100% { transform: scale(1); opacity: 0; } }
   .live-seek-splash { animation: live-seek-in 0.35s ease-out both; }
   .live-seek-versus { display: flex; align-items: center; justify-content: center; gap: 1rem; }
@@ -61,13 +61,16 @@
   .live-seek-avatar-slot { display: grid; place-items: center; min-height: 3.5rem; }
   .live-seek-avatar-pending { display: block; border: 2px dashed color-mix(in srgb, var(--color-cta, #8E82FE) 45%, transparent); }
   .live-seek-card .player-caption { margin-top: -0.25rem; }
-  .live-seek-name { font-size: 1.2rem; font-weight: 800; line-height: 1.2; }
-  .live-seek-vs { font-size: 1.75rem; font-weight: 900; color: var(--color-cta, #8E82FE); flex: none; }
+  .live-seek-name { font-size: calc(var(--type-base, 16px) * 1.5); font-weight: 800; line-height: 1.2; }
+  .live-seek-vs { font-size: calc(var(--type-base, 16px) * 1.5); font-weight: 900; color: var(--color-cta, #8E82FE); flex: none; }
   .live-seek-progress { height: 4px; border-radius: 9999px; margin: 1.75rem auto 0; max-width: 18rem; background: color-mix(in srgb, var(--color-cta, #8E82FE) 18%, transparent); overflow: hidden; }
   .live-seek-progress span { display: block; height: 100%; width: 100%; background: var(--color-cta, #8E82FE); transform-origin: left; }
   /* A phone: room for a guest's whole name (Guest_1234) on one line; a longer
-     username shrinks to fit (.player-name, the name-fit controller). */
-  @media (max-width: 400px) { .live-seek-versus { gap: 0.5rem; } .live-seek-card { padding-inline: 0.375rem; } .live-seek-vs { font-size: 1.25rem; } .live-seek-name { font-size: 1.05rem; } }
+     username shrinks to fit (.player-name, the name-fit controller). Every size
+     here is a type-scale role (task cyvasse-adopts-type-scale): the count the
+     heading, the names and the "vs" the subhead, and on a phone the names and
+     the "vs" drop to body so the two cards keep their room. */
+  @media (max-width: 400px) { .live-seek-versus { gap: 0.5rem; } .live-seek-card { padding-inline: 0.375rem; } .live-seek-vs { font-size: calc(var(--type-base, 16px) * 1); } .live-seek-name { font-size: calc(var(--type-base, 16px) * 1); } }
   @keyframes live-seek-in { from { transform: scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .live-seek-radar span, .live-seek-splash { animation: none; } .live-seek-radar span { opacity: 0.3; } .live-seek-progress span { transition: none !important; } }
 </style>

@@ -9,12 +9,18 @@ require "test_helper"
 #             as the gear does, so the engine lights the gear, the name and the
 #             avatar together on hover, the avatar with a primary glow. Nothing
 #             raises below it; the three hover apart.
+#   0.118.0 — the type scale roles: Studio::TypeScale, the --type-base
+#             variables in the theme tag and the four Studio.type_* writers,
+#             which config/initializers/studio.rb sets and
+#             app/assets/tailwind/type_scale.css reads (task
+#             cyvasse-adopts-type-scale). Below it the writers are missing and
+#             boot raises NoMethodError.
 class EnginePinContractTest < ActiveSupport::TestCase
-  MINIMUM = Gem::Version.new("0.116.0")
+  MINIMUM = Gem::Version.new("0.118.0")
 
   test "the resolved studio-engine is at or above the floor this app depends on" do
     assert_operator Gem::Version.new(Studio::VERSION), :>=, MINIMUM,
-                    "studio-engine #{Studio::VERSION} is below #{MINIMUM}: the navbar account group needs it"
+                    "studio-engine #{Studio::VERSION} is below #{MINIMUM}: the navbar account group (0.116.0) and the type scale roles (0.118.0) need it"
   end
 
   # The 0.116.0 floor is SILENT, so a version number alone cannot show the feature

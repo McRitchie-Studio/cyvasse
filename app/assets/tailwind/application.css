@@ -12,6 +12,9 @@
  * vendor/bundle there, and excluding the whole directory drops its classes. */
 @source not "../../../vendor/bundle/**/*.md";
 @import "../builds/tailwind/studio_engine";
+/* Every text-* size on the type scale's five roles (task
+ * cyvasse-adopts-type-scale). AFTER the engine import, so it wins. */
+@import "./type_scale.css";
 
 /* The shared component classes (.card, .input-field, the .btn system, .badge,
  * .empty-state) come from the engine import above — see
@@ -109,7 +112,7 @@ html:root:not(.dark) {
  * audit #12). The secondary ink at full strength clears AA on every surface
  * in both themes (test/lib/light_mode_contrast_test.rb). */
 .player-caption {
-  font-size: 0.75rem;
+  font-size: calc(var(--type-base, 16px) * 0.75);
   font-weight: 500;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.08em;
@@ -192,7 +195,7 @@ html:root:not(.dark) {
 /* One grid cell for every caption, so they cross-fade in place. */
 .home-slide-caption {
   grid-area: 1 / 1;
-  font-size: 0.6875rem;
+  font-size: calc(var(--type-base, 16px) * 0.75);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -238,7 +241,7 @@ html:root:not(.dark) {
 }
 
 .rules-prose h2 {
-  font-size: 1.5rem;
+  font-size: calc(var(--type-base, 16px) * 1.5);
   font-weight: 700;
   color: var(--color-text);
   margin-bottom: 0.5rem;
@@ -469,7 +472,7 @@ html.dark .unit-card [data-skin="pencil"] > img {
   gap: 0.375rem;
   min-height: 2.25rem;
   align-items: center;
-  font-size: 1.25rem;
+  font-size: calc(var(--type-base, 16px) * 1.5);
   font-weight: 700;
 }
 
@@ -488,7 +491,7 @@ html.dark .unit-card [data-skin="pencil"] > img {
 }
 
 .unit-trump-name {
-  font-size: 0.875rem;
+  font-size: calc(var(--type-base, 16px) * 1);
   font-weight: 600;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.06em;
@@ -599,7 +602,7 @@ html.dark .unit-card [data-skin="pencil"] > img {
   border-radius: 9999px;
   background: var(--color-cta);
   color: #fff;
-  font-size: 0.75rem;
+  font-size: calc(var(--type-base, 16px) * 0.75);
   font-weight: 700;
   line-height: 1.25rem;
   text-align: center;
@@ -667,7 +670,7 @@ header nav a[href="/conversations"] > span {
 }
 
 .leaderboard-stat {
-  font-size: 0.875rem;
+  font-size: calc(var(--type-base, 16px) * 1);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-body);
@@ -677,7 +680,7 @@ header nav a[href="/conversations"] > span {
  * wraps at its separators on a narrow phone. */
 .leaderboard-key {
   margin: 0 0 0.5rem;
-  font-size: 0.75rem;
+  font-size: calc(var(--type-base, 16px) * 0.75);
   line-height: 1.4;
   color: var(--color-text-muted);
 }
@@ -698,7 +701,7 @@ header nav a[href="/conversations"] > span {
 
 .leaderboard-inline-cta {
   text-align: left;
-  font-size: 0.875rem;
+  font-size: calc(var(--type-base, 16px) * 1);
   color: var(--color-text-body);
   cursor: pointer;
 }
@@ -718,7 +721,7 @@ header nav a[href="/conversations"] > span {
   padding: 0.35rem 0.9rem;
   border-radius: 999px;
   border: 1px solid var(--color-border);
-  font-size: 0.875rem;
+  font-size: calc(var(--type-base, 16px) * 1);
   font-weight: 600;
   color: var(--color-text-body);
 }
@@ -745,7 +748,7 @@ header nav a[href="/conversations"] > span {
   border-radius: 9999px;
   border: 1px solid rgb(255 255 255 / 0.5);
   color: #fff;
-  font-size: 0.75rem;
+  font-size: calc(var(--type-base, 16px) * 0.75);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -753,7 +756,9 @@ header nav a[href="/conversations"] > span {
 
 /* The heading: the name on its own line; under it the date and the time,
  * stacked on a phone and joined by a dot from 640px, so a dot never dangles
- * at a line's end. */
+ * at a line's end. The subhead (1.5x, text-2xl on the h1) at every width
+ * (task cyvasse-adopts-type-scale): each part is nowrap, and at the heading
+ * (3x, 48px) "Cyvasse Night" alone is wider than a 375px phone's column. */
 .night-title-name,
 .night-title-part {
   display: block;
@@ -767,10 +772,6 @@ header nav a[href="/conversations"] > span {
 }
 
 @media (min-width: 640px) {
-  .night-title {
-    font-size: 1.75rem;
-  }
-
   .night-title-part {
     display: inline;
   }
@@ -782,7 +783,7 @@ header nav a[href="/conversations"] > span {
 
 .night-countdown-label {
   color: rgb(255 255 255 / 0.85);
-  font-size: 0.8rem;
+  font-size: calc(var(--type-base, 16px) * 0.75);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -812,14 +813,14 @@ header nav a[href="/conversations"] > span {
 }
 
 .night-countdown-value {
-  font-size: 1.875rem;
+  font-size: calc(var(--type-base, 16px) * 1.5);
   font-weight: 800;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
 .night-countdown-unit {
-  font-size: 0.7rem;
+  font-size: calc(var(--type-base, 16px) * 0.75);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgb(255 255 255 / 0.85);
@@ -853,7 +854,7 @@ header nav a[href="/conversations"] > span {
   border: 1px solid rgb(255 255 255 / 0.6);
   background: rgb(0 0 0 / 0.35);
   color: #fff;
-  font-size: 0.875rem;
+  font-size: calc(var(--type-base, 16px) * 1);
   font-weight: 600;
 }
 

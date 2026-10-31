@@ -14,7 +14,11 @@
          data-skin="<%= @skin %>">
   <header class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
     <div>
-      <h1 class="text-3xl font-extrabold text-heading tracking-tight">Play Cyvasse</h1>
+      <%# The subhead, not the heading (task cyvasse-adopts-type-scale): this page
+          keeps the screen for the board, and at the heading's 48px the board's
+          foot fell 4px below a 1400x957 window in play
+          (test/system/piece_art_overlap_test.rb). %>
+      <h1 class="text-2xl font-extrabold text-heading tracking-tight">Play Cyvasse</h1>
       <p class="text-secondary">
         Against <span class="font-semibold text-heading" data-cyvasse-game-target="opponent">the computer</span>
       </p>

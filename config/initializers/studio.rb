@@ -56,6 +56,17 @@ Studio.configure do |config|
   # which one hex cannot say: app/assets/tailwind/application.css picks them
   # from the engine's primary scale.
   config.theme_success = "#367E3A"
+  # The type scale (task cyvasse-adopts-type-scale; brand-kit-rollout step 4a):
+  # the base sizes and weights the theme tag hands every text-* class
+  # (app/assets/tailwind/type_scale.css). Cyvasse has no brand kit in the hub
+  # (config/logo_brands.yml there names none) and no installed kit.json, so
+  # these are the engine's defaults, spelled out. Public pages and the board
+  # read the 16px base; admin-only pages wrap in type-dense and read 14px
+  # (ApplicationController#type_dense_page?).
+  config.type_base = 16
+  config.type_dense_base = 14
+  config.type_display_weight = 800
+  config.type_text_weight = 300
   # The navbar's own links, My games and Leaderboard with the player's live
   # rank (NavbarLinks; task cyvasse-nav-links).
   config.navbar_links = ->(view) { NavbarLinks.call(view) }
