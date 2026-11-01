@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_14_062502) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_01_145524) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -389,6 +389,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_062502) do
     t.string "uid"
     t.datetime "updated_at", null: false
     t.string "username"
+    t.jsonb "voice_embedding"
+    t.string "voice_embedding_model"
+    t.datetime "voice_embedding_updated_at"
     t.integer "wins", default: 0, null: false
     t.index "lower((username)::text)", name: "index_users_on_lower_username_unique", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
