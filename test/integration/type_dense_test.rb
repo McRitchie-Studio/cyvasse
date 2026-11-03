@@ -24,7 +24,7 @@ class TypeDenseTest < ActionDispatch::IntegrationTest
 
   test "the engine's admin page in this layout is dense too" do
     log_in_as(player("warden", role: "admin"))
-    get admin_theme_path
+    get admin_style_path
     assert_response :success
     assert_includes body_classes, "type-dense"
   end
