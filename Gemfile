@@ -21,7 +21,7 @@ gem "stimulus-rails"
 # fresh app resolves 3.0. Lift this with the Rails bump that supports json 3.
 gem "json", "~> 2.20"
 # Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
-gem "tailwindcss-rails", "~> 4.5"
+gem "tailwindcss-rails", "~> 4.7"
 
 # Shared McRitchie Studio engine: passwordless auth, hub SSO awareness, theme,
 # ErrorLog / rescue_and_log, local email capture, local review. The pin is a
