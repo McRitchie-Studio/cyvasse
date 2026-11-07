@@ -37,6 +37,19 @@ module Cyvasse
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks cyvasse])
 
+    # THE FRIENDLY NOT-FOUND PAGE (studio-engine docs/NOT_FOUND_PAGE.md, task
+    # apps-adopt-not-found-page). A lost visitor, on an unknown address or a
+    # record that is not there, gets the app's name, mark and a button home
+    # inside the app's layout, with status 404. JSON keeps Rails' 404 JSON. If
+    # the page cannot render, the branded public/404.html answers instead.
+    # Guarded so it switches on when the release relocks an engine that has it;
+    # public/404.html answers until then.
+    # OnboardingPrompt can redirect a signed-in player with an incomplete
+    # account, and allow_browser :modern turns old browsers away (bots
+    # excepted); either way the engine falls back to public/404.html, which
+    # carries the board art (public/cyvasse-404-background.jpg).
+    config.exceptions_app = Studio::ExceptionsApp.new if defined?(Studio::ExceptionsApp)
+
     # ActionCable's worker pool runs channel callbacks (live chat), each on a
     # database connection. Set explicitly, from the same budget that sizes the
     # pool in config/database.yml, rather than left to Rails' default of 4.
