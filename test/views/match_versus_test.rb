@@ -47,9 +47,15 @@ class MatchVersusTest < ActionView::TestCase
     first = user_piece(@arya)
     assert_equal first, user_piece(User.find(@arya.id))
     assert_includes AvatarsHelper::USER_PIECES, first
-    2.times { render_versus }
-    assert_equal [ first.slug ] * 2,
-                 css_select("[data-side=me] [data-avatar=piece] img").map { |img| img["src"][%r{pieces/vector/([a-z]+)}, 1] }
+    # Each render draws the same piece. Read after each one: Rails 8.1.4.1's
+    # ActionView::TestCase reads only the latest render, where 8.1.3 read the
+    # two together.
+    2.times do
+      render_versus
+      drawn = css_select("[data-side=me] [data-avatar=piece] img").map { |img| img["src"][%r{pieces/vector/([a-z]+)}, 1] }
+      assert_not_empty drawn
+      assert_equal [ first.slug ], drawn.uniq
+    end
     pieces = 40.times.map { |i| user_piece(User.new(id: i + 1)) }.uniq
     assert_operator pieces.size, :>, 1, "people are spread across the pieces"
     assert_not_includes AvatarsHelper::USER_PIECES.map(&:slug), "mountain"
