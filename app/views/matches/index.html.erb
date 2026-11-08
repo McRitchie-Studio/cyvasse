@@ -1,9 +1,11 @@
 <% content_for(:title, "My games · Cyvasse") %>
 
-<section class="max-w-4xl mx-auto space-y-8">
-  <header class="flex flex-wrap items-end justify-between gap-4">
+<section class="max-w-4xl mx-auto">
+  <%# The engine page header (studio/_page_header), under a Home crumb. The record
+      and the challenge form sit under it, where they stood beside the old h1. %>
+  <%= render "studio/page_header", title: "My games", crumbs: studio_crumbs(:my_games) %>
+  <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="text-3xl font-extrabold text-heading tracking-tight">My games</h1>
       <p class="text-secondary">
         Playing as <strong class="text-heading"><%= current_user.player_name %></strong>
         · <span data-record><%= current_user.wins %> won, <%= current_user.losses %> lost</span>
@@ -22,15 +24,17 @@
       </div>
       <%= form.submit "Challenge", class: "btn btn-primary" %>
     <% end %>
-  </header>
+  </div>
 
-  <p class="text-sm text-secondary">
-    Each player has seven days to make a move; let the clock run out and you forfeit.
-    We email you when it is your turn.
-  </p>
+  <div class="mt-8 space-y-8">
+    <p class="text-sm text-secondary">
+      Each player has seven days to make a move; let the clock run out and you forfeit.
+      We email you when it is your turn.
+    </p>
 
-  <%= render "matches/list", title: "Your move", matches: @your_move, empty: "Nothing waiting on you." %>
-  <%= render "matches/list", title: "Set up your army", matches: @setup, empty: "No armies to place." %>
-  <%= render "matches/list", title: "Waiting on your opponent", matches: @waiting, empty: "Nothing in flight." %>
-  <%= render "matches/list", title: "Finished", matches: @finished, empty: "No finished games yet." %>
+    <%= render "matches/list", title: "Your move", matches: @your_move, empty: "Nothing waiting on you." %>
+    <%= render "matches/list", title: "Set up your army", matches: @setup, empty: "No armies to place." %>
+    <%= render "matches/list", title: "Waiting on your opponent", matches: @waiting, empty: "Nothing in flight." %>
+    <%= render "matches/list", title: "Finished", matches: @finished, empty: "No finished games yet." %>
+  </div>
 </section>

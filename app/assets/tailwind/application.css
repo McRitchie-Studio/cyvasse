@@ -271,8 +271,9 @@ footer.ftr {
   --ftr-primary: var(--cyvasse-gold-ink);
 }
 
-/* The Privacy Policy and the Terms (legal/): links read like the rules'. */
-.legal-page a {
+/* The Privacy Policy and the Terms (legal/): links read like the rules'. The
+ * policy's body only, so the page header's crumbs keep the engine's look. */
+.legal-page .legal-body a {
   color: var(--cyvasse-gold-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -710,26 +711,6 @@ header nav a[href="/conversations"] > span {
   color: var(--cyvasse-gold-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-
-.leaderboard-tabs {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.leaderboard-tab {
-  padding: 0.35rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  font-size: calc(var(--type-base, 16px) * 1);
-  font-weight: 600;
-  color: var(--color-text-body);
-}
-
-.leaderboard-tab.is-active {
-  color: var(--color-text);
-  background: rgb(var(--color-primary-rgb) / 0.15);
-  border-color: rgb(var(--color-primary-rgb) / 0.5);
 }
 
 /* A guest's sign-in call after a live game (matches/show). */

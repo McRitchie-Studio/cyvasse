@@ -4,10 +4,12 @@
 <% content_for(:title, "Terms of Service · Cyvasse") %>
 
 <article class="max-w-3xl mx-auto legal-page" data-legal-page="terms">
-  <h1 class="text-3xl font-bold text-heading mb-2">Terms of Service</h1>
-  <p class="text-muted text-sm mb-8">Last updated: October 3, 2026</p>
+  <%# The engine page header (studio/_page_header), under a Home crumb, a direct
+      child of the article so it sticks while the policy scrolls. %>
+  <%= render "studio/page_header", title: "Terms of Service", crumbs: studio_crumbs(parent: :home) %>
+  <p class="mt-1 text-muted text-sm mb-8">Last updated: October 3, 2026</p>
 
-  <div class="space-y-8 text-body leading-relaxed">
+  <div class="legal-body space-y-8 text-body leading-relaxed">
     <section class="space-y-3">
       <h2 class="text-xl font-semibold text-heading">1. The Service</h2>
       <p>Cyvasse (the "Service", "we", "us") is operated by <span data-legal-entity>McRitchie Studio LLC (doing business as McRitchie Studio)</span>. The Service is the website <a href="https://cyvasse.xyz">cyvasse.xyz</a>, formerly cyvasse.mcritchie.studio, where you can learn and play Cyvasse against the computer and against other players, and the emails we send about it.</p>

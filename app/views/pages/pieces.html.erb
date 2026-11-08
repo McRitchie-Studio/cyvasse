@@ -1,13 +1,12 @@
 <% seo_page :pieces %>
 
 <section class="max-w-4xl mx-auto">
-  <header class="mb-8">
-    <h1 class="text-3xl font-extrabold text-heading tracking-tight mb-2">The Pieces</h1>
-    <p class="text-secondary leading-relaxed max-w-2xl">
-      All eleven Cyvasse pieces, each in both of the original skins: the pencil
-      drawings and the coloured vector art.
-    </p>
-  </header>
+  <%# The engine page header (studio/_page_header), under a Home crumb. %>
+  <%= render "studio/page_header", title: "The Pieces", crumbs: studio_crumbs(parent: :home) %>
+  <p class="mt-1 mb-8 text-secondary leading-relaxed max-w-2xl">
+    All eleven Cyvasse pieces, each in both of the original skins: the pencil
+    drawings and the coloured vector art.
+  </p>
 
   <div class="mb-6"><%= render "skins/toggle" %></div>
 

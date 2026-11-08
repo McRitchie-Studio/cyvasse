@@ -25,7 +25,7 @@ Message Board pages.
 | | |
 |---|---|
 | Ruby / Rails | 3.3.11 / 8.1 (matches the mcritchie-studio hub) |
-| Engine | `studio-engine` from RubyGems (`~> 0.109`, the health report endpoint; the Gemfile says why) |
+| Engine | `studio-engine` from RubyGems (`~> 0.133`, the page header with crumbs; the Gemfile says why) |
 | Database | Postgres |
 | CSS / JS | Tailwind v4 (`tailwindcss-rails`), importmap, Turbo, Stimulus; Alpine from the engine |
 | Realtime | ActionCable carrying Turbo Streams (the live chat): Heroku Redis in production (`REDIS_URL`), the in-process adapter in development and tests |
@@ -853,6 +853,30 @@ verify the site and submit the sitemap:
    press **Verify** once the release is up.
 4. In the property, open **Sitemaps**, enter `sitemap.xml` and **Submit**. Then
    use **URL inspection** on the home page and **Request indexing**.
+
+## Page headers
+
+Every interior page with a title row, and every admin page, renders the
+engine's `studio/page_header` (task cyvasse-standard-page-headers): the page's
+one h1, a crumb trail above it, and the row sticks under the navbar as the page
+scrolls. The trail comes from one parent map,
+`config/initializers/studio_crumbs.rb`; a page names only its parent.
+
+| Page | Trail |
+|------|-------|
+| `/privacy`, `/terms`, `/pieces`, `/leaderboard` (its Live and All-time boards are the row's tabs), `/matches`, `/conversations` | Home |
+| `/conversations/:id` | Home › Chat |
+| `/username` | Home › My games |
+| `/leaderboard/join` | Home › Leaderboard |
+| `/admin/conversations` | the admin root, no trail; the Message Board is its links line |
+| `/admin/message_board`, `/admin/sign_ins`, `/admin/conversations/:id`, `/admin/matches/:id` | Conversations |
+
+These keep their own headers on purpose: the home hero (`pages/index`), the
+Rules and About banners (`pages/_banner`), the Cyvasse Night hero
+(`nights/show`), the game surfaces (`/play`'s heading, a match's versus card,
+the live-seek search), and the onboarding steps, whose h1 is the wizard card's.
+Tests: `test/components/page_headers_test.rb`, `test/helpers/studio_crumbs_test.rb`,
+`test/system/page_header_test.rb`.
 
 ## Site footer and legal pages
 

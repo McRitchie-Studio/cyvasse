@@ -1,42 +1,39 @@
 <% seo_page(@board == "all-time" ? :all_time_leaderboard : :leaderboard) %>
 
-<section class="max-w-2xl mx-auto space-y-6">
-  <header class="space-y-2">
-    <h1 class="text-3xl font-extrabold text-heading tracking-tight">Leaderboard</h1>
-    <p class="text-secondary text-sm">
-      <% if @board == "live" %>
-        Live games since the relaunch: 1 point for every game you finish, 3 for a win. Games against
-        the computer count; a seat a computer took over after missed clocks counts for nobody. Ties go
-        to more wins, then whoever reached the score first.
-      <% else %>
-        Every player's record, the old Cyvasse's games included.
-      <% end %>
-    </p>
-  </header>
-
-  <nav class="leaderboard-tabs" aria-label="Leaderboards">
-    <%= link_to "Live", leaderboard_path, class: "leaderboard-tab#{' is-active' if @board == 'live'}",
-          aria: { current: (@board == "live" ? "page" : nil) } %>
-    <%= link_to "All-time", leaderboard_path(board: "all-time"), class: "leaderboard-tab#{' is-active' if @board == 'all-time'}",
-          aria: { current: (@board == "all-time" ? "page" : nil) } %>
-  </nav>
-
-  <div class="card p-4" data-board="<%= @board %>">
-    <% if @rows.empty? %>
-      <%# One button, the whole line: the page's main Play Now stays the only
-          control called exactly that. %>
-      <%= button_to live_seeks_path, class: "leaderboard-inline-cta", form: { class: "block" }, data: { leaderboard_empty: true } do %>
-        Be the first on the board — <strong>Play Now</strong>
-      <% end %>
+<section class="max-w-2xl mx-auto">
+  <%# The engine page header (studio/_page_header), under a Home crumb. The Live and
+      All-time boards are its tabs, the row's one pill group. %>
+  <%= render "studio/page_header", title: "Leaderboard", crumbs: studio_crumbs(:leaderboard), label: "Leaderboards",
+        tabs: [ { label: "Live", href: leaderboard_path, current: (@board == "live" ? "page" : nil) },
+                { label: "All-time", href: leaderboard_path(board: "all-time"), current: (@board == "all-time" ? "page" : nil) } ] %>
+  <p class="mt-1 text-secondary text-sm">
+    <% if @board == "live" %>
+      Live games since the relaunch: 1 point for every game you finish, 3 for a win. Games against
+      the computer count; a seat a computer took over after missed clocks counts for nobody. Ties go
+      to more wins, then whoever reached the score first.
     <% else %>
-      <%= render "leaderboards/rows", rows: @rows, board: @board %>
+      Every player's record, the old Cyvasse's games included.
+    <% end %>
+  </p>
+
+  <div class="mt-6 space-y-6">
+    <div class="card p-4" data-board="<%= @board %>">
+      <% if @rows.empty? %>
+        <%# One button, the whole line: the page's main Play Now stays the only
+            control called exactly that. %>
+        <%= button_to live_seeks_path, class: "leaderboard-inline-cta", form: { class: "block" }, data: { leaderboard_empty: true } do %>
+          Be the first on the board — <strong>Play Now</strong>
+        <% end %>
+      <% else %>
+        <%= render "leaderboards/rows", rows: @rows, board: @board %>
+      <% end %>
+    </div>
+
+    <% if current_user&.guest? %>
+      <p class="text-sm text-secondary">
+        Playing as <%= current_user.player_name %>.
+        <%= link_to "Sign in", join_leaderboard_path, class: "underline underline-offset-2" %> to keep your points under your own name.
+      </p>
     <% end %>
   </div>
-
-  <% if current_user&.guest? %>
-    <p class="text-sm text-secondary">
-      Playing as <%= current_user.player_name %>.
-      <%= link_to "Sign in", join_leaderboard_path, class: "underline underline-offset-2" %> to keep your points under your own name.
-    </p>
-  <% end %>
 </section>
