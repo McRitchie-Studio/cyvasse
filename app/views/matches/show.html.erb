@@ -2,7 +2,12 @@
 <% content_for(:title, "#{current_user.player_name} vs #{them} · Cyvasse") %>
 <% preload_modules "game" %>
 <% content_for(:head) do %>
-  <%= stylesheet_link_tag "game", "data-turbo-track": "reload" %>
+  <%# "dynamic", not "reload": this sheet is on the board pages only, and a
+      "reload" mark makes every visit onto or off a board (Play another game,
+      a found match, a navbar link) a full page load, since the tracked set
+      differs. Turbo adds a dynamic sheet on the way in, waits for it to load,
+      and removes it on the way out (task cyvasse-game-over-spec-race). %>
+  <%= stylesheet_link_tag "game", "data-turbo-track": "dynamic" %>
   <%# A match moves on without this page: never restore a cached board. %>
   <meta name="turbo-cache-control" content="no-cache">
 <% end %>
