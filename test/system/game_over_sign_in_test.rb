@@ -27,8 +27,10 @@ class GameOverSignInSystemTest < ApplicationSystemTestCase
     visit root_path
     click_on "Play Now"
     assert_text "Finding an opponent"
+    stamp_document
     click_on "Play the computer now"
     assert_selector "[data-controller=cyvasse-match]", wait: 8
+    assert_same_document "the board loaded a fresh page; Turbo should render it"
     guest = LiveSeek.last.user
     match = Match.involving(guest).last
     match.set_up!(guest, CyvasseRules::Bot.lineup(rng: Random.new(5)))
@@ -108,8 +110,7 @@ class GameOverSignInSystemTest < ApplicationSystemTestCase
     within("[data-test=check-inbox-modal]") { assert_text "arya@example.com" }
     screenshot("check-inbox")
 
-    visit link_path(token: Studio::Link.last.token)
-    click_on "Sign in" if page.has_button?("Sign in", wait: 1)
+    visit_magic_link(Studio::Link.last.token)
     # A new account finishes itself first (the onboarding), username first.
     assert_selector "[data-onboarding-step=username] h1", text: "Pick a username"
     fill_in "Username", with: "arya"
@@ -131,15 +132,20 @@ class GameOverSignInSystemTest < ApplicationSystemTestCase
     match = Match.start_live!(arya, computer: true, rng: Random.new(4))
     match.set_up!(arya, CyvasseRules::Bot.lineup(rng: Random.new(5)))
     match.reload.send(:finish!, winner: match.away_user, reason: "king")
-    visit link_path(token: Studio::Link.create_magic_link(email: arya.email, return_to: match_path(match)).token)
-    click_on "Sign in" if page.has_button?("Sign in", wait: 1)
+    visit_magic_link(Studio::Link.create_magic_link(email: arya.email, return_to: match_path(match)).token)
 
     within(MODAL) do
       assert_selector "h3", text: "Your king fell. You were defeated."
       assert_no_text "Sign in"
-      click_on "Play another game"
     end
+    # Turbo renders the search: a full page load here (the board's own
+    # stylesheet once marked data-turbo-track=reload) replaced the document
+    # under assert_text's <html>, and chromedriver answered UnknownError
+    # (CI run 42521159782; task cyvasse-game-over-spec-race).
+    stamp_document
+    within(MODAL) { click_on "Play another game" }
     assert_text "Finding an opponent"
+    assert_same_document "Play another game loaded a fresh page; Turbo should render the search"
   end
 
   private

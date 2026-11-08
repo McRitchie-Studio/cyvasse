@@ -73,6 +73,31 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     end
   end
 
+  # Follows a magic link and returns once its sign-in has landed. The link's
+  # page (the engine's confirm interstitial) posts its own form outside
+  # Turbo: a full page load, the race click_button_and_await_page_load
+  # describes. A Capybara query held over the interstitial (has_button? on
+  # its hidden fallback, assert_text's <html>) can ask a node for its
+  # visibility just as the next document replaces it, so the wait asks the
+  # browser by script where it is, holding no element.
+  def visit_magic_link(token)
+    visit link_path(token: token)
+    page.document.synchronize do
+      left = page.evaluate_script("!location.pathname.startsWith('/l/')")
+      raise Capybara::ExpectationNotMet, "the magic link's page never moved on" unless left
+    end
+  end
+
+  # Fails when the page was loaded afresh since #stamp_document: a visit
+  # Turbo should render (a body swap) became a full page load.
+  def stamp_document
+    page.execute_script("document.documentElement.dataset.sameDocument = ''")
+  end
+
+  def assert_same_document(message)
+    assert page.evaluate_script("'sameDocument' in document.documentElement.dataset"), message
+  end
+
   # Runs the block with the browser's Math.random seeded (mulberry32) on
   # every page it loads, so /play's army, the computer's lineup, who moves
   # first and the computer's moves are one fixed game rather than a random
