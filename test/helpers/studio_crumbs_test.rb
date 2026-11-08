@@ -12,6 +12,13 @@ class StudioCrumbsTest < ActionView::TestCase
     assert_equal [ { label: "Home", href: "/" } ], studio_crumbs(parent: :home)
     assert_equal [ { label: "Home", href: "/" } ], studio_crumbs(:my_games)
     assert_equal [ { label: "Home", href: "/" } ], studio_crumbs(:chat)
+    assert_equal [ { label: "Home", href: "/" } ], studio_crumbs(:leaderboard)
+  end
+
+  test "[unit] the username page and the leaderboard's sign-in sit one page deeper" do
+    assert_equal [ "Home", "My games" ], labels(studio_crumbs(parent: :my_games))
+    assert_equal [ "Home", "Leaderboard" ], labels(studio_crumbs(parent: :leaderboard))
+    assert_equal leaderboard_path, studio_crumbs(parent: :leaderboard).last[:href]
   end
 
   test "[unit] a conversation sits under Chat, under Home" do

@@ -70,12 +70,23 @@ class PageHeadersTest < ActionDispatch::IntegrationTest
     assert_select ".leaderboard-tabs, .leaderboard-tab", 0
   end
 
+  test "[component] the leaderboard's sign-in sits under the Leaderboard, its card under the row" do
+    get join_leaderboard_path
+    assert_standard_header("join", "Save your games", [ "Home", "Leaderboard" ])
+    assert_select "#{ROW} .page-header-crumb-current", text: "Sign in"
+    assert_select "#{ROW} ~ .card[data-join-leaderboard] form[action=?]", magic_link_request_path
+  end
+
   test "[component] My games, Chat and a conversation sit under Home and Chat" do
     log_in_as(@arya)
     get matches_path
     assert_standard_header("my games", "My games", [ "Home" ])
     assert_select "form[action=?] input[name=username]", matches_path
     assert_select "a[data-chat-link]"
+
+    get username_path(return_to: matches_path)
+    assert_standard_header("username", "Your username", [ "Home", "My games" ])
+    assert_select "#{ROW} ~ .card form[action=?] input[name=username]", username_path
 
     get conversations_path
     assert_standard_header("chat", "Chat", [ "Home" ])
