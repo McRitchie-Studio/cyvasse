@@ -595,7 +595,9 @@ A page subscribes with `turbo_stream_from ..., channel: ChatStreamsChannel`:
 the stream name is signed by the server, and the channel also checks that the
 socket's player (`ApplicationCable::Connection`, from the session cookie) is
 the one the stream belongs to, so a signed name copied from someone else's
-page streams nothing. There is no polling: Turbo's cable source reconnects by
+page streams nothing. A cookie whose device logged out opens no socket at all:
+the connection asks the engine's device-session check
+(`Studio::UserSession.ended?`) and refuses an ended session. There is no polling: Turbo's cable source reconnects by
 itself, and on reconnecting (or on coming back to the tab) the chat asks for
 the messages since its last one, since a broadcast sent while a socket was
 down is not replayed. A broadcast, rendering included, never fails the write
