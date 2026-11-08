@@ -13,7 +13,7 @@
             autocomplete: "username", autocapitalize: "none", spellcheck: false, maxlength: 20, class: "input-field w-full" %>
     </div>
     <% if current_user.errors[:username].any? %>
-      <p class="text-sm" role="alert" style="color: var(--color-danger-ink, var(--color-danger))">
+      <p class="text-sm text-danger-ink" role="alert">
         Username <%= current_user.errors[:username].to_sentence %>.
       </p>
     <% end %>

@@ -1,12 +1,11 @@
 <% content_for(:title, "Match ##{@match.id} · Admin · Cyvasse") %>
 
 <section class="max-w-3xl mx-auto space-y-6">
-  <header class="wrap-anywhere">
-    <p class="text-sm text-secondary"><%= link_to "← Conversations", admin_conversations_path, class: "underline underline-offset-2" %></p>
-    <h1 class="text-3xl font-extrabold text-heading tracking-tight">
-      Match #<%= @match.id %>: <%= @match.home_user.player_name %> <span class="text-muted font-semibold">vs</span> <%= @match.away_user.player_name %>
-    </h1>
-  </header>
+  <%# The engine page header (studio/_page_header): the old "Conversations" back
+      link is the crumb trail. %>
+  <%= render "studio/page_header",
+        title: "Match ##{@match.id}: #{@match.home_user.player_name} vs #{@match.away_user.player_name}",
+        crumb_label: "Match ##{@match.id}", crumbs: studio_crumbs(parent: :admin_conversations) %>
 
   <dl class="card p-4 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm wrap-anywhere" data-match-facts>
     <dt class="text-muted">Status</dt><dd class="text-heading"><%= @match.match_status %><%= " (#{@match.finish_reason})" if @match.finish_reason %></dd>
