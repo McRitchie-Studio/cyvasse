@@ -5,17 +5,21 @@ require "test_helper"
 # when Google verified that address, the same rule as the main path; otherwise a
 # race hands an unverified address its holder's account.
 class UserOmniauthRaceTest < ActiveSupport::TestCase
-  # minitest 6 ships no stub. Both methods swapped here (User.create!,
-  # GoogleOauthValidator.new) are inherited, so removing the singleton
-  # override restores the original.
+  # minitest 6 ships no stub (minitest/mock is gone). The one method swapped
+  # here, User.create!, is inherited, so removing the singleton override
+  # restores the original. The guard runs before the swap, outside the
+  # ensure, so a refused swap never removes a method it did not define.
   def swap_class_method(klass, name, replacement)
     raise ArgumentError, "#{klass}.#{name} is defined on #{klass} itself" if klass.singleton_class.method_defined?(name, false)
 
     klass.define_singleton_method(name, &replacement)
-    yield
-  ensure
-    klass.singleton_class.send(:remove_method, name) if klass.singleton_class.method_defined?(name, false)
+    begin
+      yield
+    ensure
+      klass.singleton_class.send(:remove_method, name)
+    end
   end
+
   def google_auth(email:, uid:)
     OmniAuth::AuthHash.new(provider: "google_oauth2", uid: uid, info: { email: email, name: "Racer" })
   end

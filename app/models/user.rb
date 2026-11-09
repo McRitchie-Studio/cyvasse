@@ -213,13 +213,13 @@ class User < ApplicationRecord
 
     create!(email:, name: auth.info.name.presence, provider: auth.provider, uid: auth.uid)
   rescue ActiveRecord::RecordNotUnique => e
-    # A concurrent callback created it first. The Google identity first; the
-    # address only once Google verified it, the same rule as the link above,
-    # or a race would hand an unverified address its holder's account. A
-    # collision that matches nobody is logged, and nobody is signed in.
-    find_by(provider: auth.provider, uid: auth.uid) ||
-      (email_verified && email && find_by(email:)) ||
-      (ErrorLog.capture!(e) && nil)
+    # A concurrent callback created it first. The engine finds the row the race
+    # left: the Google identity first, the address only once Google verified
+    # it (the same rule as the link above, or a race would hand an unverified
+    # address its holder's account). A collision that matches nobody is
+    # logged, and nobody is signed in.
+    Studio::Account.race_winner(self, provider: auth.provider, uid: auth.uid,
+                                      email:, email_verified:, error: e)
   end
 
   # A player's one public name, wherever a player's name renders: the navbar,

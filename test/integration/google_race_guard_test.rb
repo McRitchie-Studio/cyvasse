@@ -4,17 +4,22 @@ require "test_helper"
 # Google says the address is NOT verified, and the address holder's row lands
 # between our lookup and our create!. The callback must sign nobody in.
 class GoogleRaceGuardTest < ActionDispatch::IntegrationTest
-  # minitest 6 ships no stub. Both methods swapped here (User.create!,
-  # GoogleOauthValidator.new) are inherited, so removing the singleton
-  # override restores the original.
+  # minitest 6 ships no stub (minitest/mock is gone). Both methods swapped
+  # here (User.create!, GoogleOauthValidator.new) are inherited, so removing
+  # the singleton override restores the original. The guard runs before the
+  # swap, outside the ensure, so a refused swap never removes a method it did
+  # not define.
   def swap_class_method(klass, name, replacement)
     raise ArgumentError, "#{klass}.#{name} is defined on #{klass} itself" if klass.singleton_class.method_defined?(name, false)
 
     klass.define_singleton_method(name, &replacement)
-    yield
-  ensure
-    klass.singleton_class.send(:remove_method, name) if klass.singleton_class.method_defined?(name, false)
+    begin
+      yield
+    ensure
+      klass.singleton_class.send(:remove_method, name)
+    end
   end
+
   teardown do
     OmniAuth.config.mock_auth[:google_oauth2] = nil
     OmniAuth.config.test_mode = false
