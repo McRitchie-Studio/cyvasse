@@ -194,7 +194,7 @@ class MatchChatSystemTest < ApplicationSystemTestCase
   end
 
   def sign_in(user)
-    visit link_path(token: Studio::Link.create_magic_link(email: user.email).token)
+    visit_magic_link(Studio::Link.create_magic_link(email: user.email).token)
     assert_text "Signed in as #{user.player_name}"
   end
 end

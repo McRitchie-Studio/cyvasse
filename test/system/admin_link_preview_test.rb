@@ -13,7 +13,7 @@ class AdminLinkPreviewSystemTest < ApplicationSystemTestCase
   teardown { Studio::SiteIdentity.bust_cache! }
 
   test "an admin edits the site card from the admin menu" do
-    visit link_path(token: Studio::Link.create_magic_link(email: @admin.email).token)
+    visit_magic_link(Studio::Link.create_magic_link(email: @admin.email).token)
     assert_text "Signed in as #{@admin.player_name}"
 
     find("button[aria-label='Toggle admin menu']", match: :first).click

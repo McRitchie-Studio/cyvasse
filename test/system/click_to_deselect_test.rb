@@ -70,7 +70,7 @@ class ClickToDeselectTest < ApplicationSystemTestCase
     match = started_match(home, away)
     mover = match.user_to_move
 
-    visit link_path(token: Studio::Link.create_magic_link(email: mover.email).token)
+    visit_magic_link(Studio::Link.create_magic_link(email: mover.email).token)
     assert_text "Signed in as #{mover.player_name}"
     visit match_path(match)
     board = "[data-controller=cyvasse-match]"

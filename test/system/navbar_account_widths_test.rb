@@ -16,7 +16,7 @@ class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
   setup do
     @guest = User.create_guest!(rng: Random.new(21))
     @guest.update!(email: "navbar-widths@example.com")
-    visit link_path(token: Studio::Link.create_magic_link(email: @guest.email).token)
+    visit_magic_link(Studio::Link.create_magic_link(email: @guest.email).token)
     assert_text "Signed in as #{@guest.player_name}"
   end
 
@@ -65,7 +65,7 @@ class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
       Capybara.reset_sessions!
       admin = User.create!(email: "navbar-admin@example.com", name: "Admin", role: "admin")
       at_width(width, mobile: mobile)
-      visit link_path(token: Studio::Link.create_magic_link(email: admin.email).token)
+      visit_magic_link(Studio::Link.create_magic_link(email: admin.email).token)
       assert_text "Signed in as #{admin.player_name}"
       visit root_path
 

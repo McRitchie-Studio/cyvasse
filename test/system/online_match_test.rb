@@ -122,7 +122,7 @@ class OnlineMatchSystemTest < ApplicationSystemTestCase
 
   def sign_in(user)
     # The link's confirm page submits itself and lands on the front page.
-    visit link_path(token: Studio::Link.create_magic_link(email: user.email).token)
+    visit_magic_link(Studio::Link.create_magic_link(email: user.email).token)
     assert_text "Signed in as #{user.player_name}"
   end
 

@@ -9,7 +9,7 @@ class ForfeitCalledOffTest < ApplicationSystemTestCase
   setup do
     @arya = User.create!(email: "arya@example.com", name: "Arya", username: "arya")
     @brienne = User.create!(email: "brienne@example.com", name: "Brienne", username: "brienne")
-    visit link_path(token: Studio::Link.create_magic_link(email: @arya.email).token)
+    visit_magic_link(Studio::Link.create_magic_link(email: @arya.email).token)
     assert_text "Signed in as arya"
   end
 

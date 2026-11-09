@@ -74,18 +74,17 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   end
 
   # Follows a magic link and returns once its sign-in has landed. The link's
-  # page (the engine's confirm interstitial) posts its own form outside
-  # Turbo: a full page load, the race click_button_and_await_page_load
-  # describes. A Capybara query held over the interstitial (has_button? on
-  # its hidden fallback, assert_text's <html>) can ask a node for its
-  # visibility just as the next document replaces it, so the wait asks the
-  # browser by script where it is, holding no element.
+  # page (the engine's confirm interstitial, under /l/) posts its own form
+  # outside Turbo: a full page load, the race click_button_and_await_page_load
+  # describes. A query held over the interstitial (has_button? on its hidden
+  # fallback, assert_text's <html>) can ask a node for its visibility just as
+  # the next document replaces it, and a script run then can raise mid-
+  # navigation too. So the wait reads only the URL, which Capybara retries and
+  # which needs no node: once it leaves /l/, the next document is committed
+  # (task cyvasse-board-visit-polish). Assert on that page after this returns.
   def visit_magic_link(token)
     visit link_path(token: token)
-    page.document.synchronize do
-      left = page.evaluate_script("!location.pathname.startsWith('/l/')")
-      raise Capybara::ExpectationNotMet, "the magic link's page never moved on" unless left
-    end
+    assert_no_current_path(%r{\A/l/}, ignore_query: true)
   end
 
   # Fails when the page was loaded afresh since #stamp_document: a visit
