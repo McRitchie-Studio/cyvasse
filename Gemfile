@@ -59,7 +59,7 @@ gem "tailwindcss-rails", "~> 4.5"
 # and boot raises (task cyvasse-adopts-type-scale). 0.116.0 was the floor before
 # it, for the navbar account group: where the account opens the link sidebar, as the gear does, the engine lights the gear, the name and the avatar together on hover or focus, the avatar with a primary glow. Below 0.116.0 nothing raises; the three just hover apart (task cyvasse-adopts-engine-0-116).
 # test/lib/engine_pin_contract_test.rb holds the floor.
-gem "studio-engine", "~> 0.133", ">= 0.133.0"
+gem "studio-engine", "~> 0.138", ">= 0.138.0"
 # Google sign-in through the engine's OmniauthCallbacksController, beside the
 # magic link (config/initializers/omniauth.rb). The same three gems the hub runs.
 # ES256 assertions from the hub (EmailHandoff::Verifier).
