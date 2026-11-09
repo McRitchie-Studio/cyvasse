@@ -40,7 +40,7 @@ class PhoneWidthTest < ApplicationSystemTestCase
   test "the online match board has no sideways scroll at 390px while its turn banner comes and goes" do
     arya = User.create!(email: "arya@example.com", name: "Arya", username: "arya")
     match = Match.start_live!(arya, computer: true, rng: Random.new(4))
-    visit link_path(token: Studio::Link.create_magic_link(email: arya.email).token)
+    visit_magic_link(Studio::Link.create_magic_link(email: arya.email).token)
     assert_text "Signed in as arya"
 
     phone!(390)

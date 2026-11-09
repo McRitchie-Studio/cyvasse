@@ -27,7 +27,7 @@ class ThreatTogglesTest < ApplicationSystemTestCase
     home = make_player("arya")
     away = make_player("brienne")
     match = started_match(home, away)
-    visit link_path(token: Studio::Link.create_magic_link(email: home.email).token)
+    visit_magic_link(Studio::Link.create_magic_link(email: home.email).token)
     assert_text "Signed in as arya"
     visit match_path(match)
     assert_selector "[data-controller=cyvasse-match][data-phase=play][data-your-turn=true]"

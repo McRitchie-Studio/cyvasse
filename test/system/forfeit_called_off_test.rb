@@ -9,7 +9,7 @@ class ForfeitCalledOffTest < ApplicationSystemTestCase
   setup do
     @arya = User.create!(email: "arya@example.com", name: "Arya", username: "arya")
     @brienne = User.create!(email: "brienne@example.com", name: "Brienne", username: "brienne")
-    visit link_path(token: Studio::Link.create_magic_link(email: @arya.email).token)
+    visit_magic_link(Studio::Link.create_magic_link(email: @arya.email).token)
     assert_text "Signed in as arya"
   end
 
@@ -59,6 +59,12 @@ class ForfeitCalledOffTest < ApplicationSystemTestCase
     js = ->(script) { page.document.synchronize { page.evaluate_script(script) || raise(Capybara::ExpectationNotMet, script) } }
     js.("window.held.length > 0")
     page.execute_script("Turbo.visit(#{play_path.to_json})")
+    # Wait on /play's own board, a node of the new page, with room for a
+    # loaded runner: under the full suite /play took 395ms to render and the
+    # swap landed at assert_no_selector's 2s edge, whose last retry met the
+    # old board mid-removal (StaleElementReferenceError, task
+    # cyvasse-board-visit-polish).
+    assert_selector "[data-controller=cyvasse-game]", wait: 10
     assert_no_selector BOARD
     match.withdraw!(@brienne)
     page.execute_script("window.held.splice(0).forEach((answer) => answer())")

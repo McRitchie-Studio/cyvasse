@@ -74,18 +74,17 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   end
 
   # Follows a magic link and returns once its sign-in has landed. The link's
-  # page (the engine's confirm interstitial) posts its own form outside
-  # Turbo: a full page load, the race click_button_and_await_page_load
-  # describes. A Capybara query held over the interstitial (has_button? on
-  # its hidden fallback, assert_text's <html>) can ask a node for its
-  # visibility just as the next document replaces it, so the wait asks the
-  # browser by script where it is, holding no element.
+  # page (the engine's confirm interstitial, under /l/) posts its own form
+  # outside Turbo: a full page load, the race click_button_and_await_page_load
+  # describes. A query held over the interstitial (has_button? on its hidden
+  # fallback, assert_text's <html>) can ask a node for its visibility just as
+  # the next document replaces it, and a script run then can raise mid-
+  # navigation too. So the wait reads only the URL, which Capybara retries and
+  # which needs no node: once it leaves /l/, the next document is committed
+  # (task cyvasse-board-visit-polish). Assert on that page after this returns.
   def visit_magic_link(token)
     visit link_path(token: token)
-    page.document.synchronize do
-      left = page.evaluate_script("!location.pathname.startsWith('/l/')")
-      raise Capybara::ExpectationNotMet, "the magic link's page never moved on" unless left
-    end
+    assert_no_current_path(%r{\A/l/}, ignore_query: true)
   end
 
   # Fails when the page was loaded afresh since #stamp_document: a visit
@@ -96,6 +95,27 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
 
   def assert_same_document(message)
     assert page.evaluate_script("'sameDocument' in document.documentElement.dataset"), message
+  end
+
+  # Fails unless the board's own stylesheet (game.css, linked from the board
+  # pages only, data-turbo-track=dynamic) styles the page. A Turbo visit
+  # onto a board must add the sheet and wait for it; assert_same_document
+  # proves only that Turbo swapped the body. overflow-x: clip on the board's
+  # wrap is set by game.css alone, so an unstyled board reads "visible".
+  def assert_board_stylesheet_applied
+    assert_selector ".cyvasse-board-wrap"
+    # The script runs only once the board is on the page, after the visit has
+    # landed: no navigation is in flight to raise mid-script.
+    overflow = nil
+    begin
+      page.document.synchronize do
+        overflow = page.evaluate_script("getComputedStyle(document.querySelector('.cyvasse-board-wrap')).overflowX")
+        raise Capybara::ExpectationNotMet unless overflow == "clip"
+      end
+    rescue Capybara::ExpectationNotMet
+      # Capybara's wait is spent: report the last reading as a failure.
+    end
+    assert_equal "clip", overflow, "game.css styles the board (.cyvasse-board-wrap overflow-x)"
   end
 
   # Runs the block with the browser's Math.random seeded (mulberry32) on

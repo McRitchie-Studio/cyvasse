@@ -119,7 +119,7 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     click_on "Email me a sign-in link"
     assert_text "Check your inbox"
 
-    visit link_path(token: Studio::Link.last.token)
+    visit_magic_link(Studio::Link.last.token)
     # A new account finishes itself first (the onboarding), username first.
     assert_selector "[data-onboarding-step=username] h1", text: "Pick a username"
     fill_in "Username", with: "arya"

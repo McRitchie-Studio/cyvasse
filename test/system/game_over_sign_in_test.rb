@@ -31,6 +31,7 @@ class GameOverSignInSystemTest < ApplicationSystemTestCase
     click_on "Play the computer now"
     assert_selector "[data-controller=cyvasse-match]", wait: 8
     assert_same_document "the board loaded a fresh page; Turbo should render it"
+    assert_board_stylesheet_applied
     guest = LiveSeek.last.user
     match = Match.involving(guest).last
     match.set_up!(guest, CyvasseRules::Bot.lineup(rng: Random.new(5)))

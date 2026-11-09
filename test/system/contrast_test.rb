@@ -51,7 +51,7 @@ class ContrastSystemTest < ApplicationSystemTestCase
     test "#{theme}: the green buttons on /play and the gold current-page link clear AA" do
       guest = User.create_guest!(rng: Random.new(11))
       guest.update!(email: "contrast-#{theme}@example.com")
-      visit link_path(token: Studio::Link.create_magic_link(email: guest.email).token)
+      visit_magic_link(Studio::Link.create_magic_link(email: guest.email).token)
       assert_text "Signed in as #{guest.player_name}"
 
       visit_in_theme(play_path, theme)
@@ -71,7 +71,7 @@ class ContrastSystemTest < ApplicationSystemTestCase
     test "#{theme}: the urgent setup clock in the phone dock clears AA" do
       arya = User.create!(email: "arya-#{theme}@example.com", name: "Arya", username: "arya#{theme}")
       match = Match.start_live!(arya, computer: true, rng: Random.new(4))
-      visit link_path(token: Studio::Link.create_magic_link(email: arya.email).token)
+      visit_magic_link(Studio::Link.create_magic_link(email: arya.email).token)
       assert_text "Signed in as #{arya.player_name}"
 
       page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
@@ -100,7 +100,7 @@ class ContrastSystemTest < ApplicationSystemTestCase
     test "#{theme}: the versus card's Computer caption clears AA at full strength" do
       arya = User.create!(email: "caption-#{theme}@example.com", name: "Arya", username: "caption#{theme}")
       match = Match.start_live!(arya, computer: true, rng: Random.new(4))
-      visit link_path(token: Studio::Link.create_magic_link(email: arya.email).token)
+      visit_magic_link(Studio::Link.create_magic_link(email: arya.email).token)
       assert_text "Signed in as #{arya.player_name}"
 
       visit_in_theme(match_path(match), theme)
@@ -117,7 +117,7 @@ class ContrastSystemTest < ApplicationSystemTestCase
   test "390px: the signed-in navbar shows one theme toggle and the avatar, not a truncated name" do
     guest = User.create_guest!(rng: Random.new(13))
     guest.update!(email: "contrast-phone@example.com")
-    visit link_path(token: Studio::Link.create_magic_link(email: guest.email).token)
+    visit_magic_link(Studio::Link.create_magic_link(email: guest.email).token)
     assert_text "Signed in as #{guest.player_name}"
 
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)

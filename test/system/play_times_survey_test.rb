@@ -71,7 +71,7 @@ class PlayTimesSurveySystemTest < ApplicationSystemTestCase
 
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
     admin = User.create!(email: "admin@example.com", name: "Admin", role: "admin", username: "boss")
-    visit link_path(token: Studio::Link.create_magic_link(email: admin.email).token)
+    visit_magic_link(Studio::Link.create_magic_link(email: admin.email).token)
     assert_text "Signed in as #{admin.player_name}"
     visit "/admin/surveys"
     click_on "Cyvasse Night: tell us about you", match: :first
