@@ -104,6 +104,8 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # wrap is set by game.css alone, so an unstyled board reads "visible".
   def assert_board_stylesheet_applied
     assert_selector ".cyvasse-board-wrap"
+    # The script runs only once the board is on the page, after the visit has
+    # landed: no navigation is in flight to raise mid-script.
     overflow = nil
     begin
       page.document.synchronize do
