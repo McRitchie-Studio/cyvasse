@@ -212,9 +212,14 @@ class User < ApplicationRecord
     end
 
     create!(email:, name: auth.info.name.presence, provider: auth.provider, uid: auth.uid)
-  rescue ActiveRecord::RecordNotUnique
-    # A concurrent callback created it first.
-    find_by(provider: auth.provider, uid: auth.uid) || (email && find_by(email:))
+  rescue ActiveRecord::RecordNotUnique => e
+    # A concurrent callback created it first. The Google identity first; the
+    # address only once Google verified it, the same rule as the link above,
+    # or a race would hand an unverified address its holder's account. A
+    # collision that matches nobody is logged, and nobody is signed in.
+    find_by(provider: auth.provider, uid: auth.uid) ||
+      (email_verified && email && find_by(email:)) ||
+      (ErrorLog.capture!(e) && nil)
   end
 
   # A player's one public name, wherever a player's name renders: the navbar,

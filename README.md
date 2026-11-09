@@ -930,7 +930,8 @@ that no page a visitor reaches on the way to an account renders a password field
 
 Sign-in is passwordless: the engine's magic link, and Google through the engine's
 `OmniauthCallbacksController` (`User.from_omniauth` links a Google identity to an
-existing email only once Google has verified it). Google is on only where its OAuth
+existing email only once Google has verified it, and so does its
+concurrent-callback rescue; a race that matches nobody is logged). Google is on only where its OAuth
 client is configured (`config/initializers/omniauth.rb`): `GOOGLE_CLIENT_ID` and
 `GOOGLE_CLIENT_SECRET` set, with `https://cyvasse.xyz/auth/google_oauth2/callback`
 registered on the client (the redirect URI follows the host the player signs in
