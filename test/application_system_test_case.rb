@@ -98,6 +98,25 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     assert page.evaluate_script("'sameDocument' in document.documentElement.dataset"), message
   end
 
+  # Fails unless the board's own stylesheet (game.css, linked from the board
+  # pages only, data-turbo-track=dynamic) styles the page. A Turbo visit
+  # onto a board must add the sheet and wait for it; assert_same_document
+  # proves only that Turbo swapped the body. overflow-x: clip on the board's
+  # wrap is set by game.css alone, so an unstyled board reads "visible".
+  def assert_board_stylesheet_applied
+    assert_selector ".cyvasse-board-wrap"
+    overflow = nil
+    begin
+      page.document.synchronize do
+        overflow = page.evaluate_script("getComputedStyle(document.querySelector('.cyvasse-board-wrap')).overflowX")
+        raise Capybara::ExpectationNotMet unless overflow == "clip"
+      end
+    rescue Capybara::ExpectationNotMet
+      # Capybara's wait is spent: report the last reading as a failure.
+    end
+    assert_equal "clip", overflow, "game.css styles the board (.cyvasse-board-wrap overflow-x)"
+  end
+
   # Runs the block with the browser's Math.random seeded (mulberry32) on
   # every page it loads, so /play's army, the computer's lineup, who moves
   # first and the computer's moves are one fixed game rather than a random

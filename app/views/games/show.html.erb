@@ -7,6 +7,9 @@
       differs. Turbo adds a dynamic sheet on the way in, waits for it to load,
       and removes it on the way out (task cyvasse-game-over-spec-race). %>
   <%= stylesheet_link_tag "game", "data-turbo-track": "dynamic" %>
+  <%# Back to /play must not restore the board the player left: the engine
+      draws a fresh game, so a cached snapshot shows a stale board first. %>
+  <meta name="turbo-cache-control" content="no-cache">
 <% end %>
 
 <section class="cyvasse-game max-w-6xl mx-auto"

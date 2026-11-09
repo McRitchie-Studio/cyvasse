@@ -24,6 +24,15 @@ class GamePageTest < ActionDispatch::IntegrationTest
     assert_select "button[disabled]", text: "Ready"
   end
 
+  # A cached /play would come back on Back as the board the player left, then
+  # the engine would redraw a fresh game over it: never restore a snapshot,
+  # as matches/show already does (task cyvasse-board-visit-polish).
+  test "the board page is never restored from Turbo's cache" do
+    get play_path
+
+    assert_select "head meta[name=turbo-cache-control][content=no-cache]", 1
+  end
+
   test "the threat switches arrive hidden: setup comes first and the board shows them in play" do
     get play_path
 
