@@ -849,3 +849,146 @@ header nav a[href="/conversations"] > span {
   outline: 2px solid #fff;
   outline-offset: 2px;
 }
+
+/* THE GLASS IN CYVASSE'S COLOURS (Studio.surface_style = :glass, task
+ * cyvasse-adopts-glass-style). The engine owns the glass: the translucent
+ * cards, the blurred navbar, the lit buttons and the glass sidebar (engine.css,
+ * THE GLASS SURFACES). Its ambient page lays two primary glows and one blue
+ * glow, and tints the hairlines and shadows violet: the hub's colours. The hub
+ * names no Cyvasse brand (its config/logo_brands.yml has none), so the colours
+ * here are the ones config/initializers/studio.rb already declares: the
+ * primary glows stay (the parchment gold #C08A2E, from the theme), the blue
+ * becomes the success green #367E3A, and the hairline and shadows take a warm
+ * ink brown, #2B2418. In the light theme the gold glows are weaker than the
+ * engine's (0.1, not 0.17 and 0.14): gold is a lighter colour than the hub's
+ * violet, and at the engine's strength the secondary ink on the page, such as
+ * the board's status line, fell to 4.2:1. Unlayered and after the engine import, so these values win.
+ * The engine's tokens sit in a layer, so every value the light block sets is
+ * restated in the dark block. */
+html[data-surface-style="glass"] {
+  --surface-glass-line: rgb(43 36 24 / 0.12);
+  --surface-glass-shadow: 0 6px 20px rgb(43 36 24 / 0.08);
+  --lit-soft-bottom: inset 0 -1px 0 rgb(43 36 24 / 0.08);
+  --lit-soft-pressed: inset 0 2px 3px rgb(43 36 24 / 0.16);
+  --lit-badge: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 1px 1px rgb(43 36 24 / 0.12);
+  --lit-input: inset 0 1px 2px rgb(43 36 24 / 0.14), inset 0 -1px 0 rgb(255 255 255 / 0.6);
+  --surface-glass-ambient:
+    radial-gradient(60vw 55vh at 10% 5%, rgb(var(--color-primary-rgb) / 0.1), transparent 70%),
+    radial-gradient(50vw 60vh at 92% 30%, rgb(54 126 58 / 0.08), transparent 70%),
+    radial-gradient(70vw 55vh at 45% 100%, rgb(var(--color-primary-rgb) / 0.1), transparent 70%);
+}
+html.dark[data-surface-style="glass"] {
+  --surface-glass-line: rgb(255 255 255 / 0.1);
+  --surface-glass-shadow: 0 8px 24px rgb(0 0 0 / 0.22);
+  --lit-soft-bottom: inset 0 -1px 0 rgb(0 0 0 / 0.25);
+  --lit-soft-pressed: inset 0 2px 3px rgb(0 0 0 / 0.4);
+  --lit-badge: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 1px 1px rgb(0 0 0 / 0.35);
+  --lit-input: inset 0 1px 2px rgb(0 0 0 / 0.4), inset 0 -1px 0 rgb(255 255 255 / 0.06);
+  --surface-glass-ambient:
+    radial-gradient(60vw 55vh at 10% 5%, rgb(var(--color-primary-rgb) / 0.2), transparent 70%),
+    radial-gradient(50vw 60vh at 92% 30%, rgb(54 126 58 / 0.12), transparent 70%),
+    radial-gradient(70vw 55vh at 45% 100%, rgb(var(--color-primary-rgb) / 0.14), transparent 70%);
+}
+
+/* THE GLASS SIDEBAR IN CYVASSE'S COLOURS (Studio.sidebar_style = :glass). The
+ * engine's panel is tinted violet for the hub (engine.css, THE GLASS SIDEBAR).
+ * Here it is parchment: the piece tiles' #F7F4EC fill in the light theme,
+ * warm ink #2B2418 and soft ink #4A3E2C; in the dark theme a deep ink brown
+ * fill with parchment ink. The engine's alphas and blur stay, so only the hue
+ * changes. Measured as the engine measures its own, on the thin fill alone
+ * over the worst page (a blur that never paints): soft ink 4.99:1 over black
+ * in the light theme, 4.55:1 over white in the dark; ink 7.4:1 and 5.8:1. The current page's row stays the engine's: a step down the gold's
+ * own scale under white. */
+[data-sidebar-glass-shell] {
+  --glass-fill: rgb(247 244 236 / 0.97);
+  --glass-thin-fill: rgb(251 249 244 / 0.72);
+  --glass-ink: #2b2418;
+  --glass-soft-ink: #4a3e2c;
+  --glass-hover: rgb(43 36 24 / 0.08);
+  --glass-line: rgb(43 36 24 / 0.14);
+  --glass-shadow: 0 24px 60px rgb(43 36 24 / 0.24);
+}
+.dark [data-sidebar-glass-shell] {
+  --glass-fill: rgb(38 32 24 / 0.97);
+  --glass-thin-fill: rgb(38 32 24 / 0.72);
+  --glass-ink: #f7f4ec;
+  --glass-soft-ink: #e2d9c6;
+  --glass-hover: rgb(255 255 255 / 0.1);
+  --glass-line: rgb(255 255 255 / 0.14);
+  --glass-shadow: 0 24px 60px rgb(0 0 0 / 0.5);
+}
+
+/* THE GAME-OVER MODAL STAYS AS IT WAS. The modal's card is already solid (the
+ * engine leaves anything in a dialog solid), but its two buttons would be lit:
+ * a gradient, a glow, a 1px border, a press that moves, and in the dark theme
+ * a see-through fill. The end of a game is part of the game, which keeps its
+ * look, so these rules put back the engine's plain filled buttons. */
+html[data-surface-style="glass"] .cyvasse-game-over .btn {
+  border-width: 0;
+  background-image: none;
+  box-shadow: none;
+  translate: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html[data-surface-style="glass"] .cyvasse-game-over .btn::after {
+  content: none;
+}
+html[data-surface-style="glass"] .cyvasse-game-over .btn-primary {
+  background-color: var(--color-cta-fill, var(--color-cta));
+  filter: none;
+}
+html[data-surface-style="glass"] .cyvasse-game-over .btn-primary:hover {
+  background-color: var(--color-cta-hover);
+}
+html[data-surface-style="glass"] .cyvasse-game-over .btn-secondary {
+  background-color: var(--btn-secondary-bg, var(--color-success));
+}
+
+/* THE LIVE LEADERBOARD OVER THE HERO. On the front door the card sits on a
+ * dark photo, and the engine's 62% fill turned it grey there in the light
+ * theme, with its muted heading under 4.5:1. Over the photo it is frosted
+ * glass instead: the real blur (the card carries .surface-glass-blur) and an
+ * 88% fill, which holds the muted ink at 4.5:1 or more in both themes. The
+ * card is drawn only in the hero, so the rule names the hero. */
+html[data-surface-style="glass"] .home-hero-scrim [data-leaderboard-card] {
+  --surface-card-fill: color-mix(in srgb, var(--color-surface) 88%, transparent);
+}
+
+/* THE LIT BUTTONS KEEP CYVASSE'S AA SHADES. The engine centres a lit button's
+ * gradient on its fill, one step lighter at the top and one darker at the
+ * foot. Cyvasse's fills are tuned to just clear 4.5:1 under white (the CTA
+ * gold's 700 shade at 5.6:1, the success green at 5.0:1; see the top of this
+ * file), so the lighter top fell to 4.0:1 on the green. Here the gradient
+ * starts at the fill and runs two steps darker: the same light-to-dark lit
+ * look, and white holds at least the fill's own contrast across the button. */
+html[data-surface-style="glass"] :is(.btn-primary, .btn-secondary) {
+  --lit-top-stop: oklch(from var(--lit-fill) l c h / var(--lit-fill-alpha, 1));
+  --lit-low-stop: oklch(from var(--lit-fill) calc(l - 0.12) c h / var(--lit-fill-alpha, 1));
+}
+
+/* THE BOARD'S PAGE KEEPS ITS PLAIN GROUND. The ambient glows lie behind the
+ * whole page, so on /play and a match they would tint the page between and
+ * around the hexes, and the board's status line over them fell under 4.5:1.
+ * The board is the game and keeps its look: on a board page the glows are off.
+ * The panels beside the board stay glass. */
+html[data-surface-style="glass"] body:has(.cyvasse-game)::before {
+  background-image: none;
+}
+
+/* THE LIGHT NAVBAR OVER THE DARK BANDS. The home hero, the Rules and About
+ * banners and the Night hero are dark photos, and as one scrolls under the
+ * pinned navbar the engine's 62% fill turns grey over it in the light theme,
+ * with the gold name and the links muddy on it. A 90% fill keeps the bar
+ * light, as Turf and Industries did (tasks turf-adopts-glass-style,
+ * industries-adopts-glass-style). The dark theme keeps the engine's fill.
+ * Inside the same @supports as the engine's rule, so a browser with no blur
+ * keeps the solid bar. */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  html[data-surface-style="glass"]:not(.dark) .nav-shell {
+    background-color: color-mix(in srgb, var(--color-page) 90%, transparent);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    html[data-surface-style="glass"]:not(.dark) .nav-shell { background-color: var(--color-page); }
+  }
+}

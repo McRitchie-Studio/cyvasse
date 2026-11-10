@@ -880,6 +880,42 @@ the live-seek search), and the onboarding steps, whose h1 is the wizard card's.
 Tests: `test/components/page_headers_test.rb`, `test/helpers/studio_crumbs_test.rb`,
 `test/system/page_header_test.rb`.
 
+## Glass
+
+The app wears the engine's glass, as the hub and Turf do
+(`config.surface_style = :glass`, `config.sidebar_style = :glass`; engine.css,
+THE GLASS SURFACES and THE GLASS SIDEBAR; task `cyvasse-adopts-glass-style`).
+`layouts/application` puts `data-surface-style="glass"` on the root. Cards turn
+translucent over a soft ambient page, the navbar blurs, filled buttons are lit,
+and the link sidebar floats as a glass panel.
+
+The engine draws it in the hub's colours (a blue glow, violet hairlines and a
+violet panel). The hub names no Cyvasse brand, so
+`app/assets/tailwind/application.css` restates those tokens in the colours the
+initializer declares: gold glows (weaker than the engine's in the light theme),
+a success-green side glow, warm ink hairlines, and a parchment sidebar panel.
+The engine's tokens sit in a layer and this app's are unlayered, so a token set
+in the light block is restated in the dark block too. Lit `btn-primary` and
+`btn-secondary` start their gradient at the fill and run darker, so white text
+keeps the fill's own AA contrast. In the light theme the navbar fill is 90%,
+not the engine's 62%, so it stays light over the dark hero and banners.
+
+The game keeps its look:
+
+- the board's page (`/play`, a match) has no ambient glow, so the ground
+  between and around the hexes is the plain page; the panels beside the board
+  are glass;
+- the docked army sheet under 1024px floats over the board and stays solid
+  (`app/assets/stylesheets/game.css`); Smart Setup and Ready do not move on a
+  press;
+- the game-over modal's buttons are the engine's plain filled buttons
+  (`.cyvasse-game-over`).
+
+On the front door the live leaderboard card sits on the hero photo, so it is
+frosted (`.surface-glass-blur`, an 88% fill). Coverage:
+`test/components/glass_surface_adoption_test.rb` and
+`test/system/glass_surfaces_test.rb`.
+
 ## Site footer and legal pages
 
 Every public page ends with studio-engine's site footer (`studio_site_footer` at

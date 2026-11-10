@@ -18,6 +18,15 @@ Studio.configure do |config|
   config.site_description = "Play Cyvasse, the hex-board strategy game from A Song of Ice and Fire, " \
                             "free in your browser: live matchmaking, a computer opponent, no download."
   config.session_key = :cyvasse_user_id
+  # Liquid glass, as on the hub and Turf (engine.css, THE GLASS SURFACES and THE
+  # GLASS SIDEBAR; task cyvasse-adopts-glass-style): translucent cards over an
+  # ambient page, a blurred navbar, lit buttons, and the link sidebar as a
+  # floating glass panel. layouts/application puts the switch on the root;
+  # app/assets/tailwind/application.css tints it in Cyvasse's parchment and
+  # gold and keeps the game itself as it was (the board, the docked army sheet,
+  # the game-over modal).
+  config.surface_style = :glass
+  config.sidebar_style = :glass
   # Page changes present with the McRitchie Studio view transition
   # (layouts/studio/_smooth_load); Play Now's searching page and splash lean on it.
   config.smooth_load = true
