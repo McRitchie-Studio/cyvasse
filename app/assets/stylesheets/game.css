@@ -885,6 +885,13 @@ html.dark [data-skin="pencil"] .dock-unit img {
   white-space: nowrap;
 }
 
+/* Smart Setup and Ready paint their own fills, so the engine's glass does not
+ * light them. Its press still moves every full-size .btn 1px; these two keep
+ * still, as they did before glass (task cyvasse-adopts-glass-style). */
+.cyvasse-army .btn:active {
+  translate: none;
+}
+
 .cyvasse-army-count {
   display: none;
   margin: 0;
@@ -1263,8 +1270,13 @@ html.dark [data-skin="pencil"] .dock-unit img {
 /* Both sheets: the heading over the count (and a live match's clock), every
  * unit, then Smart Setup beside Ready at the sheet's foot, in thumb reach. */
 @media (max-width: 1023px) {
+  /* The sheet floats over the board, so it stays solid under the engine's
+   * glass (task cyvasse-adopts-glass-style): a see-through sheet would show
+   * the pieces through the army. The engine keeps a card solid only when it
+   * carries a .fixed class, and this card is fixed by this rule instead. */
   .cyvasse-setup-controls .cyvasse-army {
     --army-slot: 2.75rem;
+    --surface-card-fill: var(--color-surface);
     position: fixed;
     z-index: 40;
     margin: 0;

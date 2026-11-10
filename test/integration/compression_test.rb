@@ -20,7 +20,9 @@ class CompressionTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal "gzip", response.headers["content-encoding"]
     assert_includes response.headers["vary"].to_s, "Accept-Encoding"
-    assert_includes gunzip(response.body), '<html lang="en">'
+    # The root's opening, not the whole tag: the root carries more attributes,
+    # such as the glass switch (task cyvasse-adopts-glass-style).
+    assert_includes gunzip(response.body), '<html lang="en"'
   end
 
   test "a page is sent raw to a client that does not ask for gzip" do
@@ -28,7 +30,7 @@ class CompressionTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_nil response.headers["content-encoding"]
-    assert_includes response.body, '<html lang="en">'
+    assert_includes response.body, '<html lang="en"'
   end
 
   test "JSON is gzip'd" do

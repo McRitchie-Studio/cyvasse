@@ -7,7 +7,7 @@
     in). A guest is asked to sign in, which keeps their record and points
     (GuestClaim); anyone may play again. Closing leaves the final board. %>
 <div x-data="{ get props() { var c = $store.modals.current(); return (c && c.props) || {}; } }"
-     class="relative text-center" data-test="game-over-modal">
+     class="cyvasse-game-over relative text-center" data-test="game-over-modal">
   <%= render "studio/modals/blocks/close_x" %>
   <p class="text-xs font-semibold uppercase tracking-widest text-muted mb-2">Game over</p>
   <h3 class="text-2xl font-extrabold text-heading mb-2" x-text="props.result" data-test="game-over-result"></h3>
