@@ -41,6 +41,7 @@ class PlayTimesSurveySystemTest < ApplicationSystemTestCase
                                                                           deviceScaleFactor: 2, mobile: true)
     page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-color-scheme", value: "dark" } ])
     visit "/surveys/play-times?ref=#{REF}"
+    assert_viewport_width 375
     assert_selector "[data-studio-survey].is-enhanced"
     assert_step "Question 1 of 6"
     assert_equal "first_game", step_key
@@ -70,7 +71,7 @@ class PlayTimesSurveySystemTest < ApplicationSystemTestCase
 
     assert_selector "h1, h2", text: "Thank you!"
     assert_link "Play a game now", href: "/play"
-    overflow = page.evaluate_script("document.documentElement.scrollWidth - window.innerWidth")
+    overflow = page.evaluate_script("document.documentElement.scrollWidth - document.documentElement.clientWidth")
     assert_operator overflow, :<=, 0, "the survey scrolls sideways at 375px"
 
     response = Studio::SurveyResponse.sole

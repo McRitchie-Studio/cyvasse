@@ -107,9 +107,10 @@ class PlayNowSystemTest < ApplicationSystemTestCase
     %w[light dark].each do |theme|
       page.execute_script("document.documentElement.classList.toggle('dark', arguments[0])", theme == "dark")
       page.save_screenshot(Rails.root.join("tmp/screenshots/full-bleed-splash-desktop-#{theme}.png"))
-      page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+      phone_viewport!(390)
       begin
         sleep 0.2
+        assert_viewport_width 390
         page.save_screenshot(Rails.root.join("tmp/screenshots/full-bleed-splash-390-#{theme}.png"))
       ensure
         page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
@@ -123,9 +124,10 @@ class PlayNowSystemTest < ApplicationSystemTestCase
 
     sleep 0.4
     page.save_screenshot(Rails.root.join("tmp/screenshots/bot-portraits-splash-desktop.png"))
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+    phone_viewport!(390)
     begin
       sleep 0.2
+      assert_viewport_width 390
       page.save_screenshot(Rails.root.join("tmp/screenshots/bot-portraits-splash-390.png"))
     ensure
       page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")

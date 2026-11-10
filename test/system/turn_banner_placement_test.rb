@@ -16,8 +16,9 @@ class TurnBannerPlacementTest < ApplicationSystemTestCase
     label = width ? "#{width}px" : "desktop"
 
     test "/play: the turn banner never overlaps the board (#{label})" do
-      phone!(width) if width
+      phone_viewport!(width) if width
       visit play_path
+      assert_viewport_width(width) if width
       assert_selector "svg.cyvasse-board g.hex", count: 91
 
       smart_setup!
@@ -36,8 +37,9 @@ class TurnBannerPlacementTest < ApplicationSystemTestCase
       visit_magic_link(Studio::Link.create_magic_link(email: arya.email).token)
       assert_text "Signed in as arya"
 
-      phone!(width) if width
+      phone_viewport!(width) if width
       visit match_path(match)
+      assert_viewport_width(width) if width
       assert_selector ".cyvasse-dock .dock-unit", count: 19
 
       smart_setup!
@@ -52,11 +54,6 @@ class TurnBannerPlacementTest < ApplicationSystemTestCase
   end
 
   private
-
-  def phone!(width)
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
-                                    width: width, height: 844, deviceScaleFactor: 1, mobile: true)
-  end
 
   # Every frame: the area the showing banner shares with the board's box, the
   # largest seen, and how many frames a banner was showing at all (so a

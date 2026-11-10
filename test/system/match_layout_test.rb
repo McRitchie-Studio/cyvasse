@@ -69,9 +69,10 @@ class MatchLayoutSystemTest < ApplicationSystemTestCase
 
   test "[e2e] phone: versus, board, then the panel, with no sideways scroll" do
     # The phone viewport outlives the test in a shared browser: always undo it.
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+    phone_viewport!(390)
     begin
       visit match_path(@match)
+      assert_viewport_width 390
       assert_panel_holds_the_noise(docked: true)
       versus, board, panel = [ ".match-versus-card", ".cyvasse-board-wrap", "aside.match-panel" ].map { box(_1) }
       assert_operator versus[:bottom], :<=, board[:top], "the versus card sits above the board"

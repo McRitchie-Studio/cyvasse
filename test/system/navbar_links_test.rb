@@ -36,8 +36,7 @@ class NavbarLinksSystemTest < ApplicationSystemTestCase
 
   test "390px: the phone row shows the links with no sideways scroll" do
     10.times { |i| Message.send_direct!(@arya, @brienne, "gg #{i}") }
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
-                                    width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+    phone_viewport!(390)
     visit leaderboard_path
     row = find("nav[aria-label=Main]", visible: true)
     assert_equal "My games Chat 9+ Leaderboard #2", row.text.squish

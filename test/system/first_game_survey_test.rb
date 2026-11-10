@@ -29,6 +29,7 @@ class FirstGameSurveySystemTest < ApplicationSystemTestCase
                                                                           deviceScaleFactor: 2, mobile: true)
     page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-color-scheme", value: "dark" } ])
     visit "/surveys/first-game?ref=#{REF}"
+    assert_viewport_width 375
     assert_selector "[data-studio-survey].is-enhanced"
     # studio-engine 0.89 opens straight on question 1: no intro step, no Start
     # button, and no Back button. The title repeats question 1, so the engine
@@ -60,7 +61,7 @@ class FirstGameSurveySystemTest < ApplicationSystemTestCase
     assert_selector "h1, h2", text: "Thank you!"
     assert_text "We read every answer."
     assert_link "Play another game", href: "/play"
-    overflow = page.evaluate_script("document.documentElement.scrollWidth - window.innerWidth")
+    overflow = page.evaluate_script("document.documentElement.scrollWidth - document.documentElement.clientWidth")
     assert_operator overflow, :<=, 0, "the survey scrolls sideways at 375px"
 
     response = Studio::SurveyResponse.sole

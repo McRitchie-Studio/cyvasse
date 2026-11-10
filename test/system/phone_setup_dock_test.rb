@@ -28,6 +28,7 @@ class PhoneSetupDockTest < ApplicationSystemTestCase
     test "/play places a whole army at #{width}x#{height} with the board and the dock both in view" do
       phone!(width, height)
       visit play_path
+      assert_viewport_width width
       assert_controllers_connected "cyvasse-game"
       place_the_army("play-#{width}x#{height}")
     end
@@ -38,6 +39,7 @@ class PhoneSetupDockTest < ApplicationSystemTestCase
       sign_in(arya)
       phone!(width, height)
       visit match_path(match)
+      assert_viewport_width width
       assert_controllers_connected "cyvasse-match"
       assert_selector ".cyvasse-army .cyvasse-army-clock", text: /\A\d+s\z/
       place_the_army("match-#{width}x#{height}")

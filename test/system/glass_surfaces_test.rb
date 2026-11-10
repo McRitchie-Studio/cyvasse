@@ -50,6 +50,7 @@ class GlassSurfacesSystemTest < ApplicationSystemTestCase
       test "#{width}px #{theme}: translucent cards, a blurred navbar and the parchment glass sidebar" do
         resize_to(width, height)
         visit_in(theme, "/rules")
+        assert_viewport_width(width) if width < 640
 
         assert_selector ".card", minimum: 1
         assert_operator alpha(style_of(".card", "backgroundColor")), :<, 1, "a card must be translucent"
@@ -65,12 +66,13 @@ class GlassSurfacesSystemTest < ApplicationSystemTestCase
         JS
         assert_equal INK[theme], ink[0], "the sidebar must wear Cyvasse's parchment ink"
         assert_includes ink[1], "blur"
-        assert_operator page.evaluate_script("document.documentElement.scrollWidth - window.innerWidth"), :<=, 0
+        assert_operator page.evaluate_script("document.documentElement.scrollWidth - document.documentElement.clientWidth"), :<=, 0
       end
 
       test "#{width}px #{theme}: the board page keeps a plain ground and unlit game-over buttons" do
         resize_to(width, height)
         visit_in(theme, "/play")
+        assert_viewport_width(width) if width < 640
         assert_controllers_connected("cyvasse-game")
 
         assert_equal "none", style_of("body", "backgroundImage", "::before"), "no ambient glow behind the board"
@@ -87,7 +89,7 @@ class GlassSurfacesSystemTest < ApplicationSystemTestCase
         assert_equal "none", style_of(button, "backgroundImage"), "the game-over buttons are not lit"
         assert_equal "none", style_of(button, "content", "::after")
         assert_equal 1.0, alpha(style_of(button, "backgroundColor"))
-        assert_operator page.evaluate_script("document.documentElement.scrollWidth - window.innerWidth"), :<=, 0
+        assert_operator page.evaluate_script("document.documentElement.scrollWidth - document.documentElement.clientWidth"), :<=, 0
       end
     end
   end

@@ -19,6 +19,7 @@ class ArmyTilesDarkTest < ApplicationSystemTestCase
       test "#{skin} tiles read in the dark theme, see-through, at #{label}" do
         phone!(width) if width
         visit play_path(skin: skin)
+        assert_viewport_width(width) if width
         assert_selector "[data-controller=cyvasse-game][data-skin=#{skin}]"
         assert_selector TILE, count: 19
 

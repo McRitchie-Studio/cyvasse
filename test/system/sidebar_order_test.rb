@@ -27,6 +27,7 @@ class SidebarOrderTest < ApplicationSystemTestCase
       sign_in(arya)
       size!(width, phone)
       visit match_path(match)
+      assert_viewport_width(width) if phone
       assert_controllers_connected "cyvasse-match"
       assert_selector ".cyvasse-dock .dock-unit", count: 19
       if phone
@@ -79,6 +80,7 @@ class SidebarOrderTest < ApplicationSystemTestCase
       sign_in(home)
       size!(width, phone)
       visit match_path(match)
+      assert_viewport_width(width) if phone
       assert_selector "[data-controller=cyvasse-match][data-phase=play][data-your-turn=true]"
       find("svg.cyvasse-board g.hex.has-unit[data-team='1']", match: :first).click
       assert_selector "[data-cyvasse-match-target=info]", visible: :visible
