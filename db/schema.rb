@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_09_073703) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_10_062618) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -96,6 +96,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_073703) do
     t.string "target_type"
     t.datetime "updated_at", null: false
     t.index ["slug"], name: "index_error_logs_on_slug", unique: true
+    t.check_constraint "slug IS NOT NULL", name: "error_logs_slug_present"
   end
 
   create_table "image_caches", force: :cascade do |t|
@@ -275,6 +276,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_073703) do
     t.datetime "updated_at", null: false
     t.index ["app_name"], name: "index_studio_geo_settings_on_app_name", unique: true
     t.index ["slug"], name: "index_studio_geo_settings_on_slug", unique: true
+    t.check_constraint "slug IS NOT NULL", name: "studio_geo_settings_slug_present"
   end
 
   create_table "studio_knowledge_docs", force: :cascade do |t|
@@ -348,6 +350,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_073703) do
     t.datetime "updated_at", null: false
     t.index ["app_name"], name: "index_studio_site_identities_on_app_name", unique: true
     t.index ["slug"], name: "index_studio_site_identities_on_slug", unique: true
+    t.check_constraint "slug IS NOT NULL", name: "studio_site_identities_slug_present"
   end
 
   create_table "studio_survey_responses", force: :cascade do |t|
@@ -398,6 +401,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_073703) do
     t.string "warning"
     t.index ["app_name"], name: "index_theme_settings_on_app_name", unique: true
     t.index ["slug"], name: "index_theme_settings_on_slug", unique: true
+    t.check_constraint "slug IS NOT NULL", name: "theme_settings_slug_present"
   end
 
   create_table "users", force: :cascade do |t|
@@ -435,6 +439,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_073703) do
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true
     t.index ["slug"], name: "index_users_on_slug", unique: true
     t.index ["username"], name: "index_users_on_username", unique: true
+    t.check_constraint "role IS NOT NULL", name: "users_role_present"
     t.check_constraint "role::text = ANY (ARRAY['viewer'::character varying::text, 'member'::character varying::text, 'admin'::character varying::text])", name: "users_role_known"
   end
 
