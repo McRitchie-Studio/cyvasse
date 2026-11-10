@@ -49,6 +49,7 @@ class RulesPageLayoutTest < ApplicationSystemTestCase
   test "one unit card a row at 390px, with the phone banner crop" do
     screen!(390, 844, mobile: true)
     visit rules_path
+    assert_viewport_width 390
 
     card_rows.each do |unit_class, rows|
       assert rows.all? { _1.size == 1 }, "#{unit_class}: every card on its own row"

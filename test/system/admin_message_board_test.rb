@@ -14,10 +14,11 @@ class AdminMessageBoardSystemTest < ApplicationSystemTestCase
   end
 
   test "an admin reads the board, newest first, at phone width" do
-    page.driver.browser.manage.window.resize_to(375, 900)
+    phone_viewport!(375, 900)
     sign_in(@admin)
     visit admin_conversations_path
     click_on "Message Board"
+    assert_viewport_width 375
 
     assert_selector "h1", text: "Message Board"
     assert_equal [ "rematch next week", "anyone for a game tonight?" ], all("[data-board-post] .chat-text").map(&:text)

@@ -29,6 +29,7 @@ class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
     test "#{theme}, 390px: one theme toggle and the avatar alone as the account control" do
       at_width(390, mobile: true)
       visit_in_theme(root_path, theme)
+      assert_viewport_width 390
 
       assert_selector "#{NAV} button[title='Toggle theme']", visible: true, count: 1
       assert_selector "#{NAV} [data-nav-account]", visible: true, count: 1
@@ -68,6 +69,7 @@ class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
       visit_magic_link(Studio::Link.create_magic_link(email: admin.email).token)
       assert_text "Signed in as #{admin.player_name}"
       visit root_path
+      assert_viewport_width(width) if mobile
 
       assert_selector COG, visible: true, count: 1
       assert_selector "#{NAV} button[title='Admin Menu']", visible: true, count: 1
@@ -79,6 +81,7 @@ class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
   test "390px: a player's one cog opens the links, not an admin menu" do
     at_width(390, mobile: true)
     visit root_path
+    assert_viewport_width 390
 
     assert_selector COG, visible: true, count: 1
     assert_selector "#{NAV} button[title='Links']", visible: true, count: 1
@@ -110,6 +113,7 @@ class NavbarAccountWidthsSystemTest < ApplicationSystemTestCase
       Capybara.reset_sessions!
       at_width(width, mobile: width < 768)
       visit root_path
+      assert_viewport_width(width) if width < 768
 
       assert_selector "#{NAV} a", text: "Sign in", visible: true, minimum: 1
       assert_no_selector "#{NAV} a", text: /\bLog ?in\b/, visible: true

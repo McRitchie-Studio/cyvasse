@@ -18,15 +18,9 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
   end
 
-  # A true 375px viewport: a desktop Chrome window will not shrink that far.
-  def phone!
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
-                                    width: 375, height: 812, deviceScaleFactor: 1, mobile: true)
-  end
-
   def assert_no_sideways_scroll
+    assert_viewport_width 375
     scroll, client = page_widths
-    assert_equal 375, client, "the viewport is a phone's"
     assert_operator scroll, :<=, client, "no sideways scroll at phone width"
   end
 
@@ -63,7 +57,7 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     end
     screenshot("guest-finished-on-card")
 
-    phone!
+    phone_viewport!(375, 812)
     visit root_path
     assert_selector "[data-leaderboard-card] [data-leaderboard-row='#{guest.username}']"
     assert_no_sideways_scroll
@@ -81,7 +75,7 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
     assert_equal %w[a_very_long_username arya], all("[data-leaderboard-card] [data-leaderboard-row]").map { _1["data-leaderboard-row"] }
     screenshot("landing-desktop")
 
-    phone!
+    phone_viewport!(375, 812)
     visit root_path
     assert_selector "[data-leaderboard-card] [data-leaderboard-row]", count: 2
     assert_no_sideways_scroll
@@ -109,7 +103,7 @@ class LeaderboardSystemTest < ApplicationSystemTestCase
       assert_text "Sign in to keep your points and your record under your name"
     end
     screenshot("guest-win-cta")
-    phone!
+    phone_viewport!(375, 812)
     assert_no_sideways_scroll
     screenshot("guest-win-cta-phone")
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")

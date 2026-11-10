@@ -74,8 +74,9 @@ class ContrastSystemTest < ApplicationSystemTestCase
       visit_magic_link(Studio::Link.create_magic_link(email: arya.email).token)
       assert_text "Signed in as #{arya.player_name}"
 
-      page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+      phone_viewport!(390)
       visit_in_theme(match_path(match), theme)
+      assert_viewport_width 390
       clock = find(".cyvasse-army .cyvasse-army-clock", text: /\A\d+s\z/)
       # The live clock re-toggles is-warning on every tick, so a one-off add
       # races it; hold the class on for the rest of the test.
@@ -120,8 +121,9 @@ class ContrastSystemTest < ApplicationSystemTestCase
     visit_magic_link(Studio::Link.create_magic_link(email: guest.email).token)
     assert_text "Signed in as #{guest.player_name}"
 
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+    phone_viewport!(390)
     visit root_path
+    assert_viewport_width 390
     assert_selector "header[data-pin=nav] button[title='Toggle theme']", visible: true, count: 1
     assert_selector "header[data-pin=nav] [data-nav-account]", visible: true, count: 1
     # The name is screen-reader text there: in the page, but a 1px clipped box.

@@ -39,6 +39,7 @@ class SetupLayoutFitTest < ApplicationSystemTestCase
     test "/play places a whole army at #{width}x#{height} with the board and the army card both in view" do
       touch_screen!(width, height)
       visit play_path
+      assert_viewport_width width
       assert_controllers_connected "cyvasse-game"
       place_the_army("play-#{label}", fit)
     end
@@ -49,6 +50,7 @@ class SetupLayoutFitTest < ApplicationSystemTestCase
       sign_in(arya)
       touch_screen!(width, height)
       visit match_path(match)
+      assert_viewport_width width
       assert_controllers_connected "cyvasse-match"
       clock = fit == "page" ? ".live-clock-seconds" : ".cyvasse-army .cyvasse-army-clock"
       assert_selector clock, text: /\A\d+s\z/

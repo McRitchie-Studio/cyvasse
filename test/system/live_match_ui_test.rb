@@ -79,8 +79,9 @@ class LiveMatchUiTest < ApplicationSystemTestCase
     page.save_screenshot(Rails.root.join("tmp/screenshots/bot-portraits-versus-desktop.png")) if ENV["SCREENSHOTS"]
 
     # The phone viewport outlives the test in a shared browser: always undo it.
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+    phone_viewport!(390)
     begin
+      assert_viewport_width 390
       assert_selector "h1.match-versus [data-avatar=bot-portrait]"
       assert portrait_loaded?, "the portrait image loaded at 390px"
       scroll, client = page_widths

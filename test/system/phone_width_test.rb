@@ -13,7 +13,7 @@ class PhoneWidthTest < ApplicationSystemTestCase
 
   [ 390, 375 ].each do |width|
     test "/play has no sideways scroll at #{width}px while a turn banner comes and goes" do
-      phone!(width)
+      phone_viewport!(width)
       visit play_path
       assert_selector "svg.cyvasse-board g.hex", count: 91
       assert_fits width
@@ -43,7 +43,7 @@ class PhoneWidthTest < ApplicationSystemTestCase
     visit_magic_link(Studio::Link.create_magic_link(email: arya.email).token)
     assert_text "Signed in as arya"
 
-    phone!(390)
+    phone_viewport!(390)
     visit match_path(match)
     assert_selector ".cyvasse-dock .dock-unit", count: 19
     assert_fits 390
@@ -76,15 +76,9 @@ class PhoneWidthTest < ApplicationSystemTestCase
   private
 
 
-  # A true phone viewport.
-  def phone!(width)
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
-                                    width: width, height: 844, deviceScaleFactor: 1, mobile: true)
-  end
-
   def assert_fits(width)
+    assert_viewport_width width
     scroll, client = page_widths
-    assert_equal width, client, "the viewport is a #{width}px phone's"
     assert_operator scroll, :<=, client, "no sideways scroll at #{width}px"
   end
 

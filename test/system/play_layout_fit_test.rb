@@ -35,6 +35,7 @@ class PlayLayoutFitTest < ApplicationSystemTestCase
     test "/play shows the whole board during play at #{width}x#{height}" do
       screen!(width, height, touch:)
       visit play_path
+      assert_viewport_width(width) if touch
       assert_controllers_connected "cyvasse-game"
       assert_selector "svg.cyvasse-board g.hex", count: 91
       smart_setup!
@@ -49,6 +50,7 @@ class PlayLayoutFitTest < ApplicationSystemTestCase
 
     test "a live match shows the whole board during play at #{width}x#{height}" do
       visit_live_match { screen!(width, height, touch:) }
+      assert_viewport_width(width) if touch
       smart_setup!
       click_on "Ready"
       assert_selector "[data-controller=cyvasse-match][data-phase=play]", wait: 10
@@ -69,6 +71,7 @@ class PlayLayoutFitTest < ApplicationSystemTestCase
 
   test "a phone match in play has no empty band above the board while no banner shows" do
     visit_live_match { screen!(390, 844, touch: true) }
+    assert_viewport_width 390
     smart_setup!
     click_on "Ready"
     assert_selector "[data-controller=cyvasse-match][data-phase=play]", wait: 10
@@ -92,6 +95,7 @@ class PlayLayoutFitTest < ApplicationSystemTestCase
 
   test "a phone match's setup shows one clock, the docked sheet's" do
     visit_live_match { screen!(390, 844, touch: true) }
+    assert_viewport_width 390
     assert_selector ".cyvasse-dock .dock-unit", count: 19
     assert_selector ".cyvasse-army .cyvasse-army-clock", text: /\A\d+s\z/
     clocks = page.evaluate_script(<<~JS)

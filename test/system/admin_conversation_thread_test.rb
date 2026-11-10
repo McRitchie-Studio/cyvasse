@@ -20,10 +20,11 @@ class AdminConversationThreadSystemTest < ApplicationSystemTestCase
   end
 
   test "an admin reads a conversation grouped by game with left and right bubbles" do
-    page.driver.browser.manage.window.resize_to(390, 900)
+    phone_viewport!(390, 900)
     sign_in(@admin)
     visit admin_conversations_path
     click_on "5 messages"
+    assert_viewport_width 390
 
     assert_selector "[data-game]", count: 3
     assert_equal [ @new.id.to_s, "none", @old.id.to_s ], all("[data-game]").map { _1["data-game"] }

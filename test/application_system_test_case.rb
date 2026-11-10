@@ -14,16 +14,37 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
 
   # One browser serves every test, so what a test changes in it outlives the
   # test (task cyvasse-system-test-flakes). Put back:
-  # - the window size: the admin phone-width tests resize it (Chrome clamps
-  #   375px to 500px), and a later test expecting the desktop board is then
-  #   scrolled, clicked off target, and fails;
+  # - the window size: a test that resizes the window leaves a later test
+  #   expecting the desktop board scrolled, clicked off target, and failing;
   # - emulated media: jump_range_rings_test turns on prefers-reduced-motion,
   #   and a later test that watches an animation (the home gallery's slides)
-  #   then sees none.
+  #   then sees none;
+  # - device-metrics emulation: phone_viewport! (below) and the phone tests'
+  #   own helpers set it.
   teardown do
     window = page.current_window
     window.resize_to(*SCREEN_SIZE) unless window.size == SCREEN_SIZE
     page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [])
+    page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
+  end
+
+  # A real phone-width viewport (task system-tests-real-phone-widths).
+  # Headless Chrome will not size its window under 500px, so
+  # resize_to(390, ...) gives a 500px page and a "390px" check passes at the
+  # wrong width. DevTools device-metrics emulation sets the viewport itself.
+  # After each visit, and before you measure, call assert_viewport_width.
+  # It reads clientWidth, not innerWidth: under mobile emulation innerWidth
+  # grows to fit a page that overflows, so a check against it passes
+  # vacuously. Use it at phone widths only (mobile emulation overlays the
+  # scrollbar; a desktop Linux Chrome takes 15px of clientWidth for one).
+  # The teardown above clears the override: the driver outlives the test.
+  def phone_viewport!(width, height = 844)
+    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
+                                    width: width, height: height, deviceScaleFactor: 1, mobile: true)
+  end
+
+  def assert_viewport_width(width)
+    assert_equal width, evaluate_script("document.documentElement.clientWidth"), "the viewport is #{width}px"
   end
 
   # Waits until every element carrying each Stimulus identifier has its

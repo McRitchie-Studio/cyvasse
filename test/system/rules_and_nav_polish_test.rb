@@ -34,8 +34,9 @@ class RulesAndNavPolishTest < ApplicationSystemTestCase
     match.set_up!(arya, CyvasseRules::Bot.lineup(rng: Random.new(5)))
     sign_in(arya)
 
-    phone(390, 844)
+    phone_viewport!(390, 844)
     visit match_path(match)
+    assert_viewport_width 390
     assert_selector "[data-controller=cyvasse-match][data-phase=play]", wait: 10
     assert_controllers_connected("board-key")
     key = find(".match-panel-status details.cyvasse-legend")
@@ -54,7 +55,8 @@ class RulesAndNavPolishTest < ApplicationSystemTestCase
     # above the "?". Its room above, measured from the "?", was 63px too
     # generous, and the capped panel ran 54px under the navbar.
     key.find("summary").click
-    phone(568, 320)
+    phone_viewport!(568, 320)
+    assert_viewport_width 568
     page.execute_script("arguments[0].scrollIntoView({ block: 'end' })", key)
     key.find("summary").click
     assert_selector ".match-panel-status details.cyvasse-legend[open][data-placement]"
@@ -63,8 +65,9 @@ class RulesAndNavPolishTest < ApplicationSystemTestCase
   end
 
   test "844x390: the /play board key opens inside the screen" do
-    phone(844, 390)
+    phone_viewport!(844, 390)
     visit play_path
+    assert_viewport_width 844
     select "Crown Forward", from: "Opening"
     within("[data-controller=cyvasse-openings]") { click_on "Load opening" }
     assert_text "Loaded Crown Forward."
@@ -95,9 +98,10 @@ class RulesAndNavPolishTest < ApplicationSystemTestCase
   end
 
   test "375x667: a rule link lands its card below the navbar" do
-    phone(375, 667)
+    phone_viewport!(375, 667)
     page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-reduced-motion", value: "reduce" } ])
     visit rules_path
+    assert_viewport_width 375
     assert_controllers_connected("rule-links")
 
     link = find("#unit-rabble dd[data-stat=trump] a[href='#rule-trumps']")
@@ -138,10 +142,6 @@ class RulesAndNavPolishTest < ApplicationSystemTestCase
   def sign_in(user)
     visit_magic_link(Studio::Link.create_magic_link(email: user.email).token)
     assert_text "Signed in as #{user.player_name}"
-  end
-
-  def phone(width, height)
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width:, height:, deviceScaleFactor: 1, mobile: true)
   end
 
   # The badge text in each Leaderboard link of the navbar (the desktop bar,

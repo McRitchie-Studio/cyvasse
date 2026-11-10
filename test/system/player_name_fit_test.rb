@@ -112,6 +112,7 @@ class PlayerNameFitTest < ApplicationSystemTestCase
   # Chrome will not size a window below 500px, so a phone is emulated.
   def at_width(width, height)
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width:, height:, deviceScaleFactor: 1, mobile: width < 500)
+    assert_viewport_width(width) if width < 500
     yield
   ensure
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")

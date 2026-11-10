@@ -113,8 +113,9 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
 
   test "on a touch screen the hint is a Start over button" do
     page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: true, maxTouchPoints: 5)
-    page.current_window.resize_to(390, 844)
+    phone_viewport!(390)
     visit play_path
+    assert_viewport_width 390
     start_game
     assert page.evaluate_script("matchMedia('(hover: none) and (pointer: coarse)').matches"), "touch is emulated"
     stage("1-8" => 80, "1-17" => 91, "0-17" => 1, "0-15" => 46, "0-1" => 45)
@@ -128,7 +129,6 @@ class ThreatsEscapeTest < ApplicationSystemTestCase
     assert_no_selector "svg.cyvasse-board g.hex.is-selected"
   ensure
     page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: false)
-    page.current_window.resize_to(1400, 1100)
   end
 
   private

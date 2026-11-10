@@ -9,11 +9,6 @@ require "application_system_test_case"
 class PageHeaderTest < ApplicationSystemTestCase
   teardown { page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride") }
 
-  def phone!(width = 390)
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
-                                    width: width, height: 844, deviceScaleFactor: 1, mobile: true)
-  end
-
   def assert_no_sideways_scroll(label)
     scroll, client = page_widths
     assert_operator scroll, :<=, client, "no sideways scroll: #{label}"
@@ -33,8 +28,9 @@ class PageHeaderTest < ApplicationSystemTestCase
     end
     assert_no_sideways_scroll "privacy at desktop"
 
-    phone!
+    phone_viewport!(390)
     visit privacy_path
+    assert_viewport_width 390
     within(".page-header") do
       assert_selector "h1.page-header-title", visible: true
       assert_selector "a.page-header-parent", text: "Home", visible: true
@@ -54,8 +50,9 @@ class PageHeaderTest < ApplicationSystemTestCase
   end
 
   test "the leaderboard's tabs switch boards from the header, on a 390px phone" do
-    phone!
+    phone_viewport!(390)
     visit leaderboard_path
+    assert_viewport_width 390
     within(".page-header") do
       assert_selector "a.page-header-tab[aria-current=page]", text: "Live", visible: true
       click_on "All-time"
@@ -72,8 +69,9 @@ class PageHeaderTest < ApplicationSystemTestCase
     match = Match.challenge!(arya, "brienne_of_tarth_xx")
     sign_in(admin)
 
-    phone!
+    phone_viewport!(390)
     visit admin_match_path(match)
+    assert_viewport_width 390
     assert_selector ".page-header h1", text: "Match ##{match.id}: arya vs brienne_of_tarth_xx"
     assert_no_sideways_scroll "admin match at 390px"
     find(".page-header a.page-header-parent", text: "Conversations").click
