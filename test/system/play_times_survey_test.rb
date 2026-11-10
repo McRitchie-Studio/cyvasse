@@ -26,35 +26,45 @@ class PlayTimesSurveySystemTest < ApplicationSystemTestCase
 
   def step_key = find("[data-survey-step].is-active")["data-key"]
 
+  # The step counter changes as a step starts to slide in, so a click on the
+  # new step's option right then can land where the option is not yet, and the
+  # survey never advances. Each step is asserted, then waited out until no
+  # finite animation is running (the slide and the scroll to the top), before
+  # the next click. Seen in the full suite (task cyvasse-adopts-glass-style).
+  def assert_step(text)
+    assert_text text
+    Timeout.timeout(5) { sleep 0.05 until page.evaluate_script(FINITE_ANIMATIONS).zero? && page.evaluate_script("window.scrollY").zero? }
+  end
+
   test "a legacy player skips question 1, picks times, and an admin reads it" do
     page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 375, height: 760,
                                                                           deviceScaleFactor: 2, mobile: true)
     page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-color-scheme", value: "dark" } ])
     visit "/surveys/play-times?ref=#{REF}"
     assert_selector "[data-studio-survey].is-enhanced"
-    assert_text "Question 1 of 6"
+    assert_step "Question 1 of 6"
     assert_equal "first_game", step_key
     assert_text "Haven't played yet? Skip this one."
     find("[data-key=first_game] .studio-survey__tile", match: :first)
     shot("play-times-q1-phone-dark.png")
 
     click_on "Next" # not required: a player who has not played moves straight on
-    assert_text "Question 2 of 6"
+    assert_step "Question 2 of 6"
     assert_equal "times", step_key
     find("[data-key=times]").find("label", text: "🌆 Evening").click
     find("[data-key=times]").find("label", text: "🌙 Late night").click
     click_on "Next"
-    assert_text "Question 3 of 6"
+    assert_step "Question 3 of 6"
     assert_equal "days", step_key
     find("[data-key=days]").find("label", text: "Friday").click
     find("[data-key=days]").find("label", text: "Saturday").click
     shot("play-times-days-phone-dark.png")
     click_on "Next"
-    assert_text "Question 4 of 6"
+    assert_step "Question 4 of 6"
     find("[data-key=time_zone]").find("label", text: "Mountain").click
-    assert_text "Question 5 of 6"
+    assert_step "Question 5 of 6"
     find("[data-key=how_often]").find("label", text: "Every other week").click
-    assert_text "Question 6 of 6"
+    assert_step "Question 6 of 6"
     find("[data-key=anything_else] textarea").fill_in(with: "A reminder the day before")
     find("[data-survey-submit]").click
 

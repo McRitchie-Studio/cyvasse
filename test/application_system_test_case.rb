@@ -144,7 +144,16 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # finished. Studio.smooth_load wraps each Turbo visit in one, and mid-flight
   # its overlay spans the whole window, scrollbar gutter included, so a width
   # read then reports sideways scroll that the page does not have.
+  #
+  # The visit's mark comes first. The engine (studio/page_transitions) sets
+  # html[data-page-transition-visit] at turbo:visit and drops it at turbo:load,
+  # which Turbo fires after the transition has finished. The animations alone
+  # are not enough: the new body is in the DOM before the transition's
+  # animations exist, so a read in that gap found none to wait for and caught
+  # the overlay (task cyvasse-adopts-glass-style, where the glass made the
+  # gap wide enough to fail CI).
   def page_widths
+    assert_no_selector "html[data-page-transition-visit]", visible: :all
     page.evaluate_async_script(<<~JS)
       const done = arguments[arguments.length - 1]
       const settle = () => Promise.all(document.getAnimations()
