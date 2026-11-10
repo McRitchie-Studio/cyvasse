@@ -35,7 +35,7 @@ class EmailHandoffOnboardingTest < ApplicationSystemTestCase
     label = width ? "#{width}px" : "desktop"
 
     test "email CTA to welcome back to username to play, #{label}" do
-      phone!(width) if width
+      phone_viewport!(width) if width
       visit email_handoff_path(assertion: hub_assertion(@rook.email, ref: "hub-delivery-token-0101"))
 
       assert_selector "[data-onboarding-step=welcome]"
@@ -73,16 +73,11 @@ class EmailHandoffOnboardingTest < ApplicationSystemTestCase
 
   private
 
-  def phone!(width)
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
-                                    width:, height: 844, deviceScaleFactor: 1, mobile: true)
-  end
-
   # On a phone, every step fits: no sideways scroll.
   def step_shot(width, name)
     if width
+      assert_viewport_width width
       scroll, client = page_widths
-      assert_equal width, client
       assert_operator scroll, :<=, client, "#{name}: no sideways scroll at #{width}px"
     end
     page.save_screenshot(Rails.root.join("tmp/screenshots/onboarding-#{width || "desktop"}-#{name}.png")) if ENV["SCREENSHOTS"]

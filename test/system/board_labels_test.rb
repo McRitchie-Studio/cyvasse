@@ -91,8 +91,9 @@ class BoardLabelsTest < ApplicationSystemTestCase
   end
 
   test "on a phone the key is a small ? that opens over the board" do
-    page.current_window.resize_to(390, 844)
+    phone_viewport!(390)
     visit play_path
+    assert_viewport_width 390
     start_game
     stage(SPOTS)
     summary = find(".cyvasse-legend summary")

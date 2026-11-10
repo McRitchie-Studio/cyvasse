@@ -31,6 +31,7 @@ class SmartSetupCardTest < ApplicationSystemTestCase
     test "the army card's three states hold still (#{label})" do
       phone!(width) if width
       visit play_path
+      assert_viewport_width(width) if width
       assert_selector "[data-controller=cyvasse-game][data-phase=setup]"
       walk_the_three_states(label, docked: !width.nil?)
     end
@@ -43,6 +44,7 @@ class SmartSetupCardTest < ApplicationSystemTestCase
       sign_in(arya)
       phone!(width) if width
       visit match_path(match)
+      assert_viewport_width(width) if width
       assert_selector ".cyvasse-dock .dock-unit", count: 19
       # The live clock shows on its first tick; measure once it has. A docked
       # phone sheet carries it, and the timer card's own is not shown there

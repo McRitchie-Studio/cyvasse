@@ -20,9 +20,10 @@ class ProfileUsernameSystemTest < ApplicationSystemTestCase
 
   { "desktop" => nil, "390px" => [ 390, 844 ] }.each do |label, phone|
     test "#{label}: a player edits the username on the profile and the navbar and leaderboard follow" do
-      phone!(*phone) if phone
+      phone_viewport!(*phone) if phone
       sign_in(@arya)
       visit edit_profile_path
+      assert_viewport_width(phone.first) if phone
 
       cards = all("[data-profile-section]").map { |card| card["data-profile-section"] }
       assert_equal %w[username name], cards.first(2), "the Username card sits above Name"
@@ -65,10 +66,6 @@ class ProfileUsernameSystemTest < ApplicationSystemTestCase
   def sign_in(user)
     visit_magic_link(Studio::Link.create_magic_link(email: user.email).token)
     assert_text "Signed in as #{user.player_name}"
-  end
-
-  def phone!(width, height)
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width:, height:, deviceScaleFactor: 1, mobile: true)
   end
 
   def assert_no_sideways_scroll

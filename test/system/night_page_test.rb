@@ -59,6 +59,7 @@ class NightPageSystemTest < ApplicationSystemTestCase
       page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 375, height: 812, deviceScaleFactor: 2, mobile: true)
       travel_to(phase == "before" ? @night.starts_at - 3.days : @night.starts_at + 20.minutes)
       visit night_path
+      assert_viewport_width 375
       page.execute_script("document.documentElement.classList.toggle('dark', #{theme == 'dark'})")
 
       assert_selector "article[data-night-phase=#{phase}]"

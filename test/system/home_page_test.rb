@@ -30,12 +30,12 @@ class HomePageSystemTest < ApplicationSystemTestCase
   end
 
   test "the front door fits a 390px phone" do
-    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+    phone_viewport!(390)
     visit root_path
+    assert_viewport_width 390
     assert_selector "section.home-hero a", text: "Play a friend"
 
     scroll, client = page.evaluate_script("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
-    assert_equal 390, client
     assert_operator scroll, :<=, client, "no sideways scroll at 390px"
     screenshot("phone")
   end
@@ -46,6 +46,7 @@ class HomePageSystemTest < ApplicationSystemTestCase
     test "the gallery advances through the pieces on a #{name}" do
       emulate(width:, height:)
       visit root_path
+      assert_viewport_width(width) if width < 640
       gallery = find("section.home-hero[data-home-gallery-state=playing]")
       first = gallery["data-home-gallery-piece"]
       assert_selector ".home-slide.is-active", count: 1, visible: :all
@@ -83,6 +84,7 @@ class HomePageSystemTest < ApplicationSystemTestCase
     test "reduced motion holds the gallery on one still on a #{name}" do
       emulate(width:, height:, motion: "reduce")
       visit root_path
+      assert_viewport_width(width) if width < 640
       gallery = find("section.home-hero[data-home-gallery-state=still]")
       first = gallery["data-home-gallery-piece"]
       assert_not_empty first
@@ -109,6 +111,7 @@ class HomePageSystemTest < ApplicationSystemTestCase
       page.driver.browser.execute_cdp("Network.enable")
       page.driver.browser.execute_cdp("Network.setCacheDisabled", cacheDisabled: true)
       visit root_path
+      assert_viewport_width(width) if width < 640
       assert_equal density, page.evaluate_script("window.devicePixelRatio")
       gallery = find("section.home-hero[data-home-gallery-state=playing]")
       first = gallery["data-home-gallery-piece"]
@@ -140,6 +143,7 @@ class HomePageSystemTest < ApplicationSystemTestCase
     test "the hero spans the viewport edge to edge on a #{name}" do
       emulate(width:, height:)
       visit root_path
+      assert_viewport_width(width) if width < 640
       assert_selector "section.home-hero [data-leaderboard-card]"
 
       left, right, top, radius, client, nav_bottom, card_top = page.evaluate_script(<<~JS)
